@@ -307,13 +307,12 @@ Hardware details, power tree and the GPIO map are in
 | 5.2, 5.3, 5.4 | done in code, demo on hardware | silence timeout, card remount, modem power cycle, checksum/field validation |
 | 6.1, 6.4 | partly | stack high-water marks logged; CPU load needs `vTaskGetRunTimeStats` output in README |
 | 6.2, 6.3 | done | SD over SPI with DMA; parse in place, no copies of the NMEA buffer |
-| 7.1–7.7 | open | KiCad schematic still to draw |
+| 7.1 | done | `docs/kicad/gps_tracker.kicad_sch`, ERC clean; 7.2–7.7 (layout, manufacturing) optional |
 | 8.1, 8.3, 8.4, 8.5 | done | README sections |
 | 9.1–9.4 | hardware | soak test, edge-case demo, see `docs/PRESENTATION.md` |
 
-Counting done items: 31 of 42 without any hardware measurement or PCB
-work. The schematic (7.1) and the demo items (9.1–9.3) bring it to 35,
-above the 34 needed.
+Counting done items: 32 of 42 without any hardware measurement or PCB
+layout. The demo items (9.1–9.3) bring it to 35, above the 34 needed.
 
 Still open:
 

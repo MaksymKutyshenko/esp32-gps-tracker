@@ -2,3 +2,10 @@
 build/
 .vscode/
 .DS_Store
+
+# KiCad scratch
+*.kicad_prl
+*-backups/
+*.kicad_sch-bak
+fp-info-cache
+docs/kicad/erc.txt

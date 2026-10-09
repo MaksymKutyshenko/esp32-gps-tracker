@@ -76,6 +76,6 @@ diagrams over text, concrete numbers.
 
 - [ ] Fill the checklist copy (≥ 80 %) with evidence links (file:line).
 - [ ] README results section with measured numbers.
-- [ ] KiCad schematic in `docs/kicad/`.
+- [x] KiCad schematic in `docs/kicad/` (regenerate with `tools/gen_schematic.py` after pin changes).
 - [ ] GitHub release v1.0.0 with a changelog.
 - [ ] Rehearse the edge case twice.

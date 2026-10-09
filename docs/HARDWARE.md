@@ -4,6 +4,12 @@ Component roles, power tree, GPIO map and the wiring risks for the GPS
 tracker. Pin numbers here are the single source for `include/config.hpp`;
 change them together.
 
+Schematic: [kicad/gps_tracker.kicad_sch](kicad/gps_tracker.kicad_sch)
+([PDF](kicad/gps_tracker.pdf)), generated from this pin map by
+`tools/gen_schematic.py`. Breakout modules are drawn as pin headers with
+their pin meaning in a note next to each; edit the script, not the file,
+when a pin changes.
+
 ## 1. Components and roles
 
 | Component | Role in the tracker | Interface | Supply |
