@@ -31,12 +31,14 @@ void Sim800Modem::begin()
 {
     gpio_config_t config = {};
     config.pin_bit_mask = 1ULL << powerKeyPin_;
-    config.mode = GPIO_MODE_OUTPUT;
+    // Open drain: PWRKEY is pulled up inside the modem to its own rail, so
+    // the GPIO only ever pulls it down and never drives 3.3 V into it.
+    config.mode = GPIO_MODE_OUTPUT_OD;
     config.pull_up_en = GPIO_PULLUP_DISABLE;
     config.pull_down_en = GPIO_PULLDOWN_DISABLE;
     config.intr_type = GPIO_INTR_DISABLE;
     ESP_ERROR_CHECK(gpio_config(&config));
-    // PWRKEY is active low; idle high.
+    // Released (high impedance) until a power pulse is needed.
     ESP_ERROR_CHECK(gpio_set_level(powerKeyPin_, 1));
 }
 

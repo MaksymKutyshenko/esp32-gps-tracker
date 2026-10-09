@@ -18,13 +18,14 @@ when a pin changes.
 | ESP32-S3 DevKitC-1 (WROOM-1 module) | Development board and fallback: same firmware, `devkitc` is the default build environment. Its CP2102 UART console survives deep sleep and crashes, which the SuperMini's USB Serial/JTAG does not | — | USB or 5 V |
 | Foxeer M10Q-250 | Primary GNSS (u-blox M10 class, GPS+GLONASS+Galileo+BDS, up to 10 Hz). Default 115200 baud, NMEA/UBX. Onboard QMC5883L (or IST8310 on V2) compass on I2C. Backup cell for warm starts | UART + I2C (compass) | 5 V in, 3.3 V logic |
 | Beitian BE-220 | Alternative GNSS (u-blox M8030 class per most listings; some say M10050). Default 9600 baud, NMEA | UART | 3.0–5.5 V in, 3.3 V logic |
-| SIM800C board ("BIGGA GSM", the common 5V/3.3V TTL board with BT/TTS) | GPRS uplink for live position upload (2G only) | UART (AT commands, TTL via V_TTL) + PWR | 5 V on the 5V pin (or 3.3–4.4 V on VBAT); 2 A transmit bursts, 820 µF onboard |
+| BIGGA GSM (SIM800C, Ukrainian board, schematic at arduino.ua) | GPRS uplink for live position upload (2G only) | UART (AT commands) + BOOT (= PWRKEY) | 5 V on VCC → MIC29302 → 3.64 V modem rail; 2 A bursts; ~600–900 µF onboard |
 | GSM SMA antenna | Antenna for the SIM800C | SMA / IPEX pigtail | — |
 | BMA400 (CJMCU-400) | Motion detection: wakes the tracker from deep sleep and drives the adaptive logging rate. Not delivered yet, so the firmware treats it as optional | I2C, INT1 → GPIO | 3.3 V |
 | SSD1306 0.96" OLED | Status display: fix state, satellites, speed, coordinates, battery, upload state | I2C 0x3C | 3.3 V |
 | MicroSD SPI module + card | Track log (CSV/GPX) and upload backlog while offline | SPI (with DMA) | 3.3 V (or 5 V if the module has a level shifter) |
 | Battery Shield V8 + 2×18650 HG2 | Power: cells in parallel (≈6000 mAh), 5 V boost output (≈2.2 A continuous, 3 A peak), 3 V/3.3 V 1 A rail, charging at 0.6–0.8 A | — | — |
-| 100 µF low-ESR + 100 nF ceramic | At the SIM800C board's 5 V input. The BIGGA board already carries 820 µF 6.3 V on the modem's own rail, so the 1000 µF is not needed (see §2) | — | — |
+| 100 µF low-ESR + 100 nF ceramic | At the BIGGA board's VCC/GND pins. The board carries 100 + 10 + 1 µF on VCC and 470/820 + 100 + 22 + 1 µF on the modem rail, so the 1000 µF is not needed (see §2) | — | — |
+| 6.8 kΩ resistor | From BIGGA TX to GND: level divider for the 5 V TX line (see §5) | — | — |
 
 ## 2. Power tree
 
@@ -88,15 +89,15 @@ and on the DevKitC). Only the GSM UART and the status LED differ.
 | GNSS UART1 RX | GPIO4 | GPIO4 | ← GNSS TX |
 | GNSS UART1 TX | GPIO5 | GPIO5 | → GNSS RX (only needed to send UBX/NMEA config) |
 | BMA400 INT1 | GPIO6 | GPIO6 | Motion interrupt; RTC GPIO for deep-sleep wake (EXT1) |
-| SIM800C PWR (PWRKEY) | GPIO7 | GPIO7 | Pull low ≥ 1 s to toggle the modem's power. The board boots on its own when 5 V arrives; the firmware only pulses this if the modem stays silent |
+| BIGGA BOOT (= PWRKEY) | GPIO7 | GPIO7 | Open-drain, held low ≥ 1 s to toggle the modem's power. The board has no auto power-on, so the firmware pulses it when the modem is silent |
 | I2C SDA | GPIO8 | GPIO8 | OLED 0x3C, BMA400 0x14 (0x15 if SDO high), GNSS compass 0x0D (QMC5883L) |
 | I2C SCL | GPIO9 | GPIO9 | 100 kHz on breadboard; modules carry their own pull-ups |
 | SD CS | GPIO10 | GPIO10 | SPI2 (FSPI) IOMUX pins, same as module 4.4 |
 | SD MOSI | GPIO11 | GPIO11 | |
 | SD SCK | GPIO12 | GPIO12 | |
 | SD MISO | GPIO13 | GPIO13 | |
-| GSM UART2 TX | GPIO43 | GPIO17 | → SIM800C RXD. On the SuperMini 43/44 are the unused UART0 pins; on the DevKitC they are wired to the CP2102, so the GSM moves to 17/18 |
-| GSM UART2 RX | GPIO44 | GPIO18 | ← SIM800C TXD |
+| GSM UART2 TX | GPIO43 | GPIO17 | → BIGGA RX. On the SuperMini 43/44 are the unused UART0 pins; on the DevKitC they are wired to the CP2102, so the GSM moves to 17/18 |
+| GSM UART2 RX | GPIO44 | GPIO18 | ← BIGGA TX **through a 6.8 kΩ to GND**: the board's TX idles at VCC (5 V) via its 4.7 k pull-up; the divider brings it to ~3.0 V |
 | Status LED (WS2812) | GPIO48 | GPIO38 | Onboard RGB. DevKitC-1 v1.0 boards use GPIO48 instead of 38 |
 | Console | USB Serial/JTAG (`sdkconfig.defaults.supermini`) | UART0 via CP2102, connector labelled "UART" | On the DevKitC the "USB" connector also carries the log as secondary console |
 
@@ -121,13 +122,21 @@ it to GPIO16 if wanted.
 
 - Both GNSS modules output 3.3 V logic even when fed 5 V. Wire TX/RX
   directly.
-- SIM800C logic is 2.8 V. The board has a level shifter on TXD/RXD whose
-  reference is the `V_TTL` pin: wire `V_TTL` to 3.3 V and the lines go
-  straight to the ESP. (A board without `V_TTL` would need a 1.8 k / 3.3 k
-  divider on the ESP → RXD line; this one does not.)
-- The board's pin set per the vendor: 5V (input), V_TTL, GND ×3, TXD, RXD,
-  PWR, VBAT (alternative 3.3–4.4 V input, unused), DTR, RI, VRTC, SPKP/N,
-  MICP/N. Only 5V, GND, V_TTL, TXD, RXD and PWR are wired.
+- **BIGGA GSM logic level follows VCC.** Its MOSFET level shifter pulls the
+  high side of TX and RX up to VCC (4.7 k on TX, 47 k on RX), so with 5 V
+  in, the board's TX idles at 5 V. The ESP32-S3 is not 5 V tolerant. One
+  6.8 kΩ resistor from the board's TX pin to GND forms a divider with the
+  4.7 k pull-up: high level 5 × 6.8 / 11.5 ≈ 2.96 V, inside the ESP's
+  2.5–3.6 V window. RX needs nothing: the ESP drives it, and the 47 k
+  pull-up only sources ~36 µA. Do not feed VCC with 9 V (seller warning,
+  same reason) and do not try 3.3 V (the regulator needs ≥ 4 V in).
+- BIGGA header, from the schematic: 1 GND, 2 TX, 3 RX, 4 BOOT (= PWRKEY),
+  5 VCC, 6 NET (NETLIGHT output), 7 DTR, 8 RING, 9 MICP, 10 MICN, 11 SPKP,
+  12 SPKN. Wired: GND, TX, RX, BOOT, VCC. Nano-SIM holder, full-size SMA.
+- VBAT on the board is 3.64 V (MIC29302, 9.09 k / 4.7 k). That leaves
+  ~0.25 V to the modem's 3.4 V reset threshold, so the 5 V input must not
+  sag below ~4 V during bursts: short thick wires and the 100 µF + ceramic
+  at VCC/GND.
 - The board may ship fixed at 9600 baud or in autobaud mode; the firmware
   probes 115200, 9600, 57600 and 38400 and then pins the modem to 115200
   with `AT+IPR`, so either works.

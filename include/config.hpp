@@ -66,8 +66,9 @@ namespace Config
     constexpr uint8_t accelAddress = 0x14;               // 0x15 if SDO high
 
     // ---- GSM modem (SIM800C, UART2) -------------------------------------
-    // PWRKEY: hold low >= 1 s to toggle the modem's power state. Only wired
-    // if the breakout exposes it; otherwise leave the pin unconnected.
+    // PWRKEY ("BOOT" on the BIGGA GSM silkscreen): open-drain, held low
+    // >= 1 s to toggle the modem's power. The board has no auto power-on
+    // circuit, so the firmware pulses this when the modem stays silent.
     constexpr gpio_num_t gsmPowerKeyPin = GPIO_NUM_7;
     constexpr uart_port_t gsmUart = UART_NUM_2;
 #if defined(BOARD_SUPERMINI)

@@ -213,6 +213,7 @@ lib = Library()
 WROOM = lib.use("RF_Module", "ESP32-S3-WROOM-1")
 C4 = lib.use("Connector_Generic", "Conn_01x04")
 C6 = lib.use("Connector_Generic", "Conn_01x06")
+C12 = lib.use("Connector_Generic", "Conn_01x12")
 R = lib.use("Device", "R")
 CPOL = lib.use("Device", "C_Polarized")
 SW = lib.use("Switch", "SW_Push")
@@ -257,23 +258,29 @@ connect(j1, "6", "SDA")
 text("1 VCC 5V   2 GND   3 TX -> IO4   4 RX <- IO5\n5 SCL / 6 SDA: compass (Foxeer only, 0x0D). BE-220 has pins 1-4.",
      40, 62, 1.27)
 
-# --- SIM800C board --------------------------------------------------------
-j2 = Part(lib, C6, "J2", "SIM800C GPRS board", 60, 95, ref_offset=(-4, -10), value_offset=(-4, -8))
+# --- BIGGA GSM (SIM800C) board, header per its schematic ----------------
+j2 = Part(lib, C12, "J2", "BIGGA GSM (SIM800C) board", 60, 100, ref_offset=(-4, -18), value_offset=(-4, -16))
 j2.emit()
-connect(j2, "1", "+5V")
-connect(j2, "2", "GND")
-connect(j2, "3", "GSM_TXD")
-connect(j2, "4", "GSM_RXD")
-connect(j2, "5", "GSM_PWRKEY")
-connect(j2, "6", "+3V3")
-text("1 5V in   2 GND   3 TXD -> IO18   4 RXD <- IO17   5 PWR (PWRKEY) <- IO7   6 V_TTL = 3V3\n"
-     "Board level-shifts TXD/RXD to V_TTL; VBAT, DTR, RI, VRTC, audio pins unused.\n"
-     "Board carries 820 uF 6.3 V on the modem rail; C2 steadies the 5 V input. Short thick wires.",
-     40, 117, 1.27)
+connect(j2, "1", "GND")
+connect(j2, "2", "GSM_TXD")       # idles at VCC (5 V) on the board: R3 below divides it
+connect(j2, "3", "GSM_RXD")
+connect(j2, "4", "GSM_PWRKEY")    # "BOOT" on the silkscreen = SIM800C PWRKEY
+connect(j2, "5", "+5V")
+finish_unused(j2)                 # NET, DTR, RING, audio
+text("1 GND  2 TX (5 V level!)  3 RX <- IO17  4 BOOT = PWRKEY <- IO7 (open drain)  5 VCC 5V\n"
+     "6 NET  7 DTR  8 RING  9-12 MIC/SPK: unused. Nano-SIM, SMA antenna.\n"
+     "TX high side is pulled to VCC through 4.7k on the board: R3 divides it to ~3.0 V for IO18.\n"
+     "VBAT is 3.64 V (MIC29302): keep VCC above 4 V in bursts -> C2 at the pins, short thick wires.",
+     40, 140, 1.27)
 c2 = Part(lib, CPOL, "C2", "100u low-ESR (+100n ceramic)", 22, 97, ref_offset=(3, -3), value_offset=(3, 0))
 c2.emit()
 connect(c2, "1", "", lib, P5V)
 connect(c2, "2", "", lib, PGND)
+# R3: divider against the board's 4.7k pull-up; the ESP side is GSM_TXD.
+r3 = Part(lib, R, "R3", "6.8k", 100, 92, ref_offset=(2, -2), value_offset=(2, 1))
+r3.emit()
+connect(r3, "1", "GSM_TXD")   # same net as J2 pin 2 and IO18: the divider hangs off it
+connect(r3, "2", "", lib, PGND)
 
 # --- OLED ------------------------------------------------------------------
 j3 = Part(lib, C4, "J3", "SSD1306 0.96\" OLED I2C 0x3C", 320, 40, ref_offset=(-4, -8), value_offset=(-4, -6))
