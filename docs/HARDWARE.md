@@ -24,7 +24,6 @@ when a pin changes.
 | SSD1306 0.96" OLED | Status display: fix state, satellites, speed, coordinates, battery, upload state | I2C 0x3C | 3.3 V |
 | MicroSD SPI module + card | Track log (CSV/GPX) and upload backlog while offline | SPI (with DMA) | 3.3 V (or 5 V if the module has a level shifter) |
 | Battery Shield V8 + 2×18650 HG2 | Power: cells in parallel (≈6000 mAh), 5 V boost output (≈2.2 A continuous, 3 A peak), 3 V/3.3 V 1 A rail, charging at 0.6–0.8 A | — | — |
-| 100 µF low-ESR + 100 nF ceramic | At the BIGGA board's VCC/GND pins. The board carries 100 + 10 + 1 µF on VCC and 470/820 + 100 + 22 + 1 µF on the modem rail, so the 1000 µF is not needed (see §2) | — | — |
 | 6.8 kΩ resistor | From BIGGA TX to GND: level divider for the 5 V TX line (see §5) | — | — |
 | Red LED + 1 kΩ | On BIGGA NET (NETLIGHT): blink rate shows searching / registered / GPRS without any firmware | — | — |
 
@@ -32,7 +31,7 @@ when a pin changes.
 
 ```
 2×18650 HG2 ──► Battery Shield V8 ──► 5V rail ──┬─► ESP32-S3 SuperMini (5V pin → onboard LDO → 3V3)
-   (parallel)   (boost + protection)             ├─► SIM800C board 5V in  ◄── 100 µF + 100 nF here (board has 820 µF on VBAT)
+   (parallel)   (boost + protection)             ├─► BIGGA GSM VCC (board has 100+10+1 µF on VCC, ~600–900 µF on VBAT)
                                                  ├─► Foxeer M10Q-250 (5V in)  /  BE-220 (3.0–5.5 V)
                                                  └─► MicroSD module, only if it is the 5 V level-shifter type
                                       3V rail ───┬─► SSD1306 OLED
@@ -52,10 +51,11 @@ Design notes:
 - The SIM800C's transmit bursts reach 2 A for ~0.6 ms every 4.6 ms, and a
   dip below ~3.4 V at VBAT resets the modem. The SIMCom datasheet calls for
   ≥100 µF low-ESR at VBAT; the BIGGA board carries 820 µF 6.3 V there, so
-  the modem itself is covered. What remains is the 5 V input to the board's
-  regulator sagging over wire and contact resistance: 100 µF plus a ceramic
-  at the board's 5V/GND pins and short, thick wires take care of that. The
-  1000 µF is only a fallback if the boot line ever shows BROWNOUT.
+  the modem itself is covered, and its VCC input already has 100 + 10 + 1 µF
+  at the pins, so no external capacitor is fitted. What remains is wire and
+  contact resistance between the shield and the board: short, thick wires.
+  The 1000 µF is only a fallback across VCC/GND if the boot line ever shows
+  BROWNOUT.
 - The shield is not a UPS: expect a ~0.5 s dropout when the charger is
   plugged in. Not a problem for a tracker that persists state in NVS.
 - A reversed cell burns the shield's protection IC. Check polarity before
@@ -136,8 +136,7 @@ it to GPIO16 if wanted.
   12 SPKN. Wired: GND, TX, RX, BOOT, VCC, NET (LED). Nano-SIM holder, full-size SMA.
 - VBAT on the board is 3.64 V (MIC29302, 9.09 k / 4.7 k). That leaves
   ~0.25 V to the modem's 3.4 V reset threshold, so the 5 V input must not
-  sag below ~4 V during bursts: short thick wires and the 100 µF + ceramic
-  at VCC/GND.
+  sag below ~4 V during bursts: short thick wires from the shield.
 - The board may ship fixed at 9600 baud or in autobaud mode; the firmware
   probes 115200, 9600, 57600 and 38400 and then pins the modem to 115200
   with `AT+IPR`, so either works.

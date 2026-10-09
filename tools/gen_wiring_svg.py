@@ -140,13 +140,7 @@ box(MX, BY, MW, 206, "BIGGA GSM (SIM800C)", "5 V only · nano-SIM · SMA antenna
 g = {"GND": BY + 54, "VCC": BY + 76, "TX": BY + 118, "RX": BY + 140, "BOOT": BY + 162, "NET": BY + 188}
 pin(MX, g["GND"], "1 GND", "l"); to_lrail(MX, g["GND"], "GND")
 pin(MX, g["VCC"], "5 VCC", "l"); to_lrail(MX, g["VCC"], "5V")
-# C2 (100u + 100n) across VCC/GND in the gutter
-cx = 88
-part(cx, (g["GND"] + g["VCC"]) / 2, 22, 14, "C2", vertical=True)
-wire([(cx, g["GND"]), (cx, (g["GND"] + g["VCC"]) / 2 - 11)], COL["GND"], 1.6)
-wire([(cx, (g["GND"] + g["VCC"]) / 2 + 11), (cx, g["VCC"])], COL["5V"], 1.6)
-dot(cx, g["GND"], COL["GND"]); dot(cx, g["VCC"], COL["5V"])
-note(MX + 10, g["VCC"] + 18, "C2 100µ+100n across pins 1/5")
+note(MX + 10, g["VCC"] + 18, "100+10+1 µF on VCC are on the board: no external cap")
 pin(MX + MW, g["TX"], "2 TX", "r")
 xc = lwire(g["TX"], "GPIO18", COL["TX"])
 # R3 to ground hangs off the TX channel, in the gap left of it (nothing else there)

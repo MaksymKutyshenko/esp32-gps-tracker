@@ -215,7 +215,6 @@ C4 = lib.use("Connector_Generic", "Conn_01x04")
 C6 = lib.use("Connector_Generic", "Conn_01x06")
 C12 = lib.use("Connector_Generic", "Conn_01x12")
 R = lib.use("Device", "R")
-CPOL = lib.use("Device", "C_Polarized")
 LED = lib.use("Device", "LED")
 SW = lib.use("Switch", "SW_Push")
 P5V = lib.use("power", "+5V")
@@ -272,12 +271,8 @@ finish_unused(j2)                 # DTR, RING, audio
 text("1 GND  2 TX (5 V level!)  3 RX <- IO17  4 BOOT = PWRKEY <- IO7 (open drain)  5 VCC 5V\n"
      "6 NET -> R4 1k -> LED1 (NETLIGHT: 0.8 s searching, 3 s registered, 0.3 s GPRS)  7 DTR  8 RING  9-12 audio: unused.\n"
      "TX high side is pulled to VCC through 4.7k on the board: R3 divides it to ~3.0 V for IO18.\n"
-     "VBAT is 3.64 V (MIC29302): keep VCC above 4 V in bursts -> C2 + 100n ceramic at the pins, short thick wires.",
+     "VBAT is 3.64 V (MIC29302), 100+10+1 uF already on VCC: short thick wires keep VCC above 4 V in bursts.",
      40, 142, 1.27)
-c2 = Part(lib, CPOL, "C2", "100u low-ESR", 24, 124, ref_offset=(3, -3), value_offset=(3, 0))
-c2.emit()
-connect(c2, "1", "", lib, P5V)
-connect(c2, "2", "", lib, PGND)
 # R3: divider against the board's 4.7k pull-up; the ESP side is GSM_TXD.
 r3 = Part(lib, R, "R3", "6.8k", 100, 92, ref_offset=(2, -2), value_offset=(2, 1))
 r3.emit()

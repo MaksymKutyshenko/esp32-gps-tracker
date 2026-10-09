@@ -143,13 +143,7 @@
 <circle cx="110" cy="468" r="2.5" fill="var(--fg)"/>
 <polyline points="110,468 26,468" fill="none" stroke="#e03a4e" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="26" cy="468" r="3.2" fill="#e03a4e"/>
-<rect x="81.0" y="446.0" width="14" height="22" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
-<text x="100.0" y="461.0" class="t-part">C2</text>
-<polyline points="88,446 88,446.0" fill="none" stroke="var(--rail-gnd)" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
-<polyline points="88,468.0 88,468" fill="none" stroke="#e03a4e" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="88" cy="446" r="3.2" fill="var(--rail-gnd)"/>
-<circle cx="88" cy="468" r="3.2" fill="#e03a4e"/>
-<text x="120" y="486" class="t-note" text-anchor="start">C2 100µ+100n across pins 1/5</text>
+<text x="120" y="486" class="t-note" text-anchor="start">100+10+1 µF on VCC are on the board: no external cap</text>
 <line x1="288" y1="510" x2="310" y2="510" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="282" y="514" class="t-pin" text-anchor="end">2 TX</text>
 <circle cx="310" cy="510" r="2.5" fill="var(--fg)"/>
