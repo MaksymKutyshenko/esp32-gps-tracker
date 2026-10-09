@@ -31,8 +31,10 @@ Component roles, power tree and the GPIO map for both boards are in
 
 ## Architecture
 
-Layers: Periph / Logic / Transport-Output / Reliability.
-Planned tasks: `gps_rx`, `display`, `logger`, `ui` (see `include/App.hpp`).
+Layers: Periph / Logic / Transport-Output / Reliability. Tasks: `gps_rx`,
+`display`, `logger`, `uplink`, `ui`, joined by queues; one RAII-guarded mutex
+per shared bus. The class layout, the patterns used and why, and the
+reliability mechanisms are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Interfaces
 
