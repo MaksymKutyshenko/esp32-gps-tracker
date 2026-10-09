@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 
 #include "driver/gpio.h"
@@ -47,11 +48,13 @@ namespace Config
     constexpr uart_port_t gpsUart = UART_NUM_1;
     constexpr gpio_num_t gpsRxPin = GPIO_NUM_4; // <- GNSS TX
     constexpr gpio_num_t gpsTxPin = GPIO_NUM_5; // -> GNSS RX
-    // uart_config_t.baud_rate is a bare int in the IDF API.
-    constexpr int gpsBaudRate = 115200;
+    // uart_config_t.baud_rate and uart_driver_install()'s buffer size are
+    // bare ints in the IDF API; the UART wrapper casts at the call, the way
+    // SpiBus does for clock_speed_hz, so the constants stay fixed-width.
+    constexpr uint32_t gpsBaudRate = 115200;
     // A 10 Hz receiver emits up to ~1 KiB of NMEA per burst; two bursts of
     // slack keep a late reader from dropping bytes.
-    constexpr int gpsRxBufferBytes = 2048;
+    constexpr size_t gpsRxBufferBytes = 2048;
     // Longest NMEA sentence is 82 characters including CR LF.
     constexpr size_t gpsLineBytes = 96;
     // No sentence for this long means the receiver is dead or unplugged.
@@ -77,8 +80,8 @@ namespace Config
     constexpr gpio_num_t gsmRxPin = GPIO_NUM_18;
 #endif
     // SIM800C autobauds; the firmware pins it with AT+IPR on first contact.
-    constexpr int gsmBaudRate = 115200;
-    constexpr int gsmRxBufferBytes = 2048;
+    constexpr uint32_t gsmBaudRate = 115200;
+    constexpr size_t gsmRxBufferBytes = 2048;
 
     // ---- I2C bus: OLED + accelerometer (+ GNSS compass) ----------------
     constexpr i2c_port_num_t i2cPort = I2C_NUM_0;
@@ -87,8 +90,9 @@ namespace Config
     // Breadboard wiring with module pull-ups only: stay at 100 kHz (the
     // 1 KiB OLED frame NACKed at 400 kHz in module 4.3).
     constexpr uint32_t i2cSpeedHz = 100'000;
-    // i2c_master_transmit() takes the timeout as a bare int of milliseconds.
-    constexpr int i2cTimeoutMs = 100;
+    // i2c_master_transmit() takes the timeout as a bare int of milliseconds;
+    // the I2C wrapper casts at the call.
+    constexpr uint32_t i2cTimeoutMs = 100;
     constexpr uint8_t displayAddress = 0x3C;
     constexpr uint8_t compassAddress = 0x0D; // QMC5883L on the Foxeer
 
