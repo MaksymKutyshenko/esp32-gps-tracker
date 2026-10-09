@@ -216,6 +216,7 @@ C6 = lib.use("Connector_Generic", "Conn_01x06")
 C12 = lib.use("Connector_Generic", "Conn_01x12")
 R = lib.use("Device", "R")
 CPOL = lib.use("Device", "C_Polarized")
+LED = lib.use("Device", "LED")
 SW = lib.use("Switch", "SW_Push")
 P5V = lib.use("power", "+5V")
 P3V3 = lib.use("power", "+3V3")
@@ -266,9 +267,10 @@ connect(j2, "2", "GSM_TXD")       # idles at VCC (5 V) on the board: R3 below di
 connect(j2, "3", "GSM_RXD")
 connect(j2, "4", "GSM_PWRKEY")    # "BOOT" on the silkscreen = SIM800C PWRKEY
 connect(j2, "5", "+5V")
-finish_unused(j2)                 # NET, DTR, RING, audio
+connect(j2, "6", "GSM_NET")
+finish_unused(j2)                 # DTR, RING, audio
 text("1 GND  2 TX (5 V level!)  3 RX <- IO17  4 BOOT = PWRKEY <- IO7 (open drain)  5 VCC 5V\n"
-     "6 NET  7 DTR  8 RING  9-12 MIC/SPK: unused. Nano-SIM, SMA antenna.\n"
+     "6 NET -> R4 1k -> LED1 (NETLIGHT: 0.8 s searching, 3 s registered, 0.3 s GPRS)  7 DTR  8 RING  9-12 audio: unused.\n"
      "TX high side is pulled to VCC through 4.7k on the board: R3 divides it to ~3.0 V for IO18.\n"
      "VBAT is 3.64 V (MIC29302): keep VCC above 4 V in bursts -> C2 + 100n ceramic at the pins, short thick wires.",
      40, 142, 1.27)
@@ -281,6 +283,19 @@ r3 = Part(lib, R, "R3", "6.8k", 100, 92, ref_offset=(2, -2), value_offset=(2, 1)
 r3.emit()
 connect(r3, "1", "GSM_TXD")   # same net as J2 pin 2 and IO18: the divider hangs off it
 connect(r3, "2", "", lib, PGND)
+# NETLIGHT indicator: 2.8 V output from the modem, ~1 mA through a red LED.
+r4 = Part(lib, R, "R4", "1k", 118, 92, ref_offset=(2, -2), value_offset=(2, 1))
+r4.emit()
+connect(r4, "1", "GSM_NET")
+# Horizontal symbol: anode (pin 2) on the right lands under R4 pin 2.
+led1 = Part(lib, LED, "LED1", "red NET", 114.3, 102, ref_offset=(-2, -4), value_offset=(-4, 5))
+led1.emit()
+p_r4, _ = r4.pin_point("2")
+p_led, _ = led1.pin_point("2")   # anode (pin 2 on Device:LED) up to the resistor
+wire(p_r4, p_led)
+r4.used.add("2")
+led1.used.add("2")
+connect(led1, "1", "", lib, PGND)
 
 # --- OLED ------------------------------------------------------------------
 j3 = Part(lib, C4, "J3", "SSD1306 0.96\" OLED I2C 0x3C", 320, 40, ref_offset=(-4, -8), value_offset=(-4, -6))

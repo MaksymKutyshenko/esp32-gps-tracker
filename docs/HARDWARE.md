@@ -26,6 +26,7 @@ when a pin changes.
 | Battery Shield V8 + 2×18650 HG2 | Power: cells in parallel (≈6000 mAh), 5 V boost output (≈2.2 A continuous, 3 A peak), 3 V/3.3 V 1 A rail, charging at 0.6–0.8 A | — | — |
 | 100 µF low-ESR + 100 nF ceramic | At the BIGGA board's VCC/GND pins. The board carries 100 + 10 + 1 µF on VCC and 470/820 + 100 + 22 + 1 µF on the modem rail, so the 1000 µF is not needed (see §2) | — | — |
 | 6.8 kΩ resistor | From BIGGA TX to GND: level divider for the 5 V TX line (see §5) | — | — |
+| Red LED + 1 kΩ | On BIGGA NET (NETLIGHT): blink rate shows searching / registered / GPRS without any firmware | — | — |
 
 ## 2. Power tree
 
@@ -132,7 +133,7 @@ it to GPIO16 if wanted.
   same reason) and do not try 3.3 V (the regulator needs ≥ 4 V in).
 - BIGGA header, from the schematic: 1 GND, 2 TX, 3 RX, 4 BOOT (= PWRKEY),
   5 VCC, 6 NET (NETLIGHT output), 7 DTR, 8 RING, 9 MICP, 10 MICN, 11 SPKP,
-  12 SPKN. Wired: GND, TX, RX, BOOT, VCC. Nano-SIM holder, full-size SMA.
+  12 SPKN. Wired: GND, TX, RX, BOOT, VCC, NET (LED). Nano-SIM holder, full-size SMA.
 - VBAT on the board is 3.64 V (MIC29302, 9.09 k / 4.7 k). That leaves
   ~0.25 V to the modem's 3.4 V reset threshold, so the 5 V input must not
   sag below ~4 V during bursts: short thick wires and the 100 µF + ceramic
