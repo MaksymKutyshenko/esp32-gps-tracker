@@ -55,6 +55,22 @@ void record_formats_fixed_point_with_sign_and_padding();
 void record_csv_line_matches_expected_layout();
 void record_csv_line_reports_overflow_as_zero();
 
+// test_transport.cpp
+void logger_writes_header_then_line_into_daily_file();
+void logger_retries_transient_failure_without_recovery();
+void logger_recovers_after_exhausting_retries();
+void logger_reports_loss_when_recovery_fails();
+void osmand_unix_time_matches_known_dates();
+void osmand_battery_percent_is_clamped_linear();
+void osmand_url_carries_every_field();
+void osmand_url_too_long_returns_zero();
+void scheduler_first_attempt_is_immediate_then_paced_by_min_interval();
+void scheduler_backs_off_exponentially_up_to_cap();
+void scheduler_requests_reset_after_failure_run_and_success_clears_it();
+void button_short_and_long_press_by_duration();
+void button_bounce_edges_inside_debounce_window_are_ignored();
+void button_repeated_level_after_dropped_edge_is_ignored();
+
 int main()
 {
     UNITY_BEGIN();
@@ -104,6 +120,21 @@ int main()
     RUN_TEST(record_formats_fixed_point_with_sign_and_padding);
     RUN_TEST(record_csv_line_matches_expected_layout);
     RUN_TEST(record_csv_line_reports_overflow_as_zero);
+
+    RUN_TEST(logger_writes_header_then_line_into_daily_file);
+    RUN_TEST(logger_retries_transient_failure_without_recovery);
+    RUN_TEST(logger_recovers_after_exhausting_retries);
+    RUN_TEST(logger_reports_loss_when_recovery_fails);
+    RUN_TEST(osmand_unix_time_matches_known_dates);
+    RUN_TEST(osmand_battery_percent_is_clamped_linear);
+    RUN_TEST(osmand_url_carries_every_field);
+    RUN_TEST(osmand_url_too_long_returns_zero);
+    RUN_TEST(scheduler_first_attempt_is_immediate_then_paced_by_min_interval);
+    RUN_TEST(scheduler_backs_off_exponentially_up_to_cap);
+    RUN_TEST(scheduler_requests_reset_after_failure_run_and_success_clears_it);
+    RUN_TEST(button_short_and_long_press_by_duration);
+    RUN_TEST(button_bounce_edges_inside_debounce_window_are_ignored);
+    RUN_TEST(button_repeated_level_after_dropped_edge_is_ignored);
 
     return UNITY_END();
 }

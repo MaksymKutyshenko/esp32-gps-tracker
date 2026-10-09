@@ -57,6 +57,8 @@ public:
 
     explicit SpeedMotionDetector(const Params &params) : params_(params) {}
 
+    void setParams(const Params &params) { params_ = params; }
+
     MotionChange update(const Fix &fix, uint32_t nowMs) override
     {
         if (!fix.valid)

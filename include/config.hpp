@@ -115,15 +115,93 @@ namespace Config
     constexpr gpio_num_t statusLedPin = GPIO_NUM_38;
 #endif
 
-    // ---- Task layout ---------------------------------------------------
-    // Heartbeat task: proves the RTOS skeleton is alive and reports the
-    // stack high-water mark so the stack sizes below can be sized from a
-    // measurement rather than a guess. FreeRTOS ticks at 100 Hz, so periods
-    // stay multiples of 10 ms.
-    constexpr uint32_t heartbeatPeriodMs = 1000;
-    constexpr uint32_t heartbeatTaskStackBytes = 3072;
-    constexpr UBaseType_t heartbeatTaskPriority = 1;
+    // ---- Modem timing --------------------------------------------------
+    constexpr uint32_t gsmPowerKeyPulseMs = 1200;   // PWRKEY low >= 1 s toggles power
+    constexpr uint32_t gsmBootWaitMs = 4000;        // network registration starts after this
+    constexpr uint8_t gsmPowerOnAttempts = 3;
+    constexpr uint32_t gsmHttpTimeoutMs = 30'000;
+    constexpr size_t gsmCommandBytes = 160;         // longest AT line we build (URL)
+    // Consecutive uplink failures before the modem is power-cycled.
+    constexpr uint8_t gsmFailuresBeforePowerCycle = 3;
+    // Exponential back-off between failed uplink attempts, capped.
+    constexpr uint32_t uplinkBackoffInitialMs = 5000;
+    constexpr uint32_t uplinkBackoffMaxMs = 300'000;
 
-    // Stack headroom is logged this often; ESP_LOG dominates the profile.
-    constexpr uint32_t stackReportPeriodMs = 60'000;
+    // ---- Storage -------------------------------------------------------
+    constexpr const char *sdMountPoint = "/sdcard";
+    // FAT without long-file-name support: 8.3 names only.
+    constexpr const char *trackDirectory = "/sdcard/TRACKS";
+    constexpr uint8_t storageRetries = 3;
+    constexpr size_t trackLineBytes = 128;
+
+    // ---- NVS -----------------------------------------------------------
+    constexpr const char *nvsNamespace = "tracker";
+    constexpr const char *nvsSettingsKey = "settings";
+
+    // First-boot values for the Settings blob; the working copy lives in
+    // NVS and is edited in the field.
+    namespace Defaults
+    {
+        constexpr uint32_t movingIntervalMs = 5000;
+        constexpr uint32_t stationaryIntervalMs = 60'000;
+        constexpr uint32_t minDistanceM = 20;
+        // 150 cm/s = 5.4 km/h, 50 cm/s = 1.8 km/h, 30 s below that = parked.
+        constexpr uint32_t motionStartCmPerS = 150;
+        constexpr uint32_t motionStopCmPerS = 50;
+        constexpr uint32_t motionStopDelayMs = 30'000;
+        constexpr uint8_t gnssProfile = 0; // GnssProfiles::foxeerM10q250
+        constexpr bool uplinkEnabled = true;
+        constexpr uint32_t uplinkMinIntervalMs = 10'000;
+        constexpr const char *apn = "internet";
+        // Traccar's public demo server, OsmAnd protocol on port 5055.
+        constexpr const char *serverUrl = "http://demo.traccar.org:5055";
+        constexpr const char *deviceId = "gps-tracker-01";
+    }
+
+    // ---- UI ------------------------------------------------------------
+    constexpr int64_t buttonLongPressUs = 1'000'000;
+    constexpr uint32_t batteryReadPeriodMs = 10'000;
+    constexpr uint32_t diagnosticsPeriodMs = 60'000;
+    // The display redraws at most this often even if updates arrive faster
+    // (a 10 Hz receiver would otherwise flush 1 KiB over I2C ten times a second).
+    constexpr uint32_t displayMinRedrawMs = 200;
+    constexpr uint8_t ledBrightness = 24; // out of 255: visible, not blinding
+
+    // ---- Queues and locks ----------------------------------------------
+    // Depths are in records. The single-slot queues overwrite; the deep
+    // ones drop the oldest record and count it rather than block the
+    // producer.
+    constexpr UBaseType_t displayQueueDepth = 8;
+    constexpr UBaseType_t logQueueDepth = 32;
+    constexpr UBaseType_t uplinkQueueDepth = 64;
+    constexpr UBaseType_t buttonEdgeQueueDepth = 8;
+    constexpr uint32_t busLockTimeoutMs = 200;
+
+    // ---- Task layout ---------------------------------------------------
+    // One task per blocking peripheral; priorities put the receiver first
+    // so no NMEA byte is lost, the ui next so a press is never missed, and
+    // the slow I/O (display flush, card write, modem dialogue) below them.
+    // Stack sizes are in bytes (ESP-IDF); the ui task logs every task's
+    // high-water mark once a minute so these can be trimmed from a
+    // measurement. Periods stay multiples of 10 ms (100 Hz tick).
+    constexpr uint32_t gpsTaskStackBytes = 4096;
+    constexpr UBaseType_t gpsTaskPriority = 5;
+    constexpr uint32_t gpsReadTimeoutMs = 1000;
+
+    constexpr uint32_t uiTaskStackBytes = 4096;
+    constexpr UBaseType_t uiTaskPriority = 4;
+    constexpr uint32_t uiTickMs = 100;
+
+    constexpr uint32_t displayTaskStackBytes = 4096;
+    constexpr UBaseType_t displayTaskPriority = 3;
+
+    constexpr uint32_t loggerTaskStackBytes = 6144; // FATFS works on the caller's stack
+    constexpr UBaseType_t loggerTaskPriority = 3;
+
+    constexpr uint32_t uplinkTaskStackBytes = 6144;
+    constexpr UBaseType_t uplinkTaskPriority = 2;
+    constexpr uint32_t uplinkQueueWaitMs = 1000;
+
+    // Every blocking wait inside a task stays below the 5 s task watchdog.
+    constexpr uint32_t queueWaitMs = 1000;
 }

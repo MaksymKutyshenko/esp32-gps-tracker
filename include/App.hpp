@@ -2,30 +2,149 @@
 
 #include <stdint.h>
 
+#include <atomic>
+
 #include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
+#include "freertos/semphr.h"
 #include "freertos/task.h"
 
-// GPS tracker application: owns the peripherals and the FreeRTOS tasks.
+#include "logic/ButtonDecoder.hpp"
+#include "logic/EmaFilter.hpp"
+#include "logic/LogPolicy.hpp"
+#include "logic/MotionDetector.hpp"
+#include "logic/NmeaParser.hpp"
+#include "logic/TrackRecord.hpp"
+#include "logic/TrackerFsm.hpp"
+#include "periph/BatteryMonitor.hpp"
+#include "periph/Button.hpp"
+#include "periph/GnssReceiver.hpp"
+#include "periph/I2cBus.hpp"
+#include "periph/SdCard.hpp"
+#include "periph/Sim800Modem.hpp"
+#include "periph/Ssd1306.hpp"
+#include "periph/StatusLed.hpp"
+#include "periph/UartPort.hpp"
+#include "reliability/Diagnostics.hpp"
+#include "reliability/Settings.hpp"
+#include "transport/DisplayMessage.hpp"
+#include "transport/IUplinkTransport.hpp"
+#include "transport/ModemTransport.hpp"
+#include "transport/SdStorage.hpp"
+#include "transport/StatusView.hpp"
+#include "transport/TrackLogger.hpp"
+#include "transport/UplinkScheduler.hpp"
+
+// GPS tracker composition root. Constructs every object once, wires the
+// strategies chosen by Settings, and owns the FreeRTOS tasks and the
+// queues between them:
 //
-// This is the project skeleton. The planned task layout (see
-// REQUIREMENTS.md) is:
-//   - gps_rx   — parks in a blocking UART read, assembles and validates
-//                NMEA sentences, publishes the latest fix;
-//   - display  — peeks the latest fix and redraws only on change;
-//   - logger   — receives every fix and appends it to storage;
-//   - ui       — button events (GPIO interrupt -> queue), buzzer.
-// Tasks talk through queues; shared buses are guarded by one mutex each.
+//   gps      UART1 -> NmeaParser -> TrackerFsm/LogPolicy
+//            -> displayQueue (FixUpdate), logQueue, uplinkQueue, LED
+//   display  displayQueue -> StatusSnapshot -> StatusView -> SSD1306 (I2C, BusLock)
+//   logger   logQueue -> TrackLogger -> SdStorage (SPI, BusLock)
+//   uplink   uplinkQueue (peek, pop on success) -> OsmAnd URL -> IUplinkTransport
+//   ui       button edges (ISR queue) -> ButtonDecoder; battery; diagnostics
+//
+// Tasks exchange values through queues only. The deep queues drop their
+// oldest record and count it when a consumer falls behind; the producer
+// never blocks. Every task feeds the task watchdog once per loop.
 //
 // run() starts the tasks and returns; the object must outlive them (main
 // keeps it static).
 class App
 {
 public:
+    App();
+
     void run();
 
 private:
-    void begin();
-    [[noreturn]] void heartbeatLoop();
+    enum TaskIndex : uint8_t
+    {
+        TaskGps,
+        TaskDisplay,
+        TaskLogger,
+        TaskUplink,
+        TaskUi,
+        TaskCount
+    };
 
-    static void heartbeatTaskEntry(void *self);
+    void begin();
+    void loadSettings();
+    void createQueues();
+    void startTasks();
+
+    [[noreturn]] void gpsLoop();
+    [[noreturn]] void displayLoop();
+    [[noreturn]] void loggerLoop();
+    [[noreturn]] void uplinkLoop();
+    [[noreturn]] void uiLoop();
+
+    static void gpsTaskEntry(void *self);
+    static void displayTaskEntry(void *self);
+    static void loggerTaskEntry(void *self);
+    static void uplinkTaskEntry(void *self);
+    static void uiTaskEntry(void *self);
+
+    // gps task helpers
+    void onEpoch(const Fix &fix, uint32_t nowMs);
+    void applyFsmEvent(TrackerEvent event);
+    void publishRecord(const Fix &fix);
+    void publishFix(const Fix &fix);
+    void showStateOnLed(TrackerState state);
+
+    // shared helpers
+    void postDisplay(const DisplayMessage &message);
+    uint16_t lastBatteryMv() const;
+    void logDiagnostics();
+    static uint32_t nowMs();
+    static void feedWatchdogFromModem();
+
+    Settings settings_;
+    Settings::Values values_;
+    Diagnostics diagnostics_;
+
+    // Periph
+    UartPort gpsUart_;
+    GnssReceiver gnss_;
+    UartPort gsmUart_;
+    Sim800Modem modem_;
+    I2cBus i2c_;
+    Ssd1306 display_;
+    SdCard sdCard_;
+    BatteryMonitor battery_;
+    Button button_;
+    StatusLed led_;
+
+    // Logic
+    NmeaParser parser_;
+    TrackerFsm fsm_;
+    SpeedMotionDetector speedMotion_;
+    IMotionDetector *motion_;
+    LogPolicy policy_;
+    EmaFilter<int32_t, 1, 4> displaySpeed_;
+    EmaFilter<int32_t, 1, 4> displayAltitude_;
+    ButtonDecoder buttonDecoder_;
+
+    // Transport
+    StatusView view_;
+    SdStorage storage_;
+    TrackLogger logger_;
+    ModemTransport modemTransport_;
+    NullUplinkTransport nullTransport_;
+    IUplinkTransport *uplink_;
+    UplinkScheduler scheduler_;
+
+    // RTOS plumbing
+    QueueHandle_t displayQueue_ = nullptr;
+    QueueHandle_t logQueue_ = nullptr;
+    QueueHandle_t uplinkQueue_ = nullptr;
+    QueueHandle_t buttonEdgeQueue_ = nullptr;
+    QueueHandle_t batteryQueue_ = nullptr;  // single slot, latest millivolts
+    SemaphoreHandle_t i2cMutex_ = nullptr;
+    SemaphoreHandle_t sdMutex_ = nullptr;
+    TaskHandle_t tasks_[TaskCount] = {};
+
+    TrackerState ledState_ = TrackerState::Sleeping; // forces the first LED write
 };

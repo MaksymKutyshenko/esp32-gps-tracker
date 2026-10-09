@@ -1,0 +1,52 @@
+#include "periph/GnssReceiver.hpp"
+
+#include "esp_log.h"
+#include "esp_timer.h"
+
+namespace
+{
+    constexpr const char *logTag = "gnss";
+}
+
+GnssReceiver::GnssReceiver(UartPort &uart) : uart_(uart)
+{
+}
+
+void GnssReceiver::begin(const GnssProfile &profile)
+{
+    ESP_ERROR_CHECK(uart_.setBaudRate(profile.baudRate));
+    ESP_ERROR_CHECK(uart_.discardInput());
+    ESP_LOGI(logTag, "Receiver profile: %s at %" PRIu32 " baud", profile.name, profile.baudRate);
+}
+
+bool GnssReceiver::readSentence(const char *&line, uint32_t timeoutMs)
+{
+    const int64_t deadlineUs = esp_timer_get_time() + static_cast<int64_t>(timeoutMs) * 1000;
+
+    while (true)
+    {
+        while (chunkIndex_ < chunkLength_)
+        {
+            if (assembler_.push(static_cast<char>(chunk_[chunkIndex_++])))
+            {
+                line = assembler_.line();
+                return true;
+            }
+        }
+
+        const int64_t remainingUs = deadlineUs - esp_timer_get_time();
+        if (remainingUs <= 0)
+        {
+            return false;
+        }
+        // Round up so a sub-tick remainder still waits one tick rather
+        // than spinning.
+        const TickType_t ticks = pdMS_TO_TICKS((remainingUs + 999) / 1000) + 1;
+        chunkLength_ = uart_.read(chunk_, sizeof chunk_, ticks);
+        chunkIndex_ = 0;
+        if (chunkLength_ == 0)
+        {
+            return false;
+        }
+    }
+}
