@@ -13,10 +13,10 @@ The four layers the course grades on, and what lives in each:
 
 | Layer | Responsibility | Classes |
 | --- | --- | --- |
-| Periph | Talk to hardware, nothing else | `UartPort`, `I2cBus`, `SpiBus`, `GnssReceiver`, `Sim800Modem`, `Ssd1306`, `SdCard`, `Bma400`, `BatteryMonitor`, `Button`, `StatusLed` |
-| Logic | Pure decisions, no ESP-IDF includes, host-tested | `NmeaParser`, `Fix`, `TrackerFsm`, `EmaFilter`, `Geodesy`, `LogPolicy`, `TrackRecordFormatter` |
-| Transport / Output | Move data out of the device | `TrackLogger` (SD), `Uplink` (GPRS), `StatusView` (OLED) |
-| Reliability | Keep the system alive and honest | `Watchdog`, `BusLock` (RAII mutex guard), `Retry`, `Settings` (NVS), reset-reason logging, `Diagnostics` |
+| Periph | Talk to hardware, nothing else | `UartPort`, `GnssReceiver` + `GnssProfile`, `I2cBus`, `Ssd1306`, `SdCard`, `Sim800Modem` + `AtCommand`, `BatteryMonitor`, `Button`, `StatusLed` (later: `Bma400`) |
+| Logic | Pure decisions, no ESP-IDF includes, host-tested | `Fix`, `NmeaLineAssembler`, `NmeaParser`, `DecimalParser`, `TrackerFsm`, `IMotionDetector` (`SpeedMotionDetector`, `NullMotionDetector`), `EmaFilter`, `Geodesy`, `LogPolicy`, `TrackRecord`, `ButtonDecoder` |
+| Transport / Output | Move data out of the device | `IStorage` → `SdStorage`, `TrackLogger`; `IUplinkTransport` → `ModemTransport` / `NullUplinkTransport`, `OsmAndProtocol`, `UplinkScheduler`; `StatusView`, `DisplayMessage` |
+| Reliability | Keep the system alive and honest | `WatchdogSubscription`, `BusLock` (RAII mutex guard), `Settings` (NVS), `Diagnostics`, reset-reason logging in `App` |
 
 Dependencies point downward only: Logic never includes a Periph header.
 Transport classes depend on Logic types (`Fix`, `TrackRecord`) and on
@@ -98,10 +98,37 @@ fakes behind the interfaces (`FakeStorage`, `FakeFixSource`). Periph
 classes are verified on hardware with their own `begin()` self-checks (chip
 ID reads, a test frame, a `AT` round-trip).
 
-## 7. Reading order for a reviewer
+## 7. Adding the BMA400 (motion sensor, not yet delivered)
+
+The accelerometer slots into three places that already exist; nothing
+else changes.
+
+1. **Driver** — `periph/Bma400.hpp/.cpp`, a class taking `I2cBus &` like
+   `Ssd1306`. `begin()` reads the chip ID (0x90), configures the generic
+   interrupt 1 for activity on INT1 (GPIO6, `Config::accelInterruptPin`),
+   and installs a GPIO ISR that sends to a queue the same way `Button`
+   does. Every I2C access goes through `BusLock` on `i2cMutex_`.
+2. **Motion source** — `logic/MotionDetector.hpp` already defines
+   `IMotionDetector`. Add `Bma400MotionDetector` that turns the interrupt
+   events into `MotionChange::Started` / `Stopped` (with the same stop
+   delay as the speed detector), and in `App::loadSettings` point
+   `motion_` at it when the chip answered at boot; otherwise it stays on
+   `SpeedMotionDetector`. The FSM and `LogPolicy` are untouched.
+3. **Sleep** — the FSM already has `Stationary --SleepRequested--> Sleeping
+   --WakeUp--> Acquiring`. The ui task raises `SleepRequested` after
+   `Config::sleepAfterStationaryMs`; `App` then persists the odometer and
+   last fix to NVS, configures EXT1 wake on INT1 and the button
+   (`esp_sleep_enable_ext1_wakeup`), and calls `esp_deep_sleep_start()`.
+   On boot, `esp_reset_reason() == ESP_RST_DEEPSLEEP` logs the wake source
+   and the FSM starts as usual.
+
+Measure idle, tracking and sleeping current before and after, and put the
+numbers in the README; the checklist does not credit the claim otherwise.
+
+## 8. Reading order for a reviewer
 
 1. `include/config.hpp` — pins and tuning.
 2. `src/App.cpp` — composition root, task layout.
-3. `include/TrackerFsm.hpp` — states and transitions.
-4. `include/NmeaParser.hpp` — input validation.
+3. `include/logic/TrackerFsm.hpp` — states and transitions.
+4. `include/logic/NmeaParser.hpp` — input validation.
 5. `test/test_native/` — the behaviour pinned by tests.

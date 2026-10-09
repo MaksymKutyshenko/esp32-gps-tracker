@@ -1,28 +1,57 @@
 # GPS Tracker
 
-> ESP32-S3 GPS tracker on ESP-IDF and FreeRTOS: reads NMEA from a GPS
-> receiver, shows the fix on a display and logs the track to storage.
+> ESP32-S3 GPS tracker on ESP-IDF and FreeRTOS: reads NMEA from a GNSS
+> receiver, shows the fix on an OLED, logs the track to a MicroSD card and
+> uploads positions over GPRS to a Traccar server.
 
 Final project for the Beetroot Academy "Embedded Development" course.
-Requirements and the grading checklist are in [REQUIREMENTS.md](REQUIREMENTS.md).
+The course requirements and the grading checklist, mapped item by item onto
+this design, are in [REQUIREMENTS.md](REQUIREMENTS.md).
 
 ## About
 
-_To be written once the component list is final._
+A self-contained tracker for a vehicle, a bike or a backpack. It records
+where it has been even without network coverage (the card is the source of
+truth), reports live when it has coverage, and adapts how often it records
+to whether it is actually moving. The firmware is written to be read: one
+class per file, four layers with one-way dependencies, a table-driven state
+machine, and every piece of pure logic unit-tested on the host.
+
+| | |
+| --- | --- |
+| Controller | ESP32-S3 (DevKitC-1 / WROOM-1 for development, SuperMini for the final build) |
+| GNSS | Foxeer M10Q-250 (u-blox M10, 10 Hz) or Beitian BE-220, NMEA over UART |
+| Display | SSD1306 128×64 OLED, I2C |
+| Storage | MicroSD over SPI (DMA), FAT, one CSV per UTC day |
+| Uplink | SIM800C GPRS, HTTP GET in the OsmAnd protocol (Traccar) |
+| Power | 2×18650 through a Battery Shield V8, cell voltage on ADC |
+| Motion | GNSS speed today; BMA400 accelerometer prepared (see below) |
 
 ## Quick start
 
 ```bash
 pio run -t upload -t monitor                # DevKitC-1 (default env), flash and watch the logs
 pio run -e supermini -t upload -t monitor   # same firmware on the SuperMini
-pio test -e native                          # host-side unit tests for the pure logic
+pio test -e native                          # 59 host-side unit tests for the pure logic
+```
+
+Serial console at 115200 baud (the same port as the log). Type `help`:
+
+```
+help | show | diag | defaults | save | set <key> <value>
+set moving_ms 2000        # record every 2 s while moving
+set stationary_ms 120000  # every 2 min while parked
+set url http://my-traccar.example:5055
+set id my-bike
+save                      # persists to NVS and applies live
 ```
 
 ## Wiring / schematic
 
-Component roles, power tree and the GPIO map for both boards are in
-[docs/HARDWARE.md](docs/HARDWARE.md). The pin constants live in
-[include/config.hpp](include/config.hpp).
+Component roles, the power tree and the GPIO map for both boards are in
+[docs/HARDWARE.md](docs/HARDWARE.md); the pin constants live in
+[include/config.hpp](include/config.hpp). The KiCad schematic goes in
+`docs/kicad/` (pending).
 
 | Board | Build | Console |
 | --- | --- | --- |
@@ -31,25 +60,165 @@ Component roles, power tree and the GPIO map for both boards are in
 
 ## Architecture
 
-Layers: Periph / Logic / Transport-Output / Reliability. Tasks: `gps_rx`,
-`display`, `logger`, `uplink`, `ui`, joined by queues; one RAII-guarded mutex
-per shared bus. The class layout, the patterns used and why, and the
-reliability mechanisms are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Four layers with one-way dependencies; the full rationale, the patterns
+used and the reliability mechanisms are in
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+```mermaid
+flowchart LR
+    subgraph Periph
+        GNSS[GnssReceiver<br/>UART1]
+        OLED[Ssd1306<br/>I2C]
+        SD[SdCard<br/>SPI2]
+        GSM[Sim800Modem<br/>UART2]
+        BTN[Button ISR]
+        ADC[BatteryMonitor]
+        LED[StatusLed]
+    end
+    subgraph Tasks
+        T1[gps task<br/>NmeaParser · TrackerFsm<br/>MotionDetector · LogPolicy]
+        T2[display task<br/>StatusView]
+        T3[logger task<br/>TrackLogger]
+        T4[uplink task<br/>OsmAndProtocol · UplinkScheduler]
+        T5[ui task<br/>ButtonDecoder · Diagnostics]
+        T6[console task<br/>CommandParser · Settings]
+    end
+    GNSS --> T1
+    T1 -- displayQueue --> T2
+    T1 -- logQueue --> T3
+    T1 -- uplinkQueue --> T4
+    T1 --> LED
+    T2 -- BusLock --> OLED
+    T3 -- BusLock --> SD
+    T4 --> GSM
+    BTN -- edge queue --> T5
+    ADC --> T5
+    T5 -- displayQueue --> T2
+    T6 -- settings queues --> T1
+    T6 -- settings queues --> T4
+    T6 --> NVS[(NVS)]
+```
+
+Tracker state machine (table in `include/logic/TrackerFsm.hpp`):
+
+```mermaid
+stateDiagram-v2
+    [*] --> Booting
+    Booting --> Acquiring : SentenceReceived
+    Booting --> Tracking : FixValid
+    Booting --> NoSignal : GnssSilent
+    NoSignal --> Acquiring : SentenceReceived
+    Acquiring --> Tracking : FixValid
+    Acquiring --> NoSignal : GnssSilent
+    Tracking --> Acquiring : FixLost
+    Tracking --> NoSignal : GnssSilent
+    Tracking --> Stationary : MotionStopped
+    Stationary --> Tracking : MotionDetected
+    Stationary --> Acquiring : FixLost
+    Stationary --> NoSignal : GnssSilent
+    Stationary --> Sleeping : SleepRequested
+    Sleeping --> Acquiring : WakeUp
+```
+
+Status LED: white booting, red no signal, amber acquiring, green tracking,
+blue parked.
+
+### Feedback and regulation
+
+- **LogPolicy** sets the record interval from measured movement: a short
+  interval and a distance trigger while moving, a long heartbeat while
+  parked. Thresholds and intervals are settings.
+- **SpeedMotionDetector** applies hysteresis and a stop delay to GNSS speed
+  so receiver noise does not toggle the state.
+- **UplinkScheduler** paces successful uploads and backs off exponentially
+  on failures; after a run of failures the modem is power-cycled.
+- **EmaFilter** smooths speed and altitude for the display only; records
+  carry raw values.
+
+### Reliability
+
+Task watchdog on every task (5 s, panic and reset, reason logged at boot);
+NMEA checksum and field validation; receiver-silence timeout; bounded
+retries then remount for the card; AT timeouts and modem power cycle;
+RAII `BusLock` on shared buses with timeouts, never `portMAX_DELAY`;
+queues that drop the oldest record instead of blocking the producer; NVS
+settings range-checked with per-field fallback. Counters for every drop and
+failure are logged once a minute (`diag` prints them on demand).
 
 ## Interfaces
 
-UART1 GNSS (NMEA), UART2 SIM800C (AT commands), I2C (SSD1306, BMA400), SPI (MicroSD), ADC (battery). Details in `docs/HARDWARE.md`.
+| Interface | Peripheral | Notes |
+| --- | --- | --- |
+| UART1 | GNSS receiver | NMEA 0183 in; 115200 (Foxeer) or 9600 (BE-220), `set gnss` |
+| UART2 | SIM800C | AT commands, 115200 fixed with `AT+IPR`; PWRKEY on a GPIO |
+| I2C0 | SSD1306 (0x3C), BMA400 (0x14) later | 100 kHz, one mutex |
+| SPI2 | MicroSD | sdspi host with DMA, FAT, 8.3 names |
+| ADC1 | Battery divider | eFuse-calibrated, ×2 divider |
+| GPIO | Button, BMA400 INT1 | interrupts → queues; RTC-capable for wake |
+| RMT | WS2812 status LED | bytes encoder |
+
+## Track log format
+
+`/sdcard/TRACKS/YYYYMMDD.CSV`:
+
+```
+utc,lat,lon,alt_m,speed_kmh,course_deg,sats,hdop,batt_mv
+2026-10-09T10:30:45Z,50.4520575,30.5257202,179.30,22.8,210.5,8,0.95,3900
+```
+
+Upload (OsmAnd protocol, one GET per record, popped from the queue only
+after HTTP 200):
+
+```
+http://host:5055/?id=<device>&lat=..&lon=..&timestamp=<unix>&speed=<kn>&bearing=..&altitude=<m>&hdop=..&batt=<%>
+```
+
+## Bring-up order
+
+1. Board alone: flash, expect `Boot: reset reason power-on`, state `BOOT`
+   on the LED, console `help` answers.
+2. GNSS on GPIO4/5: state goes `SEARCH` within seconds, `TRACK` with a sky
+   view; `show` the fix on the log. Wrong baud shows as `rej` growing in
+   `diag`.
+3. OLED on GPIO8/9: tracking page appears. A NACK at boot aborts with the
+   address in the log.
+4. MicroSD on GPIO10–13: `Mounted /sdcard` at boot, `SD ok` on the screen,
+   a CSV on the card after the first record.
+5. SIM800C on UART2 and PWRKEY: `GPRS up on APN ...`, then `sent:` grows on
+   the system page. Set `apn`, `url` and `id` first.
 
 ## Results
 
+_Pending hardware: current draw (idle / tracking / uploading), stack
+high-water marks, CPU load from the minute diagnostics line, soak test
+duration._
+
 ## Known issues and limitations
 
+- The BMA400 is not fitted yet; motion comes from GNSS speed, so the
+  tracker cannot sleep (see "Adding the BMA400" in
+  [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)).
+- SIM800C is 2G only.
+- FAT without long file names: track files use 8.3 names.
+- The uplink sends one request per record; a long offline backlog drains
+  at one record per `uplink_min_ms`.
+
 ## What I would improve next
+
+- Fit the BMA400 and add deep sleep with EXT1 wake, with measured currents.
+- Batch uploads (one request, many points) once a self-hosted server is
+  available.
+- GPX export alongside CSV.
+- UBX configuration of the receiver (rate, constellations) instead of the
+  module defaults.
 
 ## Documentation
 
 - [REQUIREMENTS.md](REQUIREMENTS.md) — course requirements and checklist mapping
-- `docs/` — schematic, diagrams, datasheets
+- [docs/HARDWARE.md](docs/HARDWARE.md) — components, power tree, GPIO map
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — layers, tasks, patterns, reliability
+- [docs/PRESENTATION.md](docs/PRESENTATION.md) — defense slide outline and demo plan
+- `docs/kicad/` — schematic (pending)
 
 ## Author
 

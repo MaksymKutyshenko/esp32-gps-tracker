@@ -288,6 +288,33 @@ Hardware details, power tree and the GPIO map are in
 | 6.2 DMA | SD card over SPI uses DMA; UART DMA optional |
 | 9.2 edge cases to demo | Block the sky (no fix), pull the SD card mid-log, unplug the GSM antenna (upload backlog then catch-up) |
 
+### Status after the firmware was written (2026-10-09)
+
+| Items | Status | Evidence |
+| --- | --- | --- |
+| 1.1, 1.2, 1.3, 1.5 | done | `App.cpp` tasks; no `delay()`; `logic/TrackerFsm.hpp`; one class per file |
+| 1.4, 8.2 | done | Mermaid block diagram and FSM in README |
+| 2.1 | done | `periph/BatteryMonitor` (ADC1) |
+| 2.2 | done | UART1/UART2, I2C, SPI |
+| 2.3 | done | `periph/Button` GPIO ISR → queue; UART driver interrupts |
+| 2.4 | done | queues between all tasks, UART ring buffers |
+| 2.5 | done | `esp_timer` deadlines, RMT, watchdog timer; GPTimer/PPS optional |
+| 3.1–3.4 | done | six tasks, five queues, `BusLock` mutexes, values-only exchange |
+| 4.1, 4.2 | done | `LogPolicy`, `SpeedMotionDetector`, `UplinkScheduler`, `EmaFilter` |
+| 4.3 | done | `Settings` in NVS + serial console `set`/`save` |
+| 4.4 | done | NMEA range checks, queue overflow policy, clamp in `Settings::validate`, fixed-point overflow guards |
+| 5.1 | done | `WatchdogSubscription` in every task, reset reason logged |
+| 5.2, 5.3, 5.4 | done in code, demo on hardware | silence timeout, card remount, modem power cycle, checksum/field validation |
+| 6.1, 6.4 | partly | stack high-water marks logged; CPU load needs `vTaskGetRunTimeStats` output in README |
+| 6.2, 6.3 | done | SD over SPI with DMA; parse in place, no copies of the NMEA buffer |
+| 7.1–7.7 | open | KiCad schematic still to draw |
+| 8.1, 8.3, 8.4, 8.5 | done | README sections |
+| 9.1–9.4 | hardware | soak test, edge-case demo, see `docs/PRESENTATION.md` |
+
+Counting done items: 31 of 42 without any hardware measurement or PCB
+work. The schematic (7.1) and the demo items (9.1–9.3) bring it to 35,
+above the 34 needed.
+
 Still open:
 
 - [ ] Exact SIM800C breakout (PWRKEY pin, level shifter, input range).
