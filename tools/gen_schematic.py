@@ -270,9 +270,9 @@ finish_unused(j2)                 # NET, DTR, RING, audio
 text("1 GND  2 TX (5 V level!)  3 RX <- IO17  4 BOOT = PWRKEY <- IO7 (open drain)  5 VCC 5V\n"
      "6 NET  7 DTR  8 RING  9-12 MIC/SPK: unused. Nano-SIM, SMA antenna.\n"
      "TX high side is pulled to VCC through 4.7k on the board: R3 divides it to ~3.0 V for IO18.\n"
-     "VBAT is 3.64 V (MIC29302): keep VCC above 4 V in bursts -> C2 at the pins, short thick wires.",
-     40, 140, 1.27)
-c2 = Part(lib, CPOL, "C2", "100u low-ESR (+100n ceramic)", 22, 97, ref_offset=(3, -3), value_offset=(3, 0))
+     "VBAT is 3.64 V (MIC29302): keep VCC above 4 V in bursts -> C2 + 100n ceramic at the pins, short thick wires.",
+     40, 142, 1.27)
+c2 = Part(lib, CPOL, "C2", "100u low-ESR", 24, 124, ref_offset=(3, -3), value_offset=(3, 0))
 c2.emit()
 connect(c2, "1", "", lib, P5V)
 connect(c2, "2", "", lib, PGND)
