@@ -31,8 +31,9 @@ public:
     using IdleHook = void (*)();
     void setIdleHook(IdleHook hook) { idleHook_ = hook; }
 
-    // Probes with "AT"; if silent, pulses PWRKEY and probes again. Fixes
-    // the baud rate (the modem autobauds) and turns echo off.
+    // Probes with "AT" at each candidate baud rate; if silent at all of
+    // them, pulses PWRKEY and probes again. Once the modem answers it is
+    // pinned to Config::gsmBaudRate with AT+IPR and echo is turned off.
     esp_err_t powerOn();
 
     esp_err_t powerCycle();
@@ -60,6 +61,9 @@ private:
                         size_t capacity);
     void pulsePowerKey();
     void wait(uint32_t ms);
+    // True when the modem answered "AT" at one of the candidate rates; the
+    // UART is left at that rate.
+    bool probeBaudRates();
 
     UartPort &uart_;
     gpio_num_t powerKeyPin_;

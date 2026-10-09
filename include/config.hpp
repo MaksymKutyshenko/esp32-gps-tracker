@@ -80,8 +80,11 @@ namespace Config
     constexpr gpio_num_t gsmTxPin = GPIO_NUM_17;
     constexpr gpio_num_t gsmRxPin = GPIO_NUM_18;
 #endif
-    // SIM800C autobauds; the firmware pins it with AT+IPR on first contact.
+    // The modem is driven at this rate; breakout boards ship either in
+    // autobaud mode or fixed at 9600, so power-on probes the candidates in
+    // order and then pins the modem to gsmBaudRate with AT+IPR.
     constexpr uint32_t gsmBaudRate = 115200;
+    constexpr uint32_t gsmProbeBaudRates[] = {115200, 9600, 57600, 38400};
     constexpr size_t gsmRxBufferBytes = 2048;
 
     // ---- I2C bus: OLED + accelerometer (+ GNSS compass) ----------------

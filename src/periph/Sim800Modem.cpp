@@ -1,5 +1,6 @@
 #include "periph/Sim800Modem.hpp"
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,9 +16,10 @@ namespace
 {
     constexpr const char *logTag = "sim800";
 
-    constexpr AtCommand probe = {"AT", "OK", 1000};
+    constexpr AtCommand probe = {"AT", "OK", 500};
     constexpr AtCommand echoOff = {"ATE0", "OK", 1000};
     constexpr AtCommand fixBaud = {"AT+IPR=115200", "OK", 1000};
+    static_assert(Config::gsmBaudRate == 115200, "fixBaud must match Config::gsmBaudRate");
 }
 
 Sim800Modem::Sim800Modem(UartPort &uart, gpio_num_t powerKeyPin)
@@ -61,25 +63,50 @@ void Sim800Modem::pulsePowerKey()
     gpio_set_level(powerKeyPin_, 1);
 }
 
-esp_err_t Sim800Modem::powerOn()
+bool Sim800Modem::probeBaudRates()
 {
-    for (uint8_t attempt = 0; attempt < Config::gsmPowerOnAttempts; ++attempt)
+    for (uint32_t baud : Config::gsmProbeBaudRates)
     {
-        // Several probes: autobaud locks onto the "AT" pattern itself.
+        if (uart_.setBaudRate(baud) != ESP_OK)
+        {
+            continue;
+        }
+        uart_.discardInput();
+        // Several probes per rate: in autobaud mode the modem locks onto
+        // the "AT" pattern itself and may swallow the first one.
         for (uint8_t i = 0; i < 3; ++i)
         {
             if (execute(probe) == ESP_OK)
             {
-                ESP_LOGI(logTag, "Modem answered on attempt %u", attempt + 1);
-                esp_err_t err = execute(fixBaud);
-                if (err == ESP_OK)
-                {
-                    err = execute(echoOff);
-                }
-                return err;
+                ESP_LOGI(logTag, "Modem answered at %" PRIu32 " baud", baud);
+                return true;
             }
         }
-        ESP_LOGW(logTag, "Modem silent, pulsing PWRKEY (%u/%u)", attempt + 1,
+    }
+    return false;
+}
+
+esp_err_t Sim800Modem::powerOn()
+{
+    for (uint8_t attempt = 0; attempt < Config::gsmPowerOnAttempts; ++attempt)
+    {
+        if (probeBaudRates())
+        {
+            // Pin the rate: from now on the modem and the UART agree
+            // regardless of how the board shipped.
+            esp_err_t err = execute(fixBaud);
+            if (err == ESP_OK)
+            {
+                err = uart_.setBaudRate(Config::gsmBaudRate);
+            }
+            if (err == ESP_OK)
+            {
+                uart_.discardInput();
+                err = execute(echoOff);
+            }
+            return err;
+        }
+        ESP_LOGW(logTag, "Modem silent at every baud rate, pulsing PWRKEY (%u/%u)", attempt + 1,
                  Config::gsmPowerOnAttempts);
         pulsePowerKey();
         wait(Config::gsmBootWaitMs);

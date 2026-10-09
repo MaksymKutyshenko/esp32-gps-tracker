@@ -18,7 +18,7 @@ when a pin changes.
 | ESP32-S3 DevKitC-1 (WROOM-1 module) | Development board and fallback: same firmware, `devkitc` is the default build environment. Its CP2102 UART console survives deep sleep and crashes, which the SuperMini's USB Serial/JTAG does not | — | USB or 5 V |
 | Foxeer M10Q-250 | Primary GNSS (u-blox M10 class, GPS+GLONASS+Galileo+BDS, up to 10 Hz). Default 115200 baud, NMEA/UBX. Onboard QMC5883L (or IST8310 on V2) compass on I2C. Backup cell for warm starts | UART + I2C (compass) | 5 V in, 3.3 V logic |
 | Beitian BE-220 | Alternative GNSS (u-blox M8030 class per most listings; some say M10050). Default 9600 baud, NMEA | UART | 3.0–5.5 V in, 3.3 V logic |
-| SIM800C board ("BIGGA GSM") | GPRS uplink for live position upload (2G only) | UART (AT commands) + PWRKEY | 5 V in (board regulator → 4 V VBAT); 2 A transmit bursts |
+| SIM800C board ("BIGGA GSM", the common 5V/3.3V TTL board with BT/TTS) | GPRS uplink for live position upload (2G only) | UART (AT commands, TTL via V_TTL) + PWR | 5 V on the 5V pin (or 3.3–4.4 V on VBAT); 2 A transmit bursts, 820 µF onboard |
 | GSM SMA antenna | Antenna for the SIM800C | SMA / IPEX pigtail | — |
 | BMA400 (CJMCU-400) | Motion detection: wakes the tracker from deep sleep and drives the adaptive logging rate. Not delivered yet, so the firmware treats it as optional | I2C, INT1 → GPIO | 3.3 V |
 | SSD1306 0.96" OLED | Status display: fix state, satellites, speed, coordinates, battery, upload state | I2C 0x3C | 3.3 V |
@@ -88,7 +88,7 @@ and on the DevKitC). Only the GSM UART and the status LED differ.
 | GNSS UART1 RX | GPIO4 | GPIO4 | ← GNSS TX |
 | GNSS UART1 TX | GPIO5 | GPIO5 | → GNSS RX (only needed to send UBX/NMEA config) |
 | BMA400 INT1 | GPIO6 | GPIO6 | Motion interrupt; RTC GPIO for deep-sleep wake (EXT1) |
-| SIM800C PWRKEY | GPIO7 | GPIO7 | Pull low ≥ 1 s to power the modem on/off. Only if the board exposes it |
+| SIM800C PWR (PWRKEY) | GPIO7 | GPIO7 | Pull low ≥ 1 s to toggle the modem's power. The board boots on its own when 5 V arrives; the firmware only pulses this if the modem stays silent |
 | I2C SDA | GPIO8 | GPIO8 | OLED 0x3C, BMA400 0x14 (0x15 if SDO high), GNSS compass 0x0D (QMC5883L) |
 | I2C SCL | GPIO9 | GPIO9 | 100 kHz on breadboard; modules carry their own pull-ups |
 | SD CS | GPIO10 | GPIO10 | SPI2 (FSPI) IOMUX pins, same as module 4.4 |
@@ -121,11 +121,16 @@ it to GPIO16 if wanted.
 
 - Both GNSS modules output 3.3 V logic even when fed 5 V. Wire TX/RX
   directly.
-- SIM800C logic is 2.8 V. The ESP reads a 2.8 V high fine (VIH ≈ 2.5 V), but
-  the ESP's 3.3 V TX into the modem's RXD exceeds the chip's 2.8 V + 0.3 V
-  limit. Many breakout boards include a level shifter and a `V_TTL` select
-  pin: set it to 3.3 V. If the board has no shifter, put a 1.8 k / 3.3 k
-  divider on the ESP → SIM800 RXD line.
+- SIM800C logic is 2.8 V. The board has a level shifter on TXD/RXD whose
+  reference is the `V_TTL` pin: wire `V_TTL` to 3.3 V and the lines go
+  straight to the ESP. (A board without `V_TTL` would need a 1.8 k / 3.3 k
+  divider on the ESP → RXD line; this one does not.)
+- The board's pin set per the vendor: 5V (input), V_TTL, GND ×3, TXD, RXD,
+  PWR, VBAT (alternative 3.3–4.4 V input, unused), DTR, RI, VRTC, SPKP/N,
+  MICP/N. Only 5V, GND, V_TTL, TXD, RXD and PWR are wired.
+- The board may ship fixed at 9600 baud or in autobaud mode; the firmware
+  probes 115200, 9600, 57600 and 38400 and then pins the modem to 115200
+  with `AT+IPR`, so either works.
 - SIM800C is 2G only. Confirm the SIM's operator still runs GSM/GPRS where
   the tracker will be used, and that the SIM has no PIN or that the firmware
   sends it.
