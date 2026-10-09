@@ -268,9 +268,9 @@ connect(j2, "5", "GSM_PWRKEY")
 connect(j2, "6", "+3V3")
 text("1 5V in   2 GND   3 TXD -> IO18   4 RXD <- IO17   5 PWRKEY <- IO7   6 V_TTL = 3V3\n"
      "Board without level shifter: 1.8k/3.3k divider on RXD (chip logic is 2.8 V).\n"
-     "2 A transmit bursts: C2 right at pins 1-2, short thick wires.",
+     "Board carries 820 uF 6.3 V on the modem rail; C2 steadies the 5 V input. Short thick wires.",
      40, 117, 1.27)
-c2 = Part(lib, CPOL, "C2", "1000u 35V low-ESR", 22, 97, ref_offset=(3, -3), value_offset=(3, 0))
+c2 = Part(lib, CPOL, "C2", "100u low-ESR (+100n ceramic)", 22, 97, ref_offset=(3, -3), value_offset=(3, 0))
 c2.emit()
 connect(c2, "1", "", lib, P5V)
 connect(c2, "2", "", lib, PGND)
