@@ -70,6 +70,8 @@ void scheduler_requests_reset_after_failure_run_and_success_clears_it();
 void button_short_and_long_press_by_duration();
 void button_bounce_edges_inside_debounce_window_are_ignored();
 void button_repeated_level_after_dropped_edge_is_ignored();
+void command_parser_recognises_words_and_set_arguments();
+void command_parser_unsigned_rejects_garbage_and_overflow();
 
 int main()
 {
@@ -135,6 +137,8 @@ int main()
     RUN_TEST(button_short_and_long_press_by_duration);
     RUN_TEST(button_bounce_edges_inside_debounce_window_are_ignored);
     RUN_TEST(button_repeated_level_after_dropped_edge_is_ignored);
+    RUN_TEST(command_parser_recognises_words_and_set_arguments);
+    RUN_TEST(command_parser_unsigned_rejects_garbage_and_overflow);
 
     return UNITY_END();
 }

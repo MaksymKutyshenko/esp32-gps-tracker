@@ -1,6 +1,7 @@
 #include "App.hpp"
 
 #include <inttypes.h>
+#include <string.h>
 
 #include "esp_log.h"
 #include "esp_system.h"
@@ -8,6 +9,7 @@
 #include "esp_timer.h"
 
 #include "config.hpp"
+#include "logic/CommandParser.hpp"
 #include "periph/GnssProfile.hpp"
 #include "reliability/BusLock.hpp"
 #include "reliability/TaskWatchdog.hpp"
@@ -125,6 +127,7 @@ void App::begin()
 
     battery_.begin();
     button_.begin(buttonEdgeQueue_);
+    console_.begin();
 
     ESP_LOGI(logTag, "Ready. Device %s, log %" PRIu32 "/%" PRIu32 " ms, uplink %s -> %s",
              values_.deviceId, values_.movingIntervalMs, values_.stationaryIntervalMs,
@@ -145,12 +148,17 @@ void App::loadSettings()
         ESP_LOGI(logTag, "No settings in NVS, saved defaults: %s", esp_err_to_name(err));
     }
 
-    policy_.setParams({values_.movingIntervalMs, values_.stationaryIntervalMs, values_.minDistanceM});
-    speedMotion_.setParams({values_.motionStartCmPerS, values_.motionStopCmPerS, values_.motionStopDelayMs});
-    scheduler_.setParams({values_.uplinkMinIntervalMs, Config::uplinkBackoffInitialMs,
-                          Config::uplinkBackoffMaxMs, Config::gsmFailuresBeforePowerCycle});
+    applyLiveSettings(values_);
     uplink_ = values_.uplinkEnabled ? static_cast<IUplinkTransport *>(&modemTransport_)
                                     : static_cast<IUplinkTransport *>(&nullTransport_);
+}
+
+void App::applyLiveSettings(const Settings::Values &values)
+{
+    policy_.setParams({values.movingIntervalMs, values.stationaryIntervalMs, values.minDistanceM});
+    speedMotion_.setParams({values.motionStartCmPerS, values.motionStopCmPerS, values.motionStopDelayMs});
+    scheduler_.setParams({values.uplinkMinIntervalMs, Config::uplinkBackoffInitialMs,
+                          Config::uplinkBackoffMaxMs, Config::gsmFailuresBeforePowerCycle});
 }
 
 void App::createQueues()
@@ -160,10 +168,13 @@ void App::createQueues()
     uplinkQueue_ = xQueueCreate(Config::uplinkQueueDepth, sizeof(TrackRecord));
     buttonEdgeQueue_ = xQueueCreate(Config::buttonEdgeQueueDepth, sizeof(ButtonEdge));
     batteryQueue_ = xQueueCreate(1, sizeof(uint16_t));
+    gpsSettingsQueue_ = xQueueCreate(1, sizeof(Settings::Values));
+    uplinkSettingsQueue_ = xQueueCreate(1, sizeof(Settings::Values));
     i2cMutex_ = xSemaphoreCreateMutex();
     sdMutex_ = xSemaphoreCreateMutex();
     configASSERT(displayQueue_ && logQueue_ && uplinkQueue_ && buttonEdgeQueue_ &&
-                 batteryQueue_ && i2cMutex_ && sdMutex_);
+                 batteryQueue_ && gpsSettingsQueue_ && uplinkSettingsQueue_ &&
+                 i2cMutex_ && sdMutex_);
 }
 
 void App::run()
@@ -188,6 +199,7 @@ void App::startTasks()
         {TaskLogger, loggerTaskEntry, "logger", Config::loggerTaskStackBytes, Config::loggerTaskPriority},
         {TaskUplink, uplinkTaskEntry, "uplink", Config::uplinkTaskStackBytes, Config::uplinkTaskPriority},
         {TaskUi, uiTaskEntry, "ui", Config::uiTaskStackBytes, Config::uiTaskPriority},
+        {TaskConsole, consoleTaskEntry, "console", Config::consoleTaskStackBytes, Config::consoleTaskPriority},
     };
     for (const Spec &spec : specs)
     {
@@ -203,6 +215,7 @@ void App::displayTaskEntry(void *self) { static_cast<App *>(self)->displayLoop()
 void App::loggerTaskEntry(void *self) { static_cast<App *>(self)->loggerLoop(); }
 void App::uplinkTaskEntry(void *self) { static_cast<App *>(self)->uplinkLoop(); }
 void App::uiTaskEntry(void *self) { static_cast<App *>(self)->uiLoop(); }
+void App::consoleTaskEntry(void *self) { static_cast<App *>(self)->consoleLoop(); }
 
 uint32_t App::nowMs()
 {
@@ -230,6 +243,15 @@ void App::gpsLoop()
     while (true)
     {
         watchdog.feed();
+
+        Settings::Values updated = {};
+        if (xQueueReceive(gpsSettingsQueue_, &updated, 0) == pdTRUE)
+        {
+            policy_.setParams({updated.movingIntervalMs, updated.stationaryIntervalMs, updated.minDistanceM});
+            speedMotion_.setParams({updated.motionStartCmPerS, updated.motionStopCmPerS,
+                                    updated.motionStopDelayMs});
+            ESP_LOGI(logTag, "gps task applied new settings");
+        }
 
         const char *line = nullptr;
         if (!gnss_.readSentence(line, Config::gpsReadTimeoutMs))
@@ -509,6 +531,14 @@ void App::uplinkLoop()
     {
         watchdog.feed();
 
+        Settings::Values updated = {};
+        if (xQueueReceive(uplinkSettingsQueue_, &updated, 0) == pdTRUE)
+        {
+            scheduler_.setParams({updated.uplinkMinIntervalMs, Config::uplinkBackoffInitialMs,
+                                  Config::uplinkBackoffMaxMs, Config::gsmFailuresBeforePowerCycle});
+            ESP_LOGI(logTag, "uplink task applied new settings");
+        }
+
         TrackRecord record = {};
         if (xQueuePeek(uplinkQueue_, &record, pdMS_TO_TICKS(Config::uplinkQueueWaitMs)) != pdTRUE)
         {
@@ -616,6 +646,115 @@ void App::uiLoop()
             logDiagnostics();
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// console task: field settings without a rebuild (checklist 4.3).
+
+void App::consoleLoop()
+{
+    WatchdogSubscription watchdog;
+    // Working copy: 'set' edits it, 'save' persists and publishes it.
+    Settings::Values draft = values_;
+    char line[Config::consoleLineBytes];
+
+    while (true)
+    {
+        watchdog.feed();
+        if (!console_.readLine(line, sizeof line, Config::queueWaitMs))
+        {
+            continue;
+        }
+
+        const CommandParser::Parsed parsed = CommandParser::parse(line);
+        switch (parsed.command)
+        {
+        case CommandParser::Command::None:
+            break;
+        case CommandParser::Command::Help:
+            ESP_LOGI(logTag, "help | show | diag | defaults | save | set <key> <value>");
+            ESP_LOGI(logTag, "keys: moving_ms stationary_ms min_distance_m motion_start motion_stop "
+                             "motion_stop_delay_ms gnss(0=%s,1=%s) uplink(0/1) uplink_min_ms apn url id",
+                     GnssProfiles::byIndex(0).name, GnssProfiles::byIndex(1).name);
+            ESP_LOGI(logTag, "apn, url, id and gnss take effect after a restart; the rest immediately on save");
+            break;
+        case CommandParser::Command::Show:
+            printSettings(draft);
+            break;
+        case CommandParser::Command::Diag:
+            logDiagnostics();
+            break;
+        case CommandParser::Command::Defaults:
+            draft = Settings::defaults();
+            ESP_LOGI(logTag, "Draft reset to defaults (not saved)");
+            break;
+        case CommandParser::Command::Set:
+            if (applySetting(draft, parsed.key, parsed.value))
+            {
+                ESP_LOGI(logTag, "%s = %s (draft, 'save' to apply)", parsed.key, parsed.value);
+            }
+            else
+            {
+                ESP_LOGW(logTag, "Unknown key or bad value: %s %s", parsed.key, parsed.value);
+            }
+            break;
+        case CommandParser::Command::Save:
+        {
+            Settings::validate(draft);
+            const esp_err_t err = settings_.save(draft);
+            if (err != ESP_OK)
+            {
+                ESP_LOGE(logTag, "Save failed: %s", esp_err_to_name(err));
+                break;
+            }
+            publishSettings(draft);
+            ESP_LOGI(logTag, "Settings saved and applied");
+            break;
+        }
+        case CommandParser::Command::Unknown:
+            ESP_LOGW(logTag, "Unknown command; type 'help'");
+            break;
+        }
+    }
+}
+
+void App::printSettings(const Settings::Values &v) const
+{
+    ESP_LOGI(logTag, "moving_ms=%" PRIu32 " stationary_ms=%" PRIu32 " min_distance_m=%" PRIu32,
+             v.movingIntervalMs, v.stationaryIntervalMs, v.minDistanceM);
+    ESP_LOGI(logTag, "motion_start=%" PRIu32 " motion_stop=%" PRIu32 " motion_stop_delay_ms=%" PRIu32,
+             v.motionStartCmPerS, v.motionStopCmPerS, v.motionStopDelayMs);
+    ESP_LOGI(logTag, "gnss=%u (%s) uplink=%u uplink_min_ms=%" PRIu32, v.gnssProfile,
+             GnssProfiles::byIndex(v.gnssProfile).name, v.uplinkEnabled ? 1 : 0, v.uplinkMinIntervalMs);
+    ESP_LOGI(logTag, "apn=%s url=%s id=%s", v.apn, v.serverUrl, v.deviceId);
+}
+
+bool App::applySetting(Settings::Values &v, const char *key, const char *value) const
+{
+    uint32_t number = 0;
+    const bool numeric = CommandParser::parseUnsigned(value, number);
+
+    if (strcmp(key, "moving_ms") == 0 && numeric) v.movingIntervalMs = number;
+    else if (strcmp(key, "stationary_ms") == 0 && numeric) v.stationaryIntervalMs = number;
+    else if (strcmp(key, "min_distance_m") == 0 && numeric) v.minDistanceM = number;
+    else if (strcmp(key, "motion_start") == 0 && numeric) v.motionStartCmPerS = number;
+    else if (strcmp(key, "motion_stop") == 0 && numeric) v.motionStopCmPerS = number;
+    else if (strcmp(key, "motion_stop_delay_ms") == 0 && numeric) v.motionStopDelayMs = number;
+    else if (strcmp(key, "gnss") == 0 && numeric && number < GnssProfiles::count)
+        v.gnssProfile = static_cast<uint8_t>(number);
+    else if (strcmp(key, "uplink") == 0 && numeric && number <= 1) v.uplinkEnabled = (number == 1);
+    else if (strcmp(key, "uplink_min_ms") == 0 && numeric) v.uplinkMinIntervalMs = number;
+    else if (strcmp(key, "apn") == 0) strlcpy(v.apn, value, sizeof v.apn);
+    else if (strcmp(key, "url") == 0) strlcpy(v.serverUrl, value, sizeof v.serverUrl);
+    else if (strcmp(key, "id") == 0) strlcpy(v.deviceId, value, sizeof v.deviceId);
+    else return false;
+    return true;
+}
+
+void App::publishSettings(const Settings::Values &values)
+{
+    xQueueOverwrite(gpsSettingsQueue_, &values);
+    xQueueOverwrite(uplinkSettingsQueue_, &values);
 }
 
 // ---------------------------------------------------------------------------

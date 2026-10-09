@@ -18,6 +18,7 @@
 #include "logic/TrackerFsm.hpp"
 #include "periph/BatteryMonitor.hpp"
 #include "periph/Button.hpp"
+#include "periph/ConsoleInput.hpp"
 #include "periph/GnssReceiver.hpp"
 #include "periph/I2cBus.hpp"
 #include "periph/SdCard.hpp"
@@ -45,6 +46,8 @@
 //   logger   logQueue -> TrackLogger -> SdStorage (SPI, BusLock)
 //   uplink   uplinkQueue (peek, pop on success) -> OsmAnd URL -> IUplinkTransport
 //   ui       button edges (ISR queue) -> ButtonDecoder; battery; diagnostics
+//   console  serial lines -> CommandParser -> Settings (NVS) and, through
+//            single-slot queues, the live parameters of the gps and uplink tasks
 //
 // Tasks exchange values through queues only. The deep queues drop their
 // oldest record and count it when a consumer falls behind; the producer
@@ -67,6 +70,7 @@ private:
         TaskLogger,
         TaskUplink,
         TaskUi,
+        TaskConsole,
         TaskCount
     };
 
@@ -80,12 +84,14 @@ private:
     [[noreturn]] void loggerLoop();
     [[noreturn]] void uplinkLoop();
     [[noreturn]] void uiLoop();
+    [[noreturn]] void consoleLoop();
 
     static void gpsTaskEntry(void *self);
     static void displayTaskEntry(void *self);
     static void loggerTaskEntry(void *self);
     static void uplinkTaskEntry(void *self);
     static void uiTaskEntry(void *self);
+    static void consoleTaskEntry(void *self);
 
     // gps task helpers
     void onEpoch(const Fix &fix, uint32_t nowMs);
@@ -93,6 +99,12 @@ private:
     void publishRecord(const Fix &fix);
     void publishFix(const Fix &fix);
     void showStateOnLed(TrackerState state);
+
+    // console helpers
+    void printSettings(const Settings::Values &values) const;
+    bool applySetting(Settings::Values &values, const char *key, const char *value) const;
+    void applyLiveSettings(const Settings::Values &values);
+    void publishSettings(const Settings::Values &values);
 
     // shared helpers
     void postDisplay(const DisplayMessage &message);
@@ -116,6 +128,7 @@ private:
     BatteryMonitor battery_;
     Button button_;
     StatusLed led_;
+    ConsoleInput console_;
 
     // Logic
     NmeaParser parser_;
@@ -142,6 +155,11 @@ private:
     QueueHandle_t uplinkQueue_ = nullptr;
     QueueHandle_t buttonEdgeQueue_ = nullptr;
     QueueHandle_t batteryQueue_ = nullptr;  // single slot, latest millivolts
+    // Single slot each: the console publishes a whole Settings::Values and
+    // the gps / uplink tasks apply it at the top of their loops, so live
+    // parameters change without any shared object between tasks.
+    QueueHandle_t gpsSettingsQueue_ = nullptr;
+    QueueHandle_t uplinkSettingsQueue_ = nullptr;
     SemaphoreHandle_t i2cMutex_ = nullptr;
     SemaphoreHandle_t sdMutex_ = nullptr;
     TaskHandle_t tasks_[TaskCount] = {};

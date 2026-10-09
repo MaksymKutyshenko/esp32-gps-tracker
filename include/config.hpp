@@ -202,6 +202,10 @@ namespace Config
     constexpr UBaseType_t uplinkTaskPriority = 2;
     constexpr uint32_t uplinkQueueWaitMs = 1000;
 
+    constexpr uint32_t consoleTaskStackBytes = 4096;
+    constexpr UBaseType_t consoleTaskPriority = 1;
+    constexpr size_t consoleLineBytes = 128;
+
     // Every blocking wait inside a task stays below the 5 s task watchdog.
     constexpr uint32_t queueWaitMs = 1000;
 }

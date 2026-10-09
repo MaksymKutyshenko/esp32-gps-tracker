@@ -233,3 +233,35 @@ void button_repeated_level_after_dropped_edge_is_ignored()
     TEST_ASSERT_EQUAL(ButtonPress::None, decoder.feed(true, 500'000)); // release edge was lost
     TEST_ASSERT_EQUAL(ButtonPress::Short, decoder.feed(false, 600'000));
 }
+
+// --- CommandParser -------------------------------------------------------
+
+#include "logic/CommandParser.hpp"
+
+void command_parser_recognises_words_and_set_arguments()
+{
+    char line1[] = "  show \r\n";
+    TEST_ASSERT_EQUAL(CommandParser::Command::Show, CommandParser::parse(line1).command);
+    char line2[] = "set moving_ms 2000";
+    CommandParser::Parsed set = CommandParser::parse(line2);
+    TEST_ASSERT_EQUAL(CommandParser::Command::Set, set.command);
+    TEST_ASSERT_EQUAL_STRING("moving_ms", set.key);
+    TEST_ASSERT_EQUAL_STRING("2000", set.value);
+    char line3[] = "";
+    TEST_ASSERT_EQUAL(CommandParser::Command::None, CommandParser::parse(line3).command);
+    char line4[] = "set onlykey";
+    TEST_ASSERT_EQUAL(CommandParser::Command::Unknown, CommandParser::parse(line4).command);
+    char line5[] = "frobnicate";
+    TEST_ASSERT_EQUAL(CommandParser::Command::Unknown, CommandParser::parse(line5).command);
+}
+
+void command_parser_unsigned_rejects_garbage_and_overflow()
+{
+    uint32_t value = 0;
+    TEST_ASSERT_TRUE(CommandParser::parseUnsigned("4294967295", value));
+    TEST_ASSERT_EQUAL_UINT32(4294967295u, value);
+    TEST_ASSERT_FALSE(CommandParser::parseUnsigned("4294967296", value));
+    TEST_ASSERT_FALSE(CommandParser::parseUnsigned("12a", value));
+    TEST_ASSERT_FALSE(CommandParser::parseUnsigned("", value));
+    TEST_ASSERT_FALSE(CommandParser::parseUnsigned("-1", value));
+}
