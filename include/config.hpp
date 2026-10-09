@@ -19,8 +19,9 @@
 //   -DBOARD_DEVKITC    ESP32-S3 DevKitC-1 (fallback)
 // GPIO1..13 are on both headers, so only the GSM UART and the status LED
 // differ. Kept off on both: GPIO0 (BOOT), GPIO3 (JTAG strapping), GPIO19/20
-// (USB), GPIO26..32 (flash), GPIO45/46 (strapping). The console runs over
-// USB Serial/JTAG (sdkconfig.defaults), so UART0's pins are free.
+// (USB), GPIO26..32 (flash), GPIO45/46 (strapping). Development happens on
+// the DevKitC with the console on UART0 (CP2102 port); the SuperMini build
+// moves the console to USB Serial/JTAG so its UART0 pins are free.
 #if !defined(BOARD_SUPERMINI) && !defined(BOARD_DEVKITC)
 #error "Select a board: build with -DBOARD_SUPERMINI or -DBOARD_DEVKITC (see platformio.ini)"
 #endif

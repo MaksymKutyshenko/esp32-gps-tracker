@@ -1,10 +1,7 @@
 # Project-wide ESP-IDF defaults applied when sdkconfig.<env> is generated.
 # Delete the generated sdkconfig.<env> to re-apply after changing this file.
-
-# Console over the chip's USB Serial/JTAG port. The SuperMini has no
-# USB-UART bridge, and this frees GPIO43/44 (UART0) for the GSM modem.
-CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
-CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
+# Console: the IDF default (UART0 primary, USB Serial/JTAG secondary) suits
+# the DevKitC; sdkconfig.defaults.supermini overrides it for the SuperMini.
 
 # Task watchdog: on by default, 5 s, idle tasks watched. Application tasks
 # subscribe themselves (esp_task_wdt_add) and feed it from their loops.

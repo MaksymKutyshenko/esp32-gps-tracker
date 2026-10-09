@@ -13,8 +13,8 @@ _To be written once the component list is final._
 ## Quick start
 
 ```bash
-pio run -e supermini -t upload -t monitor   # flash the SuperMini and watch the logs
-pio run -e devkitc -t upload -t monitor     # same firmware on the DevKitC-1 fallback
+pio run -t upload -t monitor                # DevKitC-1 (default env), flash and watch the logs
+pio run -e supermini -t upload -t monitor   # same firmware on the SuperMini
 pio test -e native                          # host-side unit tests for the pure logic
 ```
 
@@ -26,8 +26,8 @@ Component roles, power tree and the GPIO map for both boards are in
 
 | Board | Build | Console |
 | --- | --- | --- |
-| ESP32-S3 SuperMini (primary) | `pio run -e supermini -t upload -t monitor` | USB-C (USB Serial/JTAG) |
-| ESP32-S3 DevKitC-1 (fallback) | `pio run -e devkitc -t upload -t monitor` | connector labelled "USB" |
+| ESP32-S3 DevKitC-1 / WROOM-1 (development, default) | `pio run -t upload -t monitor` | connector labelled "UART" (CP2102) |
+| ESP32-S3 SuperMini (final build) | `pio run -e supermini -t upload -t monitor` | USB-C (USB Serial/JTAG) |
 
 ## Architecture
 

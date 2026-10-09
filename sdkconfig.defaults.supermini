@@ -1,0 +1,5 @@
+# SuperMini only (merged after sdkconfig.defaults, see platformio.ini).
+# The board has no USB-UART bridge: console over the chip's USB Serial/JTAG
+# port, and nothing on UART0 so GPIO43/44 are free for the GSM modem.
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+CONFIG_ESP_CONSOLE_SECONDARY_NONE=y

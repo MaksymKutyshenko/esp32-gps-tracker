@@ -9,7 +9,7 @@ change them together.
 | Component | Role in the tracker | Interface | Supply |
 | --- | --- | --- | --- |
 | ESP32-S3 SuperMini | Main controller (4 MB flash, 2 MB PSRAM unused). No USB-UART bridge: console and flashing go through the chip's USB Serial/JTAG | — | 5 V in → onboard 3V3 LDO |
-| ESP32-S3 DevKitC-1 | Fallback controller, same firmware with the `devkitc` build environment | — | USB or 5 V |
+| ESP32-S3 DevKitC-1 (WROOM-1 module) | Development board and fallback: same firmware, `devkitc` is the default build environment. Its CP2102 UART console survives deep sleep and crashes, which the SuperMini's USB Serial/JTAG does not | — | USB or 5 V |
 | Foxeer M10Q-250 | Primary GNSS (u-blox M10 class, GPS+GLONASS+Galileo+BDS, up to 10 Hz). Default 115200 baud, NMEA/UBX. Onboard QMC5883L (or IST8310 on V2) compass on I2C. Backup cell for warm starts | UART + I2C (compass) | 5 V in, 3.3 V logic |
 | Beitian BE-220 | Alternative GNSS (u-blox M8030 class per most listings; some say M10050). Default 9600 baud, NMEA | UART | 3.0–5.5 V in, 3.3 V logic |
 | SIM800C board ("BIGGA GSM") | GPRS uplink for live position upload (2G only) | UART (AT commands) + PWRKEY | 5 V in (board regulator → 4 V VBAT); 2 A transmit bursts |
@@ -91,7 +91,7 @@ and on the DevKitC). Only the GSM UART and the status LED differ.
 | GSM UART2 TX | GPIO43 | GPIO17 | → SIM800C RXD. On the SuperMini 43/44 are the unused UART0 pins; on the DevKitC they are wired to the CP2102, so the GSM moves to 17/18 |
 | GSM UART2 RX | GPIO44 | GPIO18 | ← SIM800C TXD |
 | Status LED (WS2812) | GPIO48 | GPIO38 | Onboard RGB. DevKitC-1 v1.0 boards use GPIO48 instead of 38 |
-| Console | USB Serial/JTAG | USB Serial/JTAG | Set in `sdkconfig.defaults`; on the DevKitC use the connector labelled "USB", not "UART" |
+| Console | USB Serial/JTAG (`sdkconfig.defaults.supermini`) | UART0 via CP2102, connector labelled "UART" | On the DevKitC the "USB" connector also carries the log as secondary console |
 
 Pins deliberately unused: GPIO0 (BOOT), GPIO3 (JTAG strapping), GPIO19/20
 (USB D−/D+), GPIO26–32 (flash), GPIO45/46 (strapping).
