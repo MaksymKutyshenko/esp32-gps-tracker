@@ -334,7 +334,7 @@ wire(p_r1, (p_r1[0] + 7.62, p_r1[1]))
 label("BATT_SENSE", (p_r1[0] + 7.62, p_r1[1]), (1, 0))
 r1.used.update({"2"})
 r2.used.update({"1"})
-text("Cell 4.2 V max -> 2.1 V at IO1 (ADC1_CH0, 12 dB).", 140, 190, 1.27)
+text("Cell 4.2 V max -> 2.1 V at IO1 (ADC1_CH0, 12 dB).", 140, 198, 1.27)
 
 # --- Button -----------------------------------------------------------------
 sw1 = Part(lib, SW, "SW1", "Button (BOOT-style, active low)", 120, 120, ref_offset=(-4, -6), value_offset=(-4, -4))
