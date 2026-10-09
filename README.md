@@ -13,13 +13,21 @@ _To be written once the component list is final._
 ## Quick start
 
 ```bash
-pio run -t upload -t monitor   # flash and watch the logs (115200 baud)
-pio test -e native             # host-side unit tests for the pure logic
+pio run -e supermini -t upload -t monitor   # flash the SuperMini and watch the logs
+pio run -e devkitc -t upload -t monitor     # same firmware on the DevKitC-1 fallback
+pio test -e native                          # host-side unit tests for the pure logic
 ```
 
 ## Wiring / schematic
 
-_Pending component list._
+Component roles, power tree and the GPIO map for both boards are in
+[docs/HARDWARE.md](docs/HARDWARE.md). The pin constants live in
+[include/config.hpp](include/config.hpp).
+
+| Board | Build | Console |
+| --- | --- | --- |
+| ESP32-S3 SuperMini (primary) | `pio run -e supermini -t upload -t monitor` | USB-C (USB Serial/JTAG) |
+| ESP32-S3 DevKitC-1 (fallback) | `pio run -e devkitc -t upload -t monitor` | connector labelled "USB" |
 
 ## Architecture
 
@@ -28,7 +36,7 @@ Planned tasks: `gps_rx`, `display`, `logger`, `ui` (see `include/App.hpp`).
 
 ## Interfaces
 
-_UART (NMEA), I2C, SPI, ADC — to be documented._
+UART1 GNSS (NMEA), UART2 SIM800C (AT commands), I2C (SSD1306, BMA400), SPI (MicroSD), ADC (battery). Details in `docs/HARDWARE.md`.
 
 ## Results
 

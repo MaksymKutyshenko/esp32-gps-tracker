@@ -268,17 +268,31 @@ draft, with real function names and values, and must be reviewed.
 
 ---
 
-## 8. Open points for the GPS tracker
+## 8. Decisions for the GPS tracker (component list of 2026-10-09)
 
-To be resolved once the component list is known:
+Hardware details, power tree and the GPIO map are in
+[docs/HARDWARE.md](docs/HARDWARE.md).
 
-- [ ] GPS module and its interface (UART baud, PPS pin available?).
-- [ ] Storage: SD card over SPI vs LittleFS on flash (affects 2.2, 6.2, 7.x).
-- [ ] Display: SSD1306 I2C (driver exists in module 4.3/4.4).
-- [ ] Analog subsystem for 2.1: battery divider on ADC and/or PWM buzzer.
-- [ ] Feedback / regulation for 4.1–4.2: adaptive log interval, EMA, or servo
-      home-pointer with PID on bearing.
-- [ ] Power source and whether low-power modes are in scope (needs
-      measurements if claimed).
-- [ ] Which edge case to demonstrate live.
+| Checklist item | How the chosen hardware covers it |
+| --- | --- |
+| 2.1 analog subsystem | ADC1 on GPIO1 reads the cell voltage through a divider |
+| 2.2 digital interfaces | UART1 GNSS (NMEA), UART2 SIM800C (AT), I2C OLED + BMA400, SPI MicroSD |
+| 2.3 interrupts | Button GPIO ISR, BMA400 INT1 motion ISR, UART driver RX interrupts |
+| 2.4 async transfer | Queues: latest fix (single slot) to display, every fix to logger and uplink; UART ring buffers |
+| 2.5 timers / hardware events | `esp_timer` for log and upload intervals; deep-sleep timer and EXT1 wake on INT1 / button |
+| 3.x RTOS | Tasks `gps_rx`, `display`, `logger`, `uplink`, `ui`/`motion`; one mutex per I2C bus and per SD card |
+| 4.1 feedback | Motion-adaptive duty cycle: BMA400 activity and measured speed set the log interval, upload interval and sleep decision |
+| 4.2 regulation algorithm | EMA on speed/altitude; exponential back-off on GPRS failures driven by signal quality (CSQ) |
+| 4.3 configurable parameters | Intervals, server URL, APN, units in NVS, editable from the button menu and console |
+| 5.x reliability | NMEA checksum + fix validity, GNSS silence timeout, AT command timeouts with modem power-cycle, SD remount, I2C bus reset, task WDT on every task, reset reason logged |
+| 6.2 DMA | SD card over SPI uses DMA; UART DMA optional |
+| 9.2 edge cases to demo | Block the sky (no fix), pull the SD card mid-log, unplug the GSM antenna (upload backlog then catch-up) |
+
+Still open:
+
+- [ ] Exact SIM800C breakout (PWRKEY pin, level shifter, input range).
+- [ ] SD module type (bare 3.3 V vs 5 V level-shifter).
+- [ ] Upload target: Traccar (OsmAnd protocol) vs own Cloudflare Worker endpoint.
+- [ ] Measure the battery shield's 3 V rail and the three current figures.
 - [ ] Teacher approval of the custom topic.
+- [ ] 2G coverage check for the SIM's operator.

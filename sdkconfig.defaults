@@ -1,0 +1,19 @@
+# Project-wide ESP-IDF defaults applied when sdkconfig.<env> is generated.
+# Delete the generated sdkconfig.<env> to re-apply after changing this file.
+
+# Console over the chip's USB Serial/JTAG port. The SuperMini has no
+# USB-UART bridge, and this frees GPIO43/44 (UART0) for the GSM modem.
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
+
+# Task watchdog: on by default, 5 s, idle tasks watched. Application tasks
+# subscribe themselves (esp_task_wdt_add) and feed it from their loops.
+CONFIG_ESP_TASK_WDT_EN=y
+CONFIG_ESP_TASK_WDT_INIT=y
+CONFIG_ESP_TASK_WDT_TIMEOUT_S=5
+CONFIG_ESP_TASK_WDT_PANIC=y
+
+# Run-time statistics for the CPU-load figure the checklist asks for.
+CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS=y
+CONFIG_FREERTOS_USE_TRACE_FACILITY=y
+CONFIG_FREERTOS_USE_STATS_FORMATTING_FUNCTIONS=y
