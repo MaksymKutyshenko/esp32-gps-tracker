@@ -61,7 +61,8 @@ diagrams over text, concrete numbers.
 - Why `xQueueOverwrite` for the display and a deep queue for the logger?
   (The screen wants the newest value; the card wants every value.)
 - What happens if the gps task is starved? (Highest priority of the five;
-  the UART ring buffer holds two 10 Hz bursts; `rej`/`silences` counters
+  the receiver is set to 1 Hz and the UART ring buffer holds seconds of
+  it; `rej`/`silences` counters
   would show it.)
 - Why no `portMAX_DELAY` anywhere? (A wait that never ends is a hang the
   watchdog turns into a reset; bounded waits turn it into a counted error.)

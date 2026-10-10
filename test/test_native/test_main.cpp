@@ -24,6 +24,11 @@ void assembler_delivers_sentence_without_line_ending();
 void assembler_ignores_bytes_before_dollar_and_resyncs_mid_sentence();
 void assembler_drops_and_counts_oversized_sentence();
 
+// test_ubx.cpp
+void ubx_frame_matches_reference_cfg_rate();
+void ubx_frame_matches_reference_cfg_msg();
+void ubx_m10_setup_frame_has_valset_header_and_checksum();
+
 // test_fsm.cpp
 void fsm_starts_booting_and_acquires_on_first_sentence();
 void fsm_tracks_on_valid_fix_and_returns_to_acquiring_when_lost();
@@ -94,6 +99,10 @@ int main()
     RUN_TEST(assembler_delivers_sentence_without_line_ending);
     RUN_TEST(assembler_ignores_bytes_before_dollar_and_resyncs_mid_sentence);
     RUN_TEST(assembler_drops_and_counts_oversized_sentence);
+
+    RUN_TEST(ubx_frame_matches_reference_cfg_rate);
+    RUN_TEST(ubx_frame_matches_reference_cfg_msg);
+    RUN_TEST(ubx_m10_setup_frame_has_valset_header_and_checksum);
 
     RUN_TEST(fsm_starts_booting_and_acquires_on_first_sentence);
     RUN_TEST(fsm_tracks_on_valid_fix_and_returns_to_acquiring_when_lost);

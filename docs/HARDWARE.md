@@ -148,6 +148,17 @@ it to GPIO16 if wanted.
   sends it.
 - Keep the GSM antenna cable away from the GNSS patch antenna; GSM bursts
   desensitise the receiver. Mount the GNSS antenna face-up with sky view.
+  Indoors the receiver reports a handful of satellites heard and none used
+  (`0/2 sat`, `SEARCH` on the screen); that is the antenna, not the
+  firmware. The two worst neighbours on the bench are the SSD1306 (its
+  charge pump radiates right into the L1 band) and the devkit with its
+  USB cable: keep the patch at least 10–15 cm from both, on the window
+  side. A cold start wants 30–60 s of clear sky; near a window it can take
+  several minutes.
+- At boot the firmware sets the receiver to 1 Hz with RMC, GGA and GSV only
+  (UBX-CFG-VALSET on the M10, CFG-RATE/CFG-MSG on the M8), RAM layer only,
+  so a power cycle restores the module's own settings. Untouched, the
+  Foxeer streams 120 sentences a second, most of the UART's capacity.
 - The GNSS modules' default baud rates differ (Foxeer 115200, BE-220 9600).
   `Config::gpsBaudRate` must match the module in use; the firmware can later
   autodetect by trying both.

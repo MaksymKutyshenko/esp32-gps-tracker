@@ -20,7 +20,7 @@ machine, and every piece of pure logic unit-tested on the host.
 | | |
 | --- | --- |
 | Controller | ESP32-S3 (DevKitC-1 / WROOM-1 for development, SuperMini for the final build) |
-| GNSS | Foxeer M10Q-250 (u-blox M10, 10 Hz) or Beitian BE-220, NMEA over UART |
+| GNSS | Foxeer M10Q-250 (u-blox M10) or Beitian BE-220, NMEA over UART; set to 1 Hz RMC/GGA/GSV at boot |
 | Display | SSD1306 128×64 OLED, I2C |
 | Storage | MicroSD over SPI (DMA), FAT, one CSV per UTC day |
 | Uplink | SIM800C GPRS, HTTP GET in the OsmAnd protocol (Traccar) |
