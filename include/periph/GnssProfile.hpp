@@ -38,8 +38,23 @@ namespace GnssProfiles
         0xBB, 0x00, 0x91, 0x20, 0x01,        // CFG-MSGOUT-NMEA_ID_GGA_UART1 = 1
         0xC5, 0x00, 0x91, 0x20, 0x01,        // CFG-MSGOUT-NMEA_ID_GSV_UART1 = 1
     });
+    // Static hold: below staticHoldSpeedCmPerS the receiver reports speed
+    // 0 and freezes the position until it has moved staticHoldReleaseM
+    // or the speed rises again. Without it a parked tracker shows 1-3
+    // km/h of noise and coordinates that drift a few metres a second,
+    // and the motion detector never sees the vehicle stop. A separate
+    // frame: a VALSET is all-or-nothing, so the rate frame above cannot
+    // be lost to a key this firmware version does not know.
+    constexpr uint8_t staticHoldSpeedCmPerS = 100; // 3.6 km/h
+    constexpr uint8_t staticHoldReleaseM = 20;
+    inline constexpr UbxFrame<15> m10StaticHold(0x06, 0x8A, {
+        0x00, 0x01, 0x00, 0x00,
+        0x38, 0x00, 0x25, 0x20, staticHoldSpeedCmPerS,   // CFG-MOT-GNSSSPEED_THRS (cm/s)
+        0x3B, 0x00, 0x25, 0x30, staticHoldReleaseM, 0x00, // CFG-MOT-GNSSDIST_THRS (m)
+    });
     inline constexpr UbxCommand m10Commands[] = {
         {m10Setup.data(), m10Setup.length()},
+        {m10StaticHold.data(), m10StaticHold.length()},
     };
 
     // ---- u-blox M8 (protocol < 24): legacy UBX-CFG-RATE and UBX-CFG-MSG --
@@ -52,11 +67,29 @@ namespace GnssProfiles
     inline constexpr UbxFrame<3> m8GllOff(0x06, 0x01, {0xF0, 0x01, 0x00});
     inline constexpr UbxFrame<3> m8GsaOff(0x06, 0x01, {0xF0, 0x02, 0x00});
     inline constexpr UbxFrame<3> m8VtgOff(0x06, 0x01, {0xF0, 0x05, 0x00});
+    // UBX-CFG-NAV5 with only the staticHold mask bit (0x0040) set, so the
+    // other 34 bytes are ignored by the receiver.
+    inline constexpr UbxFrame<36> m8StaticHold(0x06, 0x24, {
+        0x40, 0x00,              // mask: staticHoldMask only
+        0x00, 0x00,              // dynModel, fixMode (masked out)
+        0x00, 0x00, 0x00, 0x00,  // fixedAlt
+        0x00, 0x00, 0x00, 0x00,  // fixedAltVar
+        0x00, 0x00,              // minElev, drLimit
+        0x00, 0x00, 0x00, 0x00,  // pDop, tDop
+        0x00, 0x00, 0x00, 0x00,  // pAcc, tAcc
+        staticHoldSpeedCmPerS,   // staticHoldThresh (cm/s)
+        0x00, 0x00, 0x00,        // dgnssTimeout, cnoThreshNumSVs, cnoThresh
+        0x00, 0x00,              // reserved
+        staticHoldReleaseM, 0x00, // staticHoldMaxDist (m)
+        0x00,                    // utcStandard
+        0x00, 0x00, 0x00, 0x00, 0x00,
+    });
     inline constexpr UbxCommand m8Commands[] = {
         {m8Rate.data(), m8Rate.length()},
         {m8GllOff.data(), m8GllOff.length()},
         {m8GsaOff.data(), m8GsaOff.length()},
         {m8VtgOff.data(), m8VtgOff.length()},
+        {m8StaticHold.data(), m8StaticHold.length()},
     };
 
     constexpr GnssProfile foxeerM10q250 = {"Foxeer M10Q-250", 115200, m10Commands,

@@ -162,6 +162,11 @@ it to GPIO16 if wanted.
   (UBX-CFG-VALSET on the M10, CFG-RATE/CFG-MSG on the M8), RAM layer only,
   so a power cycle restores the module's own settings. Untouched, the
   Foxeer streams 120 sentences a second, most of the UART's capacity.
+  The same sequence enables the receiver's static hold (speed below
+  1 m/s: report 0 and freeze the position until it moves 20 m). Without
+  it a parked tracker shows 1-3 km/h and coordinates drifting a few
+  metres a second, which the screen and the motion detector would take
+  for movement.
 - The GNSS modules' default baud rates differ (Foxeer 115200, BE-220 9600).
   `Config::gpsBaudRate` must match the module in use; the firmware can later
   autodetect by trying both.
