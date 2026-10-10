@@ -5,6 +5,7 @@
 #include <unity.h>
 
 #include "logic/ButtonDecoder.hpp"
+#include "transport/HealthReport.hpp"
 #include "transport/OsmAndProtocol.hpp"
 #include "transport/TrackLogger.hpp"
 #include "transport/UplinkScheduler.hpp"
@@ -186,6 +187,122 @@ void osmand_url_too_long_returns_zero()
 {
     char url[40];
     TEST_ASSERT_EQUAL_size_t(0, OsmAndProtocol::buildUrl("http://h", "d", sampleRecord(), url, sizeof url));
+}
+
+namespace
+{
+    HealthSnapshot sampleHealth()
+    {
+        HealthSnapshot h = {};
+        h.uptimeS = 3725;
+        h.resetCause = ResetCause::TaskWatchdog;
+        h.state = TrackerState::Acquiring;
+        h.fixValid = false;
+        h.satellites = 3;
+        h.satellitesInView = 11;
+        h.satellitesTracked = 6;
+        h.maxSnrDbHz = 38;
+        h.quality = 0;
+        h.sentencesReceived = 12345;
+        h.sentencesRejected = 7;
+        h.checksumFailures = 5;
+        h.fieldFailures = 2;
+        h.gnssSilences = 1;
+        h.storageReady = true;
+        h.recordsLogged = 900;
+        h.recordsDroppedLogQueue = 0;
+        h.storageErrors = 4;
+        h.storageRemounts = 1;
+        h.recordsUploaded = 450;
+        h.recordsDroppedUplinkQueue = 3;
+        h.uplinkFailures = 9;
+        h.modemPowerCycles = 2;
+        h.signalQuality = 17;
+        h.uplinkBacklog = 12;
+        h.displayErrors = 0;
+        h.busTimeouts = 1;
+        h.batteryReadErrors = 0;
+        h.buttonEdgesDropped = 0;
+        h.batteryMv = 3912;
+        h.freeHeapBytes = 210000;
+        h.minFreeHeapBytes = 180000;
+        const uint32_t stacks[HealthSnapshot::taskCount] = {1200, 900, 2100, 2400, 1500};
+        for (size_t i = 0; i < HealthSnapshot::taskCount; ++i)
+        {
+            h.stackFreeBytes[i] = stacks[i];
+        }
+        return h;
+    }
+}
+
+void health_url_carries_every_counter()
+{
+    char url[512];
+    const size_t n = HealthReport::buildUrl("http://demo.traccar.org:5055", "trk-1", "0.2.0",
+                                            sampleHealth(), url, sizeof url);
+    TEST_ASSERT_EQUAL_STRING(
+        "http://demo.traccar.org:5055/?id=trk-1&health=1&fw=0.2.0&up=3725&rst=taskwdt&st=acquiring"
+        "&fix=0&sat=3&sky=11&sig=6&cn0=38&q=0"
+        "&nrx=12345&nrej=7&ncks=5&nfld=2&sil=1"
+        "&sd=1&lok=900&ldrop=0&lerr=4&lrm=1"
+        "&uok=450&udrop=3&ufail=9&ucyc=2&uq=12&csq=17"
+        "&derr=0&bto=1&berr=0&bdrop=0"
+        "&bmv=3912&heap=210000&hmin=180000&stk=1200/900/2100/2400/1500",
+        url);
+    TEST_ASSERT_EQUAL_size_t(strlen(url), n);
+}
+
+void health_widest_settings_fit_the_url_buffer()
+{
+    // The longest server URL and device id the settings allow, with every
+    // counter at seven digits (a week of NMEA at 3 sentences a second is
+    // under two million) must still fit the buffer the uplink task uses
+    // (Config::gsmUrlBytes = 640).
+    char serverUrl[96];
+    memset(serverUrl, 'u', sizeof serverUrl - 1);
+    serverUrl[sizeof serverUrl - 1] = '\0';
+    char deviceId[24];
+    memset(deviceId, 'd', sizeof deviceId - 1);
+    deviceId[sizeof deviceId - 1] = '\0';
+
+    HealthSnapshot h = sampleHealth();
+    h.uptimeS = h.sentencesReceived = h.sentencesRejected = h.checksumFailures = h.fieldFailures =
+        h.gnssSilences = h.recordsLogged = h.recordsDroppedLogQueue = h.storageErrors =
+            h.storageRemounts = h.recordsUploaded = h.recordsDroppedUplinkQueue = h.uplinkFailures =
+                h.modemPowerCycles = h.displayErrors = h.busTimeouts = h.batteryReadErrors =
+                    h.buttonEdgesDropped = h.freeHeapBytes = h.minFreeHeapBytes = 9'999'999;
+    for (size_t i = 0; i < HealthSnapshot::taskCount; ++i)
+    {
+        h.stackFreeBytes[i] = 9'999'999;
+    }
+    h.resetCause = ResetCause::DeepSleep; // the longest token
+    h.state = TrackerState::Stationary;
+    h.satellites = h.satellitesInView = h.satellitesTracked = h.maxSnrDbHz = 255;
+    h.quality = 9;
+    h.batteryMv = 65535;
+    h.signalQuality = 99;
+    h.uplinkBacklog = 255;
+
+    char url[640];
+    const size_t n = HealthReport::buildUrl(serverUrl, deviceId, "10.20.30", h, url, sizeof url);
+    TEST_ASSERT_TRUE(n > 0);
+    TEST_ASSERT_TRUE(n < sizeof url);
+}
+
+void health_url_too_long_returns_zero()
+{
+    char url[64];
+    TEST_ASSERT_EQUAL_size_t(0, HealthReport::buildUrl("http://h", "d", "1", sampleHealth(), url, sizeof url));
+}
+
+void health_tokens_name_every_reset_cause_and_state()
+{
+    TEST_ASSERT_EQUAL_STRING("poweron", HealthReport::resetCauseToken(ResetCause::PowerOn));
+    TEST_ASSERT_EQUAL_STRING("brownout", HealthReport::resetCauseToken(ResetCause::Brownout));
+    TEST_ASSERT_EQUAL_STRING("other", HealthReport::resetCauseToken(ResetCause::Other));
+    TEST_ASSERT_EQUAL_STRING("tracking", HealthReport::stateToken(TrackerState::Tracking));
+    TEST_ASSERT_EQUAL_STRING("stationary", HealthReport::stateToken(TrackerState::Stationary));
+    TEST_ASSERT_EQUAL_STRING("nosignal", HealthReport::stateToken(TrackerState::NoSignal));
 }
 
 // --- UplinkScheduler -----------------------------------------------------

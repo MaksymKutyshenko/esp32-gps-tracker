@@ -28,6 +28,10 @@
 
 namespace Config
 {
+    // Reported in every health report so the web app can tell which build
+    // produced a number.
+    constexpr const char *firmwareVersion = "0.2.0";
+
     // ---- Battery -------------------------------------------------------
     // Cell voltage from the shield's B+ through a 100 k / 100 k divider:
     // 4.2 V at the cell is 2.1 V at the pin, inside the 12 dB range.
@@ -129,11 +133,14 @@ namespace Config
     constexpr uint32_t gsmBootWaitMs = 4000;        // network registration starts after this
     constexpr uint8_t gsmPowerOnAttempts = 3;
     constexpr uint32_t gsmHttpTimeoutMs = 30'000;
-    // Longest report URL: server URL (95) + device id (23) + the OsmAnd
-    // query with every field at its widest (~130). The AT line wraps it in
-    // AT+HTTPPARA="URL","..." which adds 20 more; both are sized so the
-    // widest allowed settings can never be refused as too long.
-    constexpr size_t gsmUrlBytes = 256;
+    // Longest report URL: server URL (95) + device id (23) + the health
+    // query with its 36 fields, every counter at seven digits (~410; the
+    // position report is ~130). The AT line wraps it in
+    // AT+HTTPPARA="URL","..." which adds 20 more; both are sized so no
+    // report is refused as too long (the host test proves the fit). The
+    // SIM800C accepts URLs well past this length. Both buffers live on
+    // the uplink task's stack, which is sized for them.
+    constexpr size_t gsmUrlBytes = 640;
     constexpr size_t gsmCommandBytes = gsmUrlBytes + 24;
     // Consecutive uplink failures before the modem is power-cycled.
     constexpr uint8_t gsmFailuresBeforePowerCycle = 3;
@@ -177,6 +184,10 @@ namespace Config
         // over 2G and takes 2-5 s, so this is close to what the modem can
         // sustain; the card keeps every point, the map one in five.
         constexpr uint32_t uplinkMinIntervalMs = 5000;
+        // Health report (counters, sky view, card, modem, battery, heap)
+        // once a minute, fix or no fix: this is how the web app knows the
+        // device is alive and which module is in trouble.
+        constexpr uint32_t healthIntervalMs = 60'000;
         // Kyivstar prepaid; contract SIMs use www.kyivstar.net, Vodafone UA and
         // lifecell use "internet". Overridable with `set apn` on the console.
         constexpr const char *apn = "www.ab.kyivstar.net";
@@ -189,6 +200,9 @@ namespace Config
     constexpr int64_t buttonLongPressUs = 1'000'000;
     constexpr uint32_t batteryReadPeriodMs = 10'000;
     constexpr uint32_t diagnosticsPeriodMs = 60'000;
+    // How often the ui task refreshes the HealthSnapshot the uplink task
+    // reports from; a report is therefore at most this stale.
+    constexpr uint32_t healthPublishPeriodMs = 10'000;
     // The display redraws at most this often even if updates arrive faster
     // (a 10 Hz receiver would otherwise flush 1 KiB over I2C ten times a second).
     constexpr uint32_t displayMinRedrawMs = 200;
@@ -228,7 +242,7 @@ namespace Config
     constexpr uint32_t loggerTaskStackBytes = 6144; // FATFS works on the caller's stack
     constexpr UBaseType_t loggerTaskPriority = 3;
 
-    constexpr uint32_t uplinkTaskStackBytes = 6144;
+    constexpr uint32_t uplinkTaskStackBytes = 7168; // holds the URL and the AT line
     constexpr UBaseType_t uplinkTaskPriority = 2;
     constexpr uint32_t uplinkQueueWaitMs = 1000;
 

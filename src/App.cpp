@@ -13,6 +13,7 @@
 #include "periph/GnssProfile.hpp"
 #include "reliability/BusLock.hpp"
 #include "reliability/TaskWatchdog.hpp"
+#include "transport/HealthReport.hpp"
 #include "transport/OsmAndProtocol.hpp"
 
 namespace
@@ -63,6 +64,22 @@ namespace
         default: return "other";
         }
     }
+
+    ResetCause resetCauseOf(esp_reset_reason_t reason)
+    {
+        switch (reason)
+        {
+        case ESP_RST_POWERON: return ResetCause::PowerOn;
+        case ESP_RST_SW: return ResetCause::Software;
+        case ESP_RST_PANIC: return ResetCause::Panic;
+        case ESP_RST_INT_WDT: return ResetCause::InterruptWatchdog;
+        case ESP_RST_TASK_WDT: return ResetCause::TaskWatchdog;
+        case ESP_RST_WDT: return ResetCause::OtherWatchdog;
+        case ESP_RST_DEEPSLEEP: return ResetCause::DeepSleep;
+        case ESP_RST_BROWNOUT: return ResetCause::Brownout;
+        default: return ResetCause::Other;
+        }
+    }
 }
 
 App::App()
@@ -104,6 +121,7 @@ void App::begin()
 {
     const esp_reset_reason_t reason = esp_reset_reason();
     ESP_LOGI(logTag, "Boot: reset reason %s (%d)", resetReasonName(reason), static_cast<int>(reason));
+    resetCause_ = resetCauseOf(reason);
 
     settings_.begin();
     loadSettings();
@@ -171,13 +189,14 @@ void App::createQueues()
     uplinkQueue_ = xQueueCreate(Config::uplinkQueueDepth, sizeof(TrackRecord));
     buttonEdgeQueue_ = xQueueCreate(Config::buttonEdgeQueueDepth, sizeof(ButtonEdge));
     batteryQueue_ = xQueueCreate(1, sizeof(uint16_t));
+    healthQueue_ = xQueueCreate(1, sizeof(HealthSnapshot));
     gpsSettingsQueue_ = xQueueCreate(1, sizeof(Settings::Values));
     uplinkSettingsQueue_ = xQueueCreate(1, sizeof(Settings::Values));
     i2cMutex_ = xSemaphoreCreateMutex();
     sdMutex_ = xSemaphoreCreateMutex();
     modemMutex_ = xSemaphoreCreateMutex();
     configASSERT(displayQueue_ && logQueue_ && uplinkQueue_ && buttonEdgeQueue_ &&
-                 batteryQueue_ && gpsSettingsQueue_ && uplinkSettingsQueue_ &&
+                 batteryQueue_ && healthQueue_ && gpsSettingsQueue_ && uplinkSettingsQueue_ &&
                  i2cMutex_ && sdMutex_ && modemMutex_);
 }
 
@@ -526,6 +545,9 @@ void App::uplinkLoop()
     // The task's own copy of the settings; the console publishes a new one
     // through uplinkSettingsQueue_ and it is applied here, never shared.
     Settings::Values live = values_;
+    // 0 means "never sent": the first health report goes out as soon as the
+    // bearer is up, so the server sees the device before the first fix.
+    uint32_t lastHealthMs = 0;
 
     auto pollSettings = [&]()
     {
@@ -598,22 +620,53 @@ void App::uplinkLoop()
             report();
         }
 
+        // What goes out this round: a health report when one is due, else
+        // the oldest position waiting in the queue.
+        const bool healthDue = lastHealthMs == 0 || nowMs() - lastHealthMs >= live.healthIntervalMs;
         TrackRecord record = {};
-        if (xQueuePeek(uplinkQueue_, &record, pdMS_TO_TICKS(Config::uplinkQueueWaitMs)) != pdTRUE)
+        bool sendingRecord = false;
+        if (healthDue)
         {
-            continue;
+            HealthSnapshot snapshot = {};
+            if (xQueuePeek(healthQueue_, &snapshot, 0) != pdTRUE)
+            {
+                // The ui task has not published one yet (first seconds after
+                // boot): try again next round.
+                vTaskDelay(pdMS_TO_TICKS(Config::uiTickMs));
+                continue;
+            }
+            snapshot.uplinkBacklog = static_cast<uint8_t>(uxQueueMessagesWaiting(uplinkQueue_));
+            {
+                BusLock lock(modemMutex_, Config::busLockTimeoutMs);
+                snapshot.signalQuality = lock.locked() ? uplink_->signalQuality() : 99;
+            }
+            if (HealthReport::buildUrl(live.serverUrl, live.deviceId, Config::firmwareVersion,
+                                       snapshot, url, sizeof url) == 0)
+            {
+                ESP_LOGW(logTag, "Health report does not fit in %u bytes, skipped",
+                         static_cast<unsigned>(sizeof url));
+                lastHealthMs = nowMs();
+                continue;
+            }
+        }
+        else
+        {
+            if (xQueuePeek(uplinkQueue_, &record, pdMS_TO_TICKS(Config::uplinkQueueWaitMs)) != pdTRUE)
+            {
+                continue;
+            }
+            if (OsmAndProtocol::buildUrl(live.serverUrl, live.deviceId, record, url, sizeof url) == 0)
+            {
+                // Cannot ever be sent: drop it rather than wedge the queue.
+                xQueueReceive(uplinkQueue_, &record, 0);
+                Diagnostics::increment(diagnostics_.recordsDroppedUplinkQueue);
+                continue;
+            }
+            sendingRecord = true;
         }
         if (!scheduler_.canAttempt(nowMs()))
         {
             vTaskDelay(pdMS_TO_TICKS(Config::uiTickMs));
-            continue;
-        }
-
-        if (OsmAndProtocol::buildUrl(live.serverUrl, live.deviceId, record, url, sizeof url) == 0)
-        {
-            // Cannot ever be sent: drop it rather than wedge the queue.
-            xQueueReceive(uplinkQueue_, &record, 0);
-            Diagnostics::increment(diagnostics_.recordsDroppedUplinkQueue);
             continue;
         }
 
@@ -628,10 +681,17 @@ void App::uplinkLoop()
         }
         if (err == ESP_OK && status == 200)
         {
-            // Pop only now: a record is removed from the queue only once
-            // the server has acknowledged it.
-            xQueueReceive(uplinkQueue_, &record, 0);
-            Diagnostics::increment(diagnostics_.recordsUploaded);
+            if (sendingRecord)
+            {
+                // Pop only now: a record is removed from the queue only once
+                // the server has acknowledged it.
+                xQueueReceive(uplinkQueue_, &record, 0);
+                Diagnostics::increment(diagnostics_.recordsUploaded);
+            }
+            else
+            {
+                lastHealthMs = nowMs();
+            }
             scheduler_.onSuccess(nowMs());
         }
         else
@@ -663,6 +723,7 @@ void App::uiLoop()
 {
     WatchdogSubscription watchdog;
     uint32_t lastBatteryMs = 0;
+    uint32_t lastHealthMs = 0;
     uint32_t lastDiagnosticsMs = nowMs();
 
     while (true)
@@ -709,6 +770,11 @@ void App::uiLoop()
                 postDisplay(message);
             }
         }
+        if (now - lastHealthMs >= Config::healthPublishPeriodMs)
+        {
+            lastHealthMs = now;
+            publishHealth();
+        }
 
         if (now - lastDiagnosticsMs >= Config::diagnosticsPeriodMs)
         {
@@ -744,7 +810,7 @@ void App::consoleLoop()
         case CommandParser::Command::Help:
             ESP_LOGI(logTag, "help | show | diag | defaults | save | mount | set <key> <value> | at <AT command>");
             ESP_LOGI(logTag, "keys: moving_ms stationary_ms min_distance_m motion_start motion_stop "
-                             "motion_stop_delay_ms gnss(0=%s,1=%s) uplink(0/1) uplink_min_ms apn url id",
+                             "motion_stop_delay_ms gnss(0=%s,1=%s) uplink(0/1) uplink_min_ms health_ms apn url id",
                      GnssProfiles::byIndex(0).name, GnssProfiles::byIndex(1).name);
             ESP_LOGI(logTag, "everything applies on save; only gnss needs a restart");
             break;
@@ -835,8 +901,9 @@ void App::printSettings(const Settings::Values &v) const
              v.movingIntervalMs, v.stationaryIntervalMs, v.minDistanceM);
     ESP_LOGI(logTag, "motion_start=%" PRIu32 " motion_stop=%" PRIu32 " motion_stop_delay_ms=%" PRIu32,
              v.motionStartCmPerS, v.motionStopCmPerS, v.motionStopDelayMs);
-    ESP_LOGI(logTag, "gnss=%u (%s) uplink=%u uplink_min_ms=%" PRIu32, v.gnssProfile,
-             GnssProfiles::byIndex(v.gnssProfile).name, v.uplinkEnabled ? 1 : 0, v.uplinkMinIntervalMs);
+    ESP_LOGI(logTag, "gnss=%u (%s) uplink=%u uplink_min_ms=%" PRIu32 " health_ms=%" PRIu32, v.gnssProfile,
+             GnssProfiles::byIndex(v.gnssProfile).name, v.uplinkEnabled ? 1 : 0, v.uplinkMinIntervalMs,
+             v.healthIntervalMs);
     ESP_LOGI(logTag, "apn=%s url=%s id=%s", v.apn, v.serverUrl, v.deviceId);
 }
 
@@ -855,6 +922,7 @@ bool App::applySetting(Settings::Values &v, const char *key, const char *value) 
         v.gnssProfile = static_cast<uint8_t>(number);
     else if (strcmp(key, "uplink") == 0 && numeric && number <= 1) v.uplinkEnabled = (number == 1);
     else if (strcmp(key, "uplink_min_ms") == 0 && numeric) v.uplinkMinIntervalMs = number;
+    else if (strcmp(key, "health_ms") == 0 && numeric) v.healthIntervalMs = number;
     else if (strcmp(key, "apn") == 0) strlcpy(v.apn, value, sizeof v.apn);
     else if (strcmp(key, "url") == 0) strlcpy(v.serverUrl, value, sizeof v.serverUrl);
     else if (strcmp(key, "id") == 0) strlcpy(v.deviceId, value, sizeof v.deviceId);
@@ -911,4 +979,57 @@ void App::logDiagnostics()
              static_cast<unsigned>(uxTaskGetStackHighWaterMark(tasks_[TaskLogger])),
              static_cast<unsigned>(uxTaskGetStackHighWaterMark(tasks_[TaskUplink])),
              static_cast<unsigned>(uxTaskGetStackHighWaterMark(tasks_[TaskUi])));
+}
+
+void App::publishHealth()
+{
+    const Diagnostics &d = diagnostics_;
+    const Fix &fix = parser_.fix();
+    HealthSnapshot s = {};
+    s.uptimeS = nowMs() / 1000;
+    s.resetCause = resetCause_;
+    s.state = fsm_.state();
+
+    s.fixValid = fix.valid;
+    s.satellites = fix.satellites;
+    s.satellitesInView = fix.satellitesInView;
+    s.satellitesTracked = fix.satellitesTracked;
+    s.maxSnrDbHz = fix.maxSnrDbHz;
+    s.quality = fix.quality;
+    s.sentencesReceived = d.sentencesReceived.load();
+    s.sentencesRejected = d.sentencesRejected.load();
+    s.checksumFailures = parser_.checksumFailures();
+    s.fieldFailures = parser_.fieldFailures();
+    s.gnssSilences = d.gnssSilences.load();
+
+    s.storageReady = storage_.isReady();
+    s.recordsLogged = d.recordsLogged.load();
+    s.recordsDroppedLogQueue = d.recordsDroppedLogQueue.load();
+    s.storageErrors = d.storageErrors.load();
+    s.storageRemounts = d.storageRemounts.load();
+
+    s.recordsUploaded = d.recordsUploaded.load();
+    s.recordsDroppedUplinkQueue = d.recordsDroppedUplinkQueue.load();
+    s.uplinkFailures = d.uplinkFailures.load();
+    s.modemPowerCycles = d.modemPowerCycles.load();
+    s.signalQuality = 99; // the uplink task, the modem's only user, fills these two in
+    s.uplinkBacklog = 0;
+
+    s.displayErrors = d.displayErrors.load();
+    s.busTimeouts = d.busTimeouts.load();
+    s.batteryReadErrors = d.batteryReadErrors.load();
+    s.buttonEdgesDropped = button_.droppedEdges();
+
+    s.batteryMv = lastBatteryMv();
+    s.freeHeapBytes = esp_get_free_heap_size();
+    s.minFreeHeapBytes = esp_get_minimum_free_heap_size();
+    static_assert(HealthSnapshot::taskCount == 5, "the stack list follows the task layout");
+    const TaskIndex reported[HealthSnapshot::taskCount] = {TaskGps, TaskDisplay, TaskLogger, TaskUplink, TaskUi};
+    for (size_t i = 0; i < HealthSnapshot::taskCount; ++i)
+    {
+        s.stackFreeBytes[i] = tasks_[reported[i]] != nullptr
+                                  ? static_cast<uint32_t>(uxTaskGetStackHighWaterMark(tasks_[reported[i]]))
+                                  : 0;
+    }
+    xQueueOverwrite(healthQueue_, &s);
 }

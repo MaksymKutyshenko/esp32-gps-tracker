@@ -72,6 +72,7 @@ Settings::Values Settings::defaults()
     values.gnssProfile = Config::Defaults::gnssProfile;
     values.uplinkEnabled = Config::Defaults::uplinkEnabled;
     values.uplinkMinIntervalMs = Config::Defaults::uplinkMinIntervalMs;
+    values.healthIntervalMs = Config::Defaults::healthIntervalMs;
     copyString(values.apn, Config::Defaults::apn);
     copyString(values.serverUrl, Config::Defaults::serverUrl);
     copyString(values.deviceId, Config::Defaults::deviceId);
@@ -88,6 +89,7 @@ bool Settings::validate(Values &values)
     changed |= clamp(values.motionStopCmPerS, 0, values.motionStartCmPerS);
     changed |= clamp(values.motionStopDelayMs, 1000, 3'600'000);
     changed |= clamp(values.uplinkMinIntervalMs, 1000, 3'600'000);
+    changed |= clamp(values.healthIntervalMs, 10'000, 86'400'000);
     if (values.gnssProfile >= GnssProfiles::count)
     {
         values.gnssProfile = Config::Defaults::gnssProfile;

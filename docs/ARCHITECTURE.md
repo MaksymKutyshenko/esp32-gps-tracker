@@ -15,7 +15,7 @@ The four layers the course grades on, and what lives in each:
 | --- | --- | --- |
 | Periph | Talk to hardware, nothing else | `UartPort`, `GnssReceiver` + `GnssProfile`, `I2cBus`, `Ssd1306`, `SdCard`, `Sim800Modem` + `AtCommand`, `BatteryMonitor`, `Button`, `StatusLed` (later: `Bma400`) |
 | Logic | Pure decisions, no ESP-IDF includes, host-tested | `Fix`, `NmeaLineAssembler`, `NmeaParser`, `DecimalParser`, `TrackerFsm`, `IMotionDetector` (`SpeedMotionDetector`, `NullMotionDetector`), `EmaFilter`, `Geodesy`, `LogPolicy`, `TrackRecord`, `ButtonDecoder` |
-| Transport / Output | Move data out of the device | `IStorage` → `SdStorage`, `TrackLogger`; `IUplinkTransport` → `ModemTransport` / `NullUplinkTransport`, `OsmAndProtocol`, `UplinkScheduler`; `StatusView`, `DisplayMessage` |
+| Transport / Output | Move data out of the device | `IStorage` → `SdStorage`, `TrackLogger`; `IUplinkTransport` → `ModemTransport` / `NullUplinkTransport`, `OsmAndProtocol`, `HealthReport`, `UplinkScheduler`; `StatusView`, `DisplayMessage` |
 | Reliability | Keep the system alive and honest | `WatchdogSubscription`, `BusLock` (RAII mutex guard), `Settings` (NVS), `Diagnostics`, reset-reason logging in `App` |
 
 Dependencies point downward only: Logic never includes a Periph header.
@@ -132,3 +132,23 @@ numbers in the README; the checklist does not credit the claim otherwise.
 3. `include/logic/TrackerFsm.hpp` — states and transitions.
 4. `include/logic/NmeaParser.hpp` — input validation.
 5. `test/test_native/` — the behaviour pinned by tests.
+
+## Health report (device → web app)
+
+Positions alone say nothing while there is no fix, and nothing about the
+card, the modem or the memory. The uplink task therefore sends a second
+request type, `HealthReport::buildUrl`, every `Settings::healthIntervalMs`
+(60 s): the `Diagnostics` counters, the receiver's sky view, card and modem
+state, battery, heap and stack headroom, reset reason and uptime, in the
+same one-GET-per-report shape as the OsmAnd position so the SIM800C's HTTP
+stack and the scheduler's back-off serve both. The first one goes out as
+soon as the bearer is up, before any fix.
+
+The snapshot is assembled by the ui task (`App::publishHealth`, every
+`Config::healthPublishPeriodMs`) into a single-slot `healthQueue_` that the
+uplink task peeks: the same overwrite-queue pattern as the battery reading,
+so no task reads another task's objects. The two fields only the modem's
+owner can know (signal quality, upload backlog) are patched in by the uplink
+task before the URL is built. The web app in `web/` turns consecutive
+reports into per-module verdicts (`web/server/src/status.ts`); a Traccar
+server simply keeps the keys as attributes.
