@@ -449,6 +449,10 @@ void App::loggerLoop()
     WatchdogSubscription watchdog;
     bool lastReady = storage_.isReady();
 
+    // The card is mounted (or not) long before the first fix; tell the
+    // display now instead of after the first record.
+    publishStorageHealth();
+
     while (true)
     {
         watchdog.feed();
@@ -456,6 +460,15 @@ void App::loggerLoop()
         TrackRecord record = {};
         if (xQueueReceive(logQueue_, &record, pdMS_TO_TICKS(Config::queueWaitMs)) != pdTRUE)
         {
+            // Idle: a console 'mount' or a recovery elsewhere may have
+            // changed the card state since the last record.
+            const bool ready = storage_.isReady();
+            if (ready != lastReady)
+            {
+                ESP_LOGI(logTag, "Storage %s", ready ? "ready" : "unavailable");
+                lastReady = ready;
+                publishStorageHealth();
+            }
             continue;
         }
 
@@ -488,14 +501,18 @@ void App::loggerLoop()
             ESP_LOGI(logTag, "Storage %s", ready ? "ready" : "unavailable");
             lastReady = ready;
         }
-
-        DisplayMessage message = {};
-        message.kind = DisplayMessage::Kind::StorageHealth;
-        message.storage.ready = ready;
-        message.storage.recordsWritten = logger_.written();
-        message.storage.recordsLost = logger_.lost();
-        postDisplay(message);
+        publishStorageHealth();
     }
+}
+
+void App::publishStorageHealth()
+{
+    DisplayMessage message = {};
+    message.kind = DisplayMessage::Kind::StorageHealth;
+    message.storage.ready = storage_.isReady();
+    message.storage.recordsWritten = logger_.written();
+    message.storage.recordsLost = logger_.lost();
+    postDisplay(message);
 }
 
 // ---------------------------------------------------------------------------
@@ -776,6 +793,7 @@ void App::consoleLoop()
             const esp_err_t err = storage_.isReady() ? ESP_OK : storage_.recover();
             ESP_LOGI(logTag, "Storage %s (%s)", storage_.isReady() ? "ready" : "unavailable",
                      esp_err_to_name(err));
+            publishStorageHealth();
             break;
         }
         case CommandParser::Command::At:

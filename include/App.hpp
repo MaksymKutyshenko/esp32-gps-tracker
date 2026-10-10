@@ -108,6 +108,8 @@ private:
 
     // shared helpers
     void postDisplay(const DisplayMessage &message);
+    // Card state and record counters for the status page.
+    void publishStorageHealth();
     uint16_t lastBatteryMv() const;
     void logDiagnostics();
     static uint32_t nowMs();
