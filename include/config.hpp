@@ -161,7 +161,9 @@ namespace Config
         constexpr uint8_t gnssProfile = 0; // GnssProfiles::foxeerM10q250
         constexpr bool uplinkEnabled = true;
         constexpr uint32_t uplinkMinIntervalMs = 10'000;
-        constexpr const char *apn = "internet";
+        // Kyivstar prepaid; contract SIMs use www.kyivstar.net, Vodafone UA and
+        // lifecell use "internet". Overridable with `set apn` on the console.
+        constexpr const char *apn = "www.ab.kyivstar.net";
         // Traccar's public demo server, OsmAnd protocol on port 5055.
         constexpr const char *serverUrl = "http://demo.traccar.org:5055";
         constexpr const char *deviceId = "gps-tracker-01";
