@@ -192,6 +192,9 @@ namespace Config
     // The display redraws at most this often even if updates arrive faster
     // (a 10 Hz receiver would otherwise flush 1 KiB over I2C ten times a second).
     constexpr uint32_t displayMinRedrawMs = 200;
+    // Consecutive failed frames before the controller is re-initialised: a
+    // bus glitch can leave the SSD1306 ignoring data until it is set up again.
+    constexpr uint8_t displayReinitAfterFailures = 5;
     constexpr uint8_t ledBrightness = 24; // out of 255: visible, not blinding
 
     // ---- Queues and locks ----------------------------------------------

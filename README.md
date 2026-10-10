@@ -191,8 +191,9 @@ http://host:5055/?id=<device>&lat=..&lon=..&timestamp=<unix>&speed=<kn>&bearing=
    measured signal; the system page adds `sky` (almanac count above the
    horizon) and `cn0` (strongest signal, dB-Hz). `sky 11 sig 0 cn0 0` is
    an antenna with no signal; `sig 6 cn0 38` is a fix in the making.
-3. OLED on GPIO8/9: tracking page appears. A NACK at boot aborts with the
-   address in the log.
+3. OLED on GPIO8/9: tracking page appears. A NACK at boot is logged as
+   `No display at address 0x3C` and the tracker runs without a screen; the
+   display task re-initialises the controller after five failed frames.
 4. MicroSD on GPIO10–13: `Mounted /sdcard` at boot, `SD ok` on the screen,
    a CSV on the card after the first record.
 5. SIM800C on UART2 and PWRKEY: `GPRS up on APN ...`, then `sent:` grows on

@@ -18,7 +18,13 @@ public:
 
     explicit Ssd1306(I2cBus &bus);
 
-    void begin();
+    // Adds the device and sends the init sequence. A failure is returned,
+    // not fatal: the tracker records and uploads without a screen, and the
+    // display task keeps retrying through reinit().
+    esp_err_t begin();
+    // Re-sends the init sequence after a bus glitch left the controller in
+    // an unknown state (garbage on the panel, or every flush failing).
+    esp_err_t reinit();
 
     void clear();
     void fillRect(int32_t x, int32_t y, int32_t w, int32_t h, bool on);

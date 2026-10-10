@@ -113,7 +113,7 @@ void App::begin()
     showStateOnLed(TrackerState::Booting);
 
     i2c_.begin();
-    display_.begin();
+    display_.begin(); // a missing or glitched display is reported, not fatal
 
     gpsUart_.begin();
     gnss_.begin(GnssProfiles::byIndex(values_.gnssProfile));
@@ -379,6 +379,7 @@ void App::displayLoop()
     uint8_t page = 0;
     bool dirty = true;
     uint32_t lastRedrawMs = 0;
+    uint8_t failedFrames = 0;
 
     while (true)
     {
@@ -434,9 +435,18 @@ void App::displayLoop()
         if (err != ESP_OK)
         {
             // A flaky wire: keep the last frame, count it, try again later.
+            // After several in a row the controller itself may have lost
+            // its configuration, so set it up again.
             Diagnostics::increment(diagnostics_.displayErrors);
+            if (++failedFrames >= Config::displayReinitAfterFailures)
+            {
+                failedFrames = 0;
+                ESP_LOGW(logTag, "Display not responding (%s); re-initialising", esp_err_to_name(err));
+                display_.reinit();
+            }
             continue;
         }
+        failedFrames = 0;
         dirty = false;
     }
 }

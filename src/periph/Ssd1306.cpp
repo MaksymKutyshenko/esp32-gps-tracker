@@ -41,17 +41,30 @@ Ssd1306::Ssd1306(I2cBus &bus) : bus_(bus)
     frame_[0] = controlData;
 }
 
-void Ssd1306::begin()
+esp_err_t Ssd1306::begin()
 {
     device_ = bus_.addDevice(Config::displayAddress, Config::i2cSpeedHz);
-
-    // A failure here is a wiring or address mistake — abort loudly at boot.
-    ESP_ERROR_CHECK(i2c_master_transmit(device_, initSequence,
-                                        sizeof initSequence,
-                                        static_cast<int>(Config::i2cTimeoutMs)));
-    clear();
-    ESP_ERROR_CHECK(flush());
+    const esp_err_t err = reinit();
+    if (err != ESP_OK)
+    {
+        ESP_LOGW(logTag, "No display at address 0x%02X (%s); running without it",
+                 Config::displayAddress, esp_err_to_name(err));
+        return err;
+    }
     ESP_LOGI(logTag, "Display ready at address 0x%02X", Config::displayAddress);
+    return ESP_OK;
+}
+
+esp_err_t Ssd1306::reinit()
+{
+    const esp_err_t err = i2c_master_transmit(device_, initSequence, sizeof initSequence,
+                                              static_cast<int>(Config::i2cTimeoutMs));
+    if (err != ESP_OK)
+    {
+        return err;
+    }
+    clear();
+    return flush();
 }
 
 void Ssd1306::clear()

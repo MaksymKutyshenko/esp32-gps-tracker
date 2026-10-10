@@ -9,3 +9,6 @@ build/
 *.kicad_sch-bak
 fp-info-cache
 docs/kicad/erc.txt
+
+# Claude desktop app session data
+.claude/
