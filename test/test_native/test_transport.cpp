@@ -251,6 +251,8 @@ void command_parser_recognises_words_and_set_arguments()
     TEST_ASSERT_EQUAL(CommandParser::Command::None, CommandParser::parse(line3).command);
     char line4[] = "set onlykey";
     TEST_ASSERT_EQUAL(CommandParser::Command::Unknown, CommandParser::parse(line4).command);
+    char line6[] = "mount";
+    TEST_ASSERT_EQUAL(CommandParser::Command::Mount, CommandParser::parse(line6).command);
     char line5[] = "frobnicate";
     TEST_ASSERT_EQUAL(CommandParser::Command::Unknown, CommandParser::parse(line5).command);
 }

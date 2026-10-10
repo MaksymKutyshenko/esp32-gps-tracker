@@ -56,6 +56,10 @@ public:
     // +CSQ: 0..31, 99 = unknown.
     esp_err_t signalQuality(uint8_t &csq);
 
+    // Logs SIM state, network registration, GPRS attach and signal in one
+    // place, for bring-up and for the "why did the bearer fail" question.
+    void logNetworkStatus();
+
 private:
     esp_err_t readUntil(const char *expect, uint32_t timeoutMs, char *response,
                         size_t capacity);

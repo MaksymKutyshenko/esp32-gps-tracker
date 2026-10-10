@@ -672,7 +672,7 @@ void App::consoleLoop()
         case CommandParser::Command::None:
             break;
         case CommandParser::Command::Help:
-            ESP_LOGI(logTag, "help | show | diag | defaults | save | set <key> <value>");
+            ESP_LOGI(logTag, "help | show | diag | defaults | save | mount | set <key> <value>");
             ESP_LOGI(logTag, "keys: moving_ms stationary_ms min_distance_m motion_start motion_stop "
                              "motion_stop_delay_ms gnss(0=%s,1=%s) uplink(0/1) uplink_min_ms apn url id",
                      GnssProfiles::byIndex(0).name, GnssProfiles::byIndex(1).name);
@@ -709,6 +709,20 @@ void App::consoleLoop()
             }
             publishSettings(draft);
             ESP_LOGI(logTag, "Settings saved and applied");
+            break;
+        }
+        case CommandParser::Command::Mount:
+        {
+            // Bench helper: retry the card without waiting for a record.
+            BusLock lock(sdMutex_, Config::busLockTimeoutMs);
+            if (!lock.locked())
+            {
+                ESP_LOGW(logTag, "Storage busy, try again");
+                break;
+            }
+            const esp_err_t err = storage_.isReady() ? ESP_OK : storage_.recover();
+            ESP_LOGI(logTag, "Storage %s (%s)", storage_.isReady() ? "ready" : "unavailable",
+                     esp_err_to_name(err));
             break;
         }
         case CommandParser::Command::Unknown:

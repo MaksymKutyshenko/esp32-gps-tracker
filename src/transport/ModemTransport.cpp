@@ -25,6 +25,7 @@ esp_err_t ModemTransport::connect()
     if (err != ESP_OK)
     {
         ESP_LOGW(logTag, "GPRS bearer failed (APN %s): %s", apn_, esp_err_to_name(err));
+        modem_.logNetworkStatus();
         return err;
     }
     connected_ = true;

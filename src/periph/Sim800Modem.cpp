@@ -298,6 +298,31 @@ esp_err_t Sim800Modem::httpGet(const char *url, uint16_t &status)
     return err;
 }
 
+void Sim800Modem::logNetworkStatus()
+{
+    const AtCommand queries[] = {
+        {"AT+CPIN?", "OK", 2000},   // READY, or SIM PIN / no SIM
+        {"AT+CREG?", "OK", 2000},   // +CREG: 0,<stat>: 1 home, 5 roaming, 2 searching, 3 denied, 0 none
+        {"AT+CGATT?", "OK", 2000},  // +CGATT: 1 attached
+        {"AT+CSQ", "OK", 2000},     // +CSQ: <rssi 0..31>,<ber>
+        {"AT+COPS?", "OK", 5000},   // operator name
+    };
+    for (const AtCommand &query : queries)
+    {
+        const esp_err_t err = execute(query, scratch_, sizeof scratch_);
+        // Collapse the response onto one log line.
+        for (char *c = scratch_; *c != '\0'; ++c)
+        {
+            if (*c == '\r' || *c == '\n')
+            {
+                *c = ' ';
+            }
+        }
+        ESP_LOGW(logTag, "%s -> %s%s", query.command, scratch_,
+                 err == ESP_OK ? "" : esp_err_to_name(err));
+    }
+}
+
 esp_err_t Sim800Modem::signalQuality(uint8_t &csq)
 {
     const AtCommand query = {"AT+CSQ", "OK", 1000};

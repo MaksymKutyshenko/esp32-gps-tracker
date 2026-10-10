@@ -7,7 +7,7 @@
 // Splits one console line into a command and arguments, in place. The
 // console grammar is deliberately tiny:
 //
-//   help | show | diag | defaults | save
+//   help | show | diag | defaults | save | mount
 //   set <key> <value>
 //
 // Pure logic, no ESP-IDF dependency; unit-tested on the host.
@@ -23,6 +23,7 @@ public:
         Diag,
         Defaults,
         Save,
+        Mount,     // retry the storage card now
         Set,
     };
 
@@ -50,6 +51,7 @@ public:
         else if (strcmp(word, "diag") == 0) result.command = Command::Diag;
         else if (strcmp(word, "defaults") == 0) result.command = Command::Defaults;
         else if (strcmp(word, "save") == 0) result.command = Command::Save;
+        else if (strcmp(word, "mount") == 0) result.command = Command::Mount;
         else if (strcmp(word, "set") == 0)
         {
             if (count != 3)
