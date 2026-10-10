@@ -155,6 +155,9 @@ void App::loadSettings()
 
 void App::applyLiveSettings(const Settings::Values &values)
 {
+    // The transport copied the compile-time default when it was
+    // constructed, before NVS was read; hand it the loaded value.
+    modemTransport_.setApn(values.apn);
     policy_.setParams({values.movingIntervalMs, values.stationaryIntervalMs, values.minDistanceM});
     speedMotion_.setParams({values.motionStartCmPerS, values.motionStopCmPerS, values.motionStopDelayMs});
     scheduler_.setParams({values.uplinkMinIntervalMs, Config::uplinkBackoffInitialMs,
