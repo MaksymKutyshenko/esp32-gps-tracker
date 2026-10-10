@@ -165,7 +165,17 @@ esp_err_t Sim800Modem::executeSequence(const AtCommand *commands, size_t count)
         const esp_err_t err = execute(commands[i]);
         if (err != ESP_OK)
         {
-            ESP_LOGW(logTag, "'%s' failed: %s", commands[i].command, esp_err_to_name(err));
+            // The modem's own words (e.g. "+CME ERROR: ...") say more than
+            // the error code; collapse the response onto one line.
+            for (char *c = scratch_; *c != '\0'; ++c)
+            {
+                if (*c == '\r' || *c == '\n')
+                {
+                    *c = ' ';
+                }
+            }
+            ESP_LOGW(logTag, "'%s' failed: %s, modem said: %s", commands[i].command,
+                     esp_err_to_name(err), scratch_);
             return err;
         }
     }
