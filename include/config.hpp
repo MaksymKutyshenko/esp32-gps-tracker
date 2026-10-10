@@ -148,10 +148,18 @@ namespace Config
     constexpr const char *nvsSettingsKey = "settings";
 
     // First-boot values for the Settings blob; the working copy lives in
-    // NVS and is edited in the field.
+    // NVS and can be edited on the console, but these are the numbers the
+    // tracker is designed around. Bump Settings::layoutVersion when they
+    // change so boards with an older saved blob pick them up.
     namespace Defaults
     {
-        constexpr uint32_t movingIntervalMs = 5000;
+        // Recording, sized for a car. The receiver reports once a second,
+        // so while moving every position is recorded: at 90 km/h that is
+        // one point per 25 m, enough to draw a roundabout. The distance
+        // trigger only matters if the moving interval is raised again.
+        // Parked, one heartbeat a minute proves the device is alive
+        // without filling the card.
+        constexpr uint32_t movingIntervalMs = 1000;    // every receiver epoch
         constexpr uint32_t stationaryIntervalMs = 60'000;
         constexpr uint32_t minDistanceM = 20;
         // 150 cm/s = 5.4 km/h, 50 cm/s = 1.8 km/h, 30 s below that = parked.
@@ -160,7 +168,10 @@ namespace Config
         constexpr uint32_t motionStopDelayMs = 30'000;
         constexpr uint8_t gnssProfile = 0; // GnssProfiles::foxeerM10q250
         constexpr bool uplinkEnabled = true;
-        constexpr uint32_t uplinkMinIntervalMs = 10'000;
+        // Live trail: one upload per 5 s. Each upload is one HTTP request
+        // over 2G and takes 2-5 s, so this is close to what the modem can
+        // sustain; the card keeps every point, the map one in five.
+        constexpr uint32_t uplinkMinIntervalMs = 5000;
         // Kyivstar prepaid; contract SIMs use www.kyivstar.net, Vodafone UA and
         // lifecell use "internet". Overridable with `set apn` on the console.
         constexpr const char *apn = "www.ab.kyivstar.net";
