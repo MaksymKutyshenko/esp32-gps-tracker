@@ -131,9 +131,13 @@ it to GPIO16 if wanted.
   2.5–3.6 V window. RX needs nothing: the ESP drives it, and the 47 k
   pull-up only sources ~36 µA. Do not feed VCC with 9 V (seller warning,
   same reason) and do not try 3.3 V (the regulator needs ≥ 4 V in).
-- BIGGA header, from the schematic: 1 GND, 2 TX, 3 RX, 4 BOOT (= PWRKEY),
-  5 VCC, 6 NET (NETLIGHT output), 7 DTR, 8 RING, 9 MICP, 10 MICN, 11 SPKP,
-  12 SPKN. Wired: GND, TX, RX, BOOT, VCC, NET (LED). Nano-SIM holder, full-size SMA.
+- BIGGA header. Schematic: 1 GND, 2 TX, 3 RX, 4 BOOT (= PWRKEY), 5 VCC,
+  6 NET (NETLIGHT output), 7 DTR, 8 RING, 9 MICP, 10 MICN, 11 SPKP, 12 SPKN.
+  Silkscreen on the delivered board: `NET VSS PK RX TX GND` on one edge
+  (the same six pins read from the other end; **VSS is the 5 V supply
+  input, not ground**, and PK is the power key) and `SPN SPP MICN MICP RING
+  DTR` on the other. Wired: GND, TX, RX, PK, VSS, NET (LED). Nano-SIM
+  holder, full-size SMA.
 - VBAT on the board is 3.64 V (MIC29302, 9.09 k / 4.7 k). That leaves
   ~0.25 V to the modem's 3.4 V reset threshold, so the 5 V input must not
   sag below ~4 V during bursts: short thick wires from the shield.

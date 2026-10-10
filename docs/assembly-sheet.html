@@ -283,20 +283,20 @@ flowchart LR
 <text x="120" y="362" class="t-note" text-anchor="start">SCL/SDA: compass (Foxeer only), optional</text>
 <rect x="110" y="392" width="200" height="206" rx="6" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="120" y="414" class="t-title">BIGGA GSM (SIM800C)</text>
-<text x="120" y="430" class="t-sub">5 V only · nano-SIM · SMA antenna</text>
+<text x="120" y="430" class="t-sub">silkscreen: NET VSS PK RX TX GND · VSS = supply</text>
 <line x1="110" y1="446" x2="132" y2="446" stroke="var(--fg)" stroke-width="1.5"/>
-<text x="138" y="450" class="t-pin">1 GND</text>
+<text x="138" y="450" class="t-pin">GND</text>
 <circle cx="110" cy="446" r="2.5" fill="var(--fg)"/>
 <polyline points="110,446 54,446" fill="none" stroke="var(--rail-gnd)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="54" cy="446" r="3.2" fill="var(--rail-gnd)"/>
 <line x1="110" y1="468" x2="132" y2="468" stroke="var(--fg)" stroke-width="1.5"/>
-<text x="138" y="472" class="t-pin">5 VCC</text>
+<text x="138" y="472" class="t-pin">VSS=5V in</text>
 <circle cx="110" cy="468" r="2.5" fill="var(--fg)"/>
 <polyline points="110,468 26,468" fill="none" stroke="#e03a4e" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="26" cy="468" r="3.2" fill="#e03a4e"/>
 <text x="120" y="486" class="t-note" text-anchor="start">100+10+1 µF on VCC are on the board: no external cap</text>
 <line x1="288" y1="510" x2="310" y2="510" stroke="var(--fg)" stroke-width="1.5"/>
-<text x="282" y="514" class="t-pin" text-anchor="end">2 TX</text>
+<text x="282" y="514" class="t-pin" text-anchor="end">TX</text>
 <circle cx="310" cy="510" r="2.5" fill="var(--fg)"/>
 <polyline points="310,510 392,510 392,300 475,300" fill="none" stroke="#d9a300" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
 <polyline points="392,446 372,446" fill="none" stroke="#d9a300" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
@@ -311,15 +311,15 @@ flowchart LR
 <text x="358" y="434" class="t-part" text-anchor="middle">6.8k</text>
 <text x="120" y="500" class="t-note" text-anchor="start">R3 6.8k on TX → ~3 V at GPIO18</text>
 <line x1="288" y1="532" x2="310" y2="532" stroke="var(--fg)" stroke-width="1.5"/>
-<text x="282" y="536" class="t-pin" text-anchor="end">3 RX</text>
+<text x="282" y="536" class="t-pin" text-anchor="end">RX</text>
 <circle cx="310" cy="532" r="2.5" fill="var(--fg)"/>
 <polyline points="310,532 406,532 406,330 475,330" fill="none" stroke="#2eaa5e" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
 <line x1="288" y1="554" x2="310" y2="554" stroke="var(--fg)" stroke-width="1.5"/>
-<text x="282" y="558" class="t-pin" text-anchor="end">4 BOOT</text>
+<text x="282" y="558" class="t-pin" text-anchor="end">PK (PWRKEY)</text>
 <circle cx="310" cy="554" r="2.5" fill="var(--fg)"/>
 <polyline points="310,554 420,554 420,360 475,360" fill="none" stroke="#b0733b" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
 <line x1="288" y1="580" x2="310" y2="580" stroke="var(--fg)" stroke-width="1.5"/>
-<text x="282" y="584" class="t-pin" text-anchor="end">6 NET</text>
+<text x="282" y="584" class="t-pin" text-anchor="end">NET</text>
 <circle cx="310" cy="580" r="2.5" fill="var(--fg)"/>
 <polyline points="310,580 326,580" fill="none" stroke="#b0733b" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
 <rect x="328.0" y="572.0" width="36" height="16" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
@@ -566,18 +566,18 @@ flowchart LR
 
   <div class="module">
     <div class="head"><h3>BIGGA GSM (SIM800C) board</h3><span class="ref">J2 · UART2 · R3 6.8 kΩ on TX · LED1 + 1 kΩ on NET</span></div>
-    <p class="note">Pin order from the board's own schematic (arduino.ua). <strong>TX idles at 5 V</strong>: the board's level shifter is referenced to VCC, so a 6.8 kΩ resistor from TX to GND is required before GPIO18 (gives about 3.0 V). RX needs nothing extra. <code>BOOT</code> is the modem's PWRKEY; the board does not start by itself, the firmware holds BOOT low for a second when the modem is silent. Feed VCC with 5 V only: 9 V damages the ESP through the shifter, 3.3 V is below the regulator's dropout. Nano-SIM, PIN disabled, 2G coverage confirmed, full-size SMA antenna.</p>
+    <p class="note">Silkscreen names on the board: <code>NET VSS PK RX TX GND</code> on one edge, <code>SPN SPP MICN MICP RING DTR</code> on the other. <strong>VSS is the 5 V supply input here, not ground</strong>; confirm with the meter that the pin marked GND beeps against the SMA shell and VSS does not. <strong>TX idles at 5 V</strong>: the board's level shifter is referenced to VCC, so a 6.8 kΩ resistor from TX to GND is required before GPIO18 (gives about 3.0 V). RX needs nothing extra. <code>BOOT</code> is the modem's PWRKEY; the board does not start by itself, the firmware holds BOOT low for a second when the modem is silent. Feed VCC with 5 V only: 9 V damages the ESP through the shifter, 3.3 V is below the regulator's dropout. Nano-SIM, PIN disabled, 2G coverage confirmed, full-size SMA antenna.</p>
     <div class="tbl">
       <table>
         <thead><tr><th>Board pin</th><th></th><th>Net</th><th>Connect to</th></tr></thead>
         <tbody>
-          <tr><td class="pin">1 GND</td><td class="arrow">—</td><td><span class="net gnd">GND</span></td><td>Shield GND, short thick wire</td></tr>
-          <tr><td class="pin">2 TX</td><td class="arrow">→</td><td><span class="net sig">GSM_TXD</span></td><td class="esp">R3 6.8 kΩ from this pin to GND, then the pin to devkit GPIO18</td></tr>
-          <tr><td class="pin">3 RX</td><td class="arrow">←</td><td><span class="net sig">GSM_RXD</span></td><td class="esp">Devkit GPIO17 directly</td></tr>
-          <tr><td class="pin">4 BOOT</td><td class="arrow">←</td><td><span class="net sig">GSM_PWRKEY</span></td><td class="esp">Devkit GPIO7 (open drain, pulses low to power the modem)</td></tr>
-          <tr><td class="pin">5 VCC</td><td class="arrow">←</td><td><span class="net v5">+5V</span></td><td>Shield 5V, short thick wire. No external capacitor: 100+10+1 µF are on the board</td></tr>
-          <tr><td class="pin">6 NET</td><td class="arrow">→</td><td>LED1</td><td>NET → 1 kΩ → red LED anode; LED cathode → GND. Blink: 0.8 s = searching, 3 s = registered, 0.3 s = GPRS data. 2.8 V signal, dim but visible; no GPIO</td></tr>
-          <tr><td class="pin">7 DTR, 8 RING, 9–12 MIC/SPK</td><td class="arrow">—</td><td>n/c</td><td>Leave open</td></tr>
+          <tr><td class="pin">GND</td><td class="arrow">—</td><td><span class="net gnd">GND</span></td><td>Shield GND, short thick wire</td></tr>
+          <tr><td class="pin">TX</td><td class="arrow">→</td><td><span class="net sig">GSM_TXD</span></td><td class="esp">R3 6.8 kΩ from this pin to GND, then the pin to devkit GPIO18</td></tr>
+          <tr><td class="pin">RX</td><td class="arrow">←</td><td><span class="net sig">GSM_RXD</span></td><td class="esp">Devkit GPIO17 directly</td></tr>
+          <tr><td class="pin">PK (= BOOT / PWRKEY)</td><td class="arrow">←</td><td><span class="net sig">GSM_PWRKEY</span></td><td class="esp">Devkit GPIO7 (open drain, pulses low to power the modem)</td></tr>
+          <tr><td class="pin">VSS (= VCC, 5 V in)</td><td class="arrow">←</td><td><span class="net v5">+5V</span></td><td>Shield 5V, short thick wire. No external capacitor: 100+10+1 µF are on the board</td></tr>
+          <tr><td class="pin">NET</td><td class="arrow">→</td><td>LED1</td><td>NET → 1 kΩ → red LED anode; LED cathode → GND. Blink: 0.8 s = searching, 3 s = registered, 0.3 s = GPRS data. 2.8 V signal, dim but visible; no GPIO</td></tr>
+          <tr><td class="pin">DTR, RING, SPN, SPP, MICN, MICP</td><td class="arrow">—</td><td>n/c</td><td>Leave open</td></tr>
           <tr><td class="pin">Antenna</td><td class="arrow">—</td><td>SMA</td><td>GSM SMA antenna, cable routed away from the GNSS patch</td></tr>
         </tbody>
       </table>
@@ -648,7 +648,7 @@ Wrong baud: 'rej' grows in diag → set gnss 1 / save</span></div></li>
 Tracking page with state, satellites, position</span></div></li>
     <li><input type="checkbox" id="s6"><div><label for="s6">MicroSD: GND, VCC, CS→GPIO10, SCK→GPIO11, MOSI→GPIO12, MISO→GPIO13 (a straight run). Card formatted FAT32.</label><span class="expect">I (..) sdcard: Mounted /sdcard: NNNN MiB
 'SD ok' on the screen; TRACKS/YYYYMMDD.CSV appears after the first record</span></div></li>
-    <li><input type="checkbox" id="s7"><div><label for="s7">BIGGA GSM: 6.8 kΩ from TX to GND, LED + 1 kΩ on NET, then VCC/GND with short thick wires, TX→GPIO18, RX→GPIO17, BOOT→GPIO7, antenna. Measure TX idle at GPIO18 with the modem on: expect about 3.0 V, not 5 V. NET LED: fast blink while searching, one blink every 3 s once registered. Console: <kbd>set apn &lt;your apn&gt;</kbd>, <kbd>set url ...</kbd>, <kbd>set id ...</kbd>, <kbd>set uplink 1</kbd>, <kbd>save</kbd>.</label><span class="expect">I (..) sim800: Modem silent at every baud rate, pulsing PWRKEY (1/3)   (normal: the board needs the pulse)
+    <li><input type="checkbox" id="s7"><div><label for="s7">BIGGA GSM: 6.8 kΩ from TX to GND, LED + 1 kΩ on NET, then VCC/GND with short thick wires, TX→GPIO18, RX→GPIO17, PK→GPIO7, VSS→5V (it is the supply, not ground), antenna. Measure TX idle at GPIO18 with the modem on: expect about 3.0 V, not 5 V. NET LED: fast blink while searching, one blink every 3 s once registered. Console: <kbd>set apn &lt;your apn&gt;</kbd>, <kbd>set url ...</kbd>, <kbd>set id ...</kbd>, <kbd>set uplink 1</kbd>, <kbd>save</kbd>.</label><span class="expect">I (..) sim800: Modem silent at every baud rate, pulsing PWRKEY (1/3)   (normal: the board needs the pulse)
 I (..) sim800: Modem answered at 9600 baud   (or 115200)
 I (..) uplink: GPRS up on APN internet
 'sent:' grows on the system page; the point appears in Traccar</span></div></li>

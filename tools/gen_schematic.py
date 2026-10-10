@@ -268,7 +268,7 @@ connect(j2, "4", "GSM_PWRKEY")    # "BOOT" on the silkscreen = SIM800C PWRKEY
 connect(j2, "5", "+5V")
 connect(j2, "6", "GSM_NET")
 finish_unused(j2)                 # DTR, RING, audio
-text("1 GND  2 TX (5 V level!)  3 RX <- IO17  4 BOOT = PWRKEY <- IO7 (open drain)  5 VCC 5V\n"
+text("Silkscreen: GND  TX (5 V level!) -> IO18  RX <- IO17  PK = BOOT/PWRKEY <- IO7 (open drain)  VSS = VCC 5V in  NET\n"
      "6 NET -> R4 1k -> LED1 (NETLIGHT: 0.8 s searching, 3 s registered, 0.3 s GPRS)  7 DTR  8 RING  9-12 audio: unused.\n"
      "TX high side is pulled to VCC through 4.7k on the board: R3 divides it to ~3.0 V for IO18.\n"
      "VBAT is 3.64 V (MIC29302), 100+10+1 uF already on VCC: short thick wires keep VCC above 4 V in bursts.",
