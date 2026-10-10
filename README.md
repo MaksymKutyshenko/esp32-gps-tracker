@@ -35,7 +35,7 @@ pio run -e supermini -t upload -t monitor   # same firmware on the SuperMini
 pio test -e native                          # 59 host-side unit tests for the pure logic
 ```
 
-Serial console at 115200 baud (the same port as the log). Type `help`:
+Serial console at 115200 baud (the same port as the log; the monitor echoes what you type). Type `help`:
 
 ```
 help | show | diag | defaults | save | set <key> <value>
