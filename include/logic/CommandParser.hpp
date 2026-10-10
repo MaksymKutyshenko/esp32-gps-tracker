@@ -9,6 +9,7 @@
 //
 //   help | show | diag | defaults | save | mount
 //   set <key> <value>
+//   at <raw AT command>      (sent to the modem as typed)
 //
 // Pure logic, no ESP-IDF dependency; unit-tested on the host.
 class CommandParser
@@ -25,6 +26,7 @@ public:
         Save,
         Mount,     // retry the storage card now
         Set,
+        At,        // raw modem command; `value` holds the rest of the line
     };
 
     struct Parsed
@@ -38,6 +40,20 @@ public:
     static Parsed parse(char *line)
     {
         Parsed result = {Command::None, nullptr, nullptr};
+
+        // "at ..." is special: everything after the word goes to the modem
+        // untouched, spaces and quotes included.
+        if ((line[0] == 'a' || line[0] == 'A') && (line[1] == 't' || line[1] == 'T') && line[2] == ' ')
+        {
+            char *rest = line + 3;
+            while (*rest == ' ') ++rest;
+            size_t n = strlen(rest);
+            while (n > 0 && (rest[n - 1] == '\r' || rest[n - 1] == '\n' || rest[n - 1] == ' ')) rest[--n] = '\0';
+            result.command = n > 0 ? Command::At : Command::Unknown;
+            result.value = rest;
+            return result;
+        }
+
         char *tokens[3] = {};
         size_t count = tokenize(line, tokens, 3);
         if (count == 0)

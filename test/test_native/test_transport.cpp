@@ -251,6 +251,12 @@ void command_parser_recognises_words_and_set_arguments()
     TEST_ASSERT_EQUAL(CommandParser::Command::None, CommandParser::parse(line3).command);
     char line4[] = "set onlykey";
     TEST_ASSERT_EQUAL(CommandParser::Command::Unknown, CommandParser::parse(line4).command);
+    char line7[] = "at AT+SAPBR=3,1,\"APN\",\"x y\"  \r";
+    CommandParser::Parsed at = CommandParser::parse(line7);
+    TEST_ASSERT_EQUAL(CommandParser::Command::At, at.command);
+    TEST_ASSERT_EQUAL_STRING("AT+SAPBR=3,1,\"APN\",\"x y\"", at.value);
+    char line8[] = "at ";
+    TEST_ASSERT_EQUAL(CommandParser::Command::Unknown, CommandParser::parse(line8).command);
     char line6[] = "mount";
     TEST_ASSERT_EQUAL(CommandParser::Command::Mount, CommandParser::parse(line6).command);
     char line5[] = "frobnicate";

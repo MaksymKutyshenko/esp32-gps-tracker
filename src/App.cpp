@@ -175,9 +175,10 @@ void App::createQueues()
     uplinkSettingsQueue_ = xQueueCreate(1, sizeof(Settings::Values));
     i2cMutex_ = xSemaphoreCreateMutex();
     sdMutex_ = xSemaphoreCreateMutex();
+    modemMutex_ = xSemaphoreCreateMutex();
     configASSERT(displayQueue_ && logQueue_ && uplinkQueue_ && buttonEdgeQueue_ &&
                  batteryQueue_ && gpsSettingsQueue_ && uplinkSettingsQueue_ &&
-                 i2cMutex_ && sdMutex_);
+                 i2cMutex_ && sdMutex_ && modemMutex_);
 }
 
 void App::run()
@@ -530,15 +531,27 @@ void App::uplinkLoop()
         message.uplink.connected = uplink_->isConnected();
         message.uplink.recordsUploaded = diagnostics_.recordsUploaded.load();
         message.uplink.failures = failures;
-        message.uplink.signalQuality = uplink_->signalQuality();
+        {
+            BusLock lock(modemMutex_, Config::busLockTimeoutMs);
+            message.uplink.signalQuality = lock.locked() ? uplink_->signalQuality() : 99;
+        }
         postDisplay(message);
+    };
+
+    // Every modem transaction runs under modemMutex_ so the console's raw
+    // 'at' command can slip in between them. A timeout here only delays
+    // the attempt; the lock is held by the console for one command at most.
+    auto connectLocked = [&]() -> esp_err_t
+    {
+        BusLock lock(modemMutex_, Config::modemLockTimeoutMs);
+        return lock.locked() ? uplink_->connect() : ESP_ERR_TIMEOUT;
     };
 
     while (!uplink_->isConnected())
     {
         watchdog.feed();
         pollSettings();
-        if (uplink_->connect() != ESP_OK)
+        if (connectLocked() != ESP_OK)
         {
             ++failures;
             scheduler_.onFailure(nowMs());
@@ -557,7 +570,7 @@ void App::uplinkLoop()
         {
             // The bearer dropped (e.g. an APN change failed): back to the
             // connect loop with the scheduler's back-off.
-            if (uplink_->connect() != ESP_OK)
+            if (connectLocked() != ESP_OK)
             {
                 ++failures;
                 scheduler_.onFailure(nowMs());
@@ -588,7 +601,14 @@ void App::uplinkLoop()
         }
 
         uint16_t status = 0;
-        const esp_err_t err = uplink_->httpGet(url, status);
+        esp_err_t err = ESP_ERR_TIMEOUT;
+        {
+            BusLock lock(modemMutex_, Config::modemLockTimeoutMs);
+            if (lock.locked())
+            {
+                err = uplink_->httpGet(url, status);
+            }
+        }
         if (err == ESP_OK && status == 200)
         {
             // Pop only now: a record is removed from the queue only once
@@ -607,7 +627,11 @@ void App::uplinkLoop()
             if (scheduler_.needsReset())
             {
                 Diagnostics::increment(diagnostics_.modemPowerCycles);
-                uplink_->reset();
+                BusLock lock(modemMutex_, Config::modemLockTimeoutMs);
+                if (lock.locked())
+                {
+                    uplink_->reset();
+                }
                 scheduler_.onReset();
             }
         }
@@ -701,7 +725,7 @@ void App::consoleLoop()
         case CommandParser::Command::None:
             break;
         case CommandParser::Command::Help:
-            ESP_LOGI(logTag, "help | show | diag | defaults | save | mount | set <key> <value>");
+            ESP_LOGI(logTag, "help | show | diag | defaults | save | mount | set <key> <value> | at <AT command>");
             ESP_LOGI(logTag, "keys: moving_ms stationary_ms min_distance_m motion_start motion_stop "
                              "motion_stop_delay_ms gnss(0=%s,1=%s) uplink(0/1) uplink_min_ms apn url id",
                      GnssProfiles::byIndex(0).name, GnssProfiles::byIndex(1).name);
@@ -752,6 +776,32 @@ void App::consoleLoop()
             const esp_err_t err = storage_.isReady() ? ESP_OK : storage_.recover();
             ESP_LOGI(logTag, "Storage %s (%s)", storage_.isReady() ? "ready" : "unavailable",
                      esp_err_to_name(err));
+            break;
+        }
+        case CommandParser::Command::At:
+        {
+            // Borrow the modem: the uplink task may be mid-transaction for
+            // up to a connect attempt, so wait in slices and keep feeding.
+            bool locked = false;
+            for (uint8_t i = 0; i < 60 && !locked; ++i)
+            {
+                watchdog.feed();
+                locked = xSemaphoreTake(modemMutex_, pdMS_TO_TICKS(1000)) == pdTRUE;
+            }
+            if (!locked)
+            {
+                ESP_LOGW(logTag, "Modem busy; try again");
+                break;
+            }
+            static char response[Sim800Modem::responseCapacity];
+            const AtCommand command = {parsed.value, "OK", 10'000};
+            const esp_err_t err = modem_.execute(command, response, sizeof response);
+            xSemaphoreGive(modemMutex_);
+            for (char *c = response; *c != '\0'; ++c)
+            {
+                if (*c == '\r' || *c == '\n') *c = ' ';
+            }
+            ESP_LOGI(logTag, "%s -> %s [%s]", parsed.value, response, esp_err_to_name(err));
             break;
         }
         case CommandParser::Command::Unknown:

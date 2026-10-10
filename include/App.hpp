@@ -162,6 +162,9 @@ private:
     QueueHandle_t uplinkSettingsQueue_ = nullptr;
     SemaphoreHandle_t i2cMutex_ = nullptr;
     SemaphoreHandle_t sdMutex_ = nullptr;
+    // The modem has one owner (the uplink task); the console's raw 'at'
+    // command borrows it between the task's own transactions.
+    SemaphoreHandle_t modemMutex_ = nullptr;
     TaskHandle_t tasks_[TaskCount] = {};
 
     TrackerState ledState_ = TrackerState::Sleeping; // forces the first LED write

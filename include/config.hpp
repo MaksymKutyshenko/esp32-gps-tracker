@@ -185,6 +185,9 @@ namespace Config
     constexpr UBaseType_t uplinkQueueDepth = 64;
     constexpr UBaseType_t buttonEdgeQueueDepth = 8;
     constexpr uint32_t busLockTimeoutMs = 200;
+    // A modem transaction (connect attempt, HTTP request) can take tens of
+    // seconds; the uplink task waits this long for the console to release it.
+    constexpr uint32_t modemLockTimeoutMs = 15'000;
 
     // ---- Task layout ---------------------------------------------------
     // One task per blocking peripheral; priorities put the receiver first

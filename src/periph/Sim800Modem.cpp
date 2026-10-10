@@ -316,6 +316,8 @@ void Sim800Modem::logNetworkStatus()
         {"AT+CGATT?", "OK", 2000},  // +CGATT: 1 attached
         {"AT+CSQ", "OK", 2000},     // +CSQ: <rssi 0..31>,<ber>
         {"AT+COPS?", "OK", 5000},   // operator name
+        {"AT+CEER", "OK", 2000},    // cause of the last call / PDP rejection
+        {"AT+SAPBR=2,1", "OK", 2000}, // bearer status: 0 connecting, 1 up, 2 closing, 3 closed
     };
     for (const AtCommand &query : queries)
     {
