@@ -521,7 +521,7 @@ void App::publishStorageHealth()
 void App::uplinkLoop()
 {
     WatchdogSubscription watchdog;
-    char url[Config::gsmCommandBytes];
+    char url[Config::gsmUrlBytes];
     uint32_t failures = 0;
     // The task's own copy of the settings; the console publishes a new one
     // through uplinkSettingsQueue_ and it is applied here, never shared.

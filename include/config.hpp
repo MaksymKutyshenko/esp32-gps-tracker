@@ -129,7 +129,12 @@ namespace Config
     constexpr uint32_t gsmBootWaitMs = 4000;        // network registration starts after this
     constexpr uint8_t gsmPowerOnAttempts = 3;
     constexpr uint32_t gsmHttpTimeoutMs = 30'000;
-    constexpr size_t gsmCommandBytes = 160;         // longest AT line we build (URL)
+    // Longest report URL: server URL (95) + device id (23) + the OsmAnd
+    // query with every field at its widest (~130). The AT line wraps it in
+    // AT+HTTPPARA="URL","..." which adds 20 more; both are sized so the
+    // widest allowed settings can never be refused as too long.
+    constexpr size_t gsmUrlBytes = 256;
+    constexpr size_t gsmCommandBytes = gsmUrlBytes + 24;
     // Consecutive uplink failures before the modem is power-cycled.
     constexpr uint8_t gsmFailuresBeforePowerCycle = 3;
     // Exponential back-off between failed uplink attempts, capped.

@@ -156,6 +156,32 @@ void osmand_url_carries_every_field()
     TEST_ASSERT_EQUAL_size_t(strlen(url), n);
 }
 
+void osmand_widest_settings_fit_the_url_buffer()
+{
+    // 95-character server URL and 23-character id (the Settings capacities
+    // minus NUL) with every numeric field at its widest.
+    char server[96];
+    memset(server, 'x', 95);
+    memcpy(server, "http://", 7);
+    server[95] = '\0';
+    char id[24];
+    memset(id, 'y', 23);
+    id[23] = '\0';
+    TrackRecord record = sampleRecord();
+    record.fix.latitudeE7 = -900'000'000;
+    record.fix.longitudeE7 = -1'800'000'000;
+    record.fix.altitudeCm = -100'000'000;
+    record.fix.hdopCenti = 65'535;
+    record.fix.courseDeciDeg = 3599;
+    record.fix.speedCmPerS = 4'000'000;
+    record.fix.utc = {2099, 12, 31, 23, 59, 59};
+    record.batteryMv = 9999;
+    char url[256];
+    const size_t n = OsmAndProtocol::buildUrl(server, id, record, url, sizeof url);
+    TEST_ASSERT_NOT_EQUAL(0, n);
+    TEST_ASSERT_LESS_THAN(sizeof url, n + 1);
+}
+
 void osmand_url_too_long_returns_zero()
 {
     char url[40];
