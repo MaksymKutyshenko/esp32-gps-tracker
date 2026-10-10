@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tracker
+      POSTGRES_PASSWORD: tracker
+      POSTGRES_DB: tracker
+    ports:
+      - "5432:5432"
+    volumes:
+      - tracker-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tracker -d tracker"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # The web app itself; `docker compose --profile app up -d --build` runs
+  # both. In development run only the db and use `pnpm dev`.
+  app:
+    profiles: ["app"]
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://tracker:tracker@db:5432/tracker
+      PORT: 5055
+    ports:
+      - "5055:5055"
+
+volumes:
+  tracker-pgdata:

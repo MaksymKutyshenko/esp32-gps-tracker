@@ -1,0 +1,20 @@
+{
+  "name": "gps-tracker-web",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Web app for the ESP32-S3 GPS tracker: live map, device health, analysis",
+  "scripts": {
+    "dev": "concurrently -n server,client -c blue,magenta \"pnpm --filter server dev\" \"pnpm --filter client dev\"",
+    "build": "pnpm --filter client build && pnpm --filter server build",
+    "start": "pnpm --filter server start",
+    "test": "pnpm --filter server test",
+    "typecheck": "pnpm -r typecheck",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose down"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "packageManager": "pnpm@10.17.1",
+  "engines": { "node": ">=22" }
+}
