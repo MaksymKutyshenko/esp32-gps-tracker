@@ -18,7 +18,8 @@ public:
     // Bumped whenever the layout or the Config defaults change; a blob
     // with another version is discarded and the defaults take over.
     // 2: moving interval 1 s and uplink interval 5 s (car-sized).
-    static constexpr uint32_t layoutVersion = 2;
+    // 3: health report interval added.
+    static constexpr uint32_t layoutVersion = 3;
     static constexpr size_t apnCapacity = 32;
     static constexpr size_t serverUrlCapacity = 96;
     static constexpr size_t deviceIdCapacity = 24;
@@ -43,6 +44,7 @@ public:
         // Uplink
         bool uplinkEnabled;
         uint32_t uplinkMinIntervalMs;
+        uint32_t healthIntervalMs;
         char apn[apnCapacity];
         char serverUrl[serverUrlCapacity];
         char deviceId[deviceIdCapacity];

@@ -52,12 +52,9 @@ namespace OsmAndProtocol
         return static_cast<uint8_t>((millivolts - 3300) * 100 / 900);
     }
 
-    // Returns the URL length, or 0 if it did not fit. `extra` is appended
-    // verbatim: "" or "&key=value" pairs the server stores as attributes
-    // (the first report after a boot carries "&reset=<reason>").
+    // Returns the URL length, or 0 if it did not fit.
     inline size_t buildUrl(const char *serverUrl, const char *deviceId,
-                           const TrackRecord &record, char *out, size_t capacity,
-                           const char *extra = "")
+                           const TrackRecord &record, char *out, size_t capacity)
     {
         const Fix &f = record.fix;
         char lat[16], lon[16], alt[16], hdop[12], course[12], speed[12];
@@ -72,10 +69,10 @@ namespace OsmAndProtocol
 
         const int n = snprintf(out, capacity,
                                "%s/?id=%s&lat=%s&lon=%s&timestamp=%lld&speed=%s&bearing=%s"
-                               "&altitude=%s&hdop=%s&batt=%u%s",
+                               "&altitude=%s&hdop=%s&batt=%u",
                                serverUrl, deviceId, lat, lon,
                                static_cast<long long>(unixTime(f.utc)), speed, course,
-                               alt, hdop, batteryPercent(record.batteryMv), extra);
+                               alt, hdop, batteryPercent(record.batteryMv));
         return (n > 0 && static_cast<size_t>(n) < capacity) ? static_cast<size_t>(n) : 0;
     }
 }

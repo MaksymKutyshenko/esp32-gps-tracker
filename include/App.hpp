@@ -32,6 +32,7 @@
 #include "reliability/EventLog.hpp"
 #include "reliability/Settings.hpp"
 #include "transport/DisplayMessage.hpp"
+#include "transport/HealthReport.hpp"
 #include "transport/IUplinkTransport.hpp"
 #include "transport/ModemTransport.hpp"
 #include "transport/SdStorage.hpp"
@@ -115,6 +116,8 @@ private:
     void publishStorageHealth();
     uint16_t lastBatteryMv() const;
     void logDiagnostics();
+    // Fills a HealthSnapshot from the counters and overwrites healthQueue_.
+    void publishHealth();
     static uint32_t nowMs();
     static void feedWatchdogFromModem();
 
@@ -122,7 +125,6 @@ private:
     Settings::Values values_;
     Diagnostics diagnostics_;
     EventLog eventLog_;
-    esp_reset_reason_t resetReason_ = ESP_RST_UNKNOWN;
 
     // Periph
     UartPort gpsUart_;
@@ -162,6 +164,7 @@ private:
     QueueHandle_t uplinkQueue_ = nullptr;
     QueueHandle_t buttonEdgeQueue_ = nullptr;
     QueueHandle_t batteryQueue_ = nullptr;  // single slot, latest millivolts
+    QueueHandle_t healthQueue_ = nullptr;   // single slot, latest HealthSnapshot
     // Single slot each: the console publishes a whole Settings::Values and
     // the gps / uplink tasks apply it at the top of their loops, so live
     // parameters change without any shared object between tasks.
@@ -175,4 +178,5 @@ private:
     TaskHandle_t tasks_[TaskCount] = {};
 
     TrackerState ledState_ = TrackerState::Sleeping; // forces the first LED write
+    ResetCause resetCause_ = ResetCause::Other;
 };

@@ -2,7 +2,8 @@
 
 > ESP32-S3 GPS tracker on ESP-IDF and FreeRTOS: reads NMEA from a GNSS
 > receiver, shows the fix on an OLED, logs the track to a MicroSD card and
-> uploads positions over GPRS to a Traccar server.
+> uploads positions and a health report over GPRS to the project's own
+> server (or any Traccar instance).
 
 Final project for the Beetroot Academy "Embedded Development" course.
 The course requirements and the grading checklist, mapped item by item onto
@@ -23,7 +24,7 @@ machine, and every piece of pure logic unit-tested on the host.
 | GNSS | Foxeer M10Q-250 (u-blox M10) or Beitian BE-220, NMEA over UART; set to 1 Hz RMC/GGA/GSV at boot |
 | Display | SSD1306 128×64 OLED, I2C |
 | Storage | MicroSD over SPI (DMA), FAT, one CSV per UTC day |
-| Uplink | SIM800C GPRS, HTTP GET in the OsmAnd protocol (Traccar) |
+| Uplink | SIM800C GPRS, HTTP GET: OsmAnd position report plus a health report once a minute |
 | Power | 2×18650 through a Battery Shield V8, cell voltage on ADC |
 | Motion | GNSS speed today; BMA400 accelerometer prepared (see below) |
 
@@ -41,7 +42,8 @@ Serial console at 115200 baud (the same port as the log; the monitor echoes what
 help | show | diag | defaults | save | set <key> <value>
 set moving_ms 2000        # record every 2 s while moving
 set stationary_ms 120000  # every 2 min while parked
-set url http://my-traccar.example:5055
+set url http://gps-tracker-mk.fly.dev   # the project server (default); Traccar: http://host:5055
+set health_ms 30000       # health report every 30 s
 set id my-bike
 save                      # persists to NVS and applies live
 ```
@@ -174,11 +176,23 @@ utc,lat,lon,alt_m,speed_kmh,course_deg,sats,hdop,batt_mv
 2026-10-09T10:30:45Z,50.4520575,30.5257202,179.30,22.8,210.5,8,0.95,3900
 ```
 
-Upload (OsmAnd protocol, one GET per record, popped from the queue only
-after HTTP 200):
+Upload: two request types, both one plain-HTTP GET answered with 200.
+The position report (OsmAnd protocol, so Traccar accepts it too) is
+popped from the queue only after HTTP 200:
 
 ```
-http://host:5055/?id=<device>&lat=..&lon=..&timestamp=<unix>&speed=<kn>&bearing=..&altitude=<m>&hdop=..&batt=<%>
+http://gps-tracker-mk.fly.dev/?id=<device>&lat=..&lon=..&timestamp=<unix>&speed=<kn>&bearing=..&altitude=<m>&hdop=..&batt=<%>
+```
+
+The health report goes out as soon as the bearer is up and then every
+`health_ms` (60 s), fix or no fix: tracker state, reset reason, uptime,
+sky view, every diagnostics counter, card and modem state, battery, heap
+and stack headroom per task. It is what the server's dashboard shows as
+module status; the full key list is in `web/README.md` on the
+`tracker-web` branch, section "Device protocol":
+
+```
+http://gps-tracker-mk.fly.dev/?id=<device>&health=1&fw=..&up=..&rst=..&st=..&fix=..&sat=..&sky=..&sig=..&cn0=..&...&stk=gps/display/logger/uplink/ui
 ```
 
 ## Bring-up order
@@ -198,10 +212,11 @@ http://host:5055/?id=<device>&lat=..&lon=..&timestamp=<unix>&speed=<kn>&bearing=
    a CSV on the card after the first record. The card also carries
    `TRACKS/EVENTS.LOG`, a mirror of the firmware's console log, so a run
    without a monitor still shows what preceded a reset and the boot line
-   after it (`Boot: reset reason ...`). The first upload after a boot adds
-   `&reset=<reason>` to the report, so the server keeps the restart history.
-5. SIM800C on UART2 and PWRKEY: `GPRS up on APN ...`, then `sent:` grows on
-   the system page. Set `apn`, `url` and `id` first.
+   after it (`Boot: reset reason ...`). Every health report carries the
+   reset reason (`rst=`), so the server keeps the restart history too.
+5. SIM800C on UART2 and PWRKEY: `GPRS up on APN ...`, a health report within
+   seconds (the device turns Online on the server), then `sent:` grows on
+   the system page once there is a fix. Set `apn`, `url` and `id` first.
 
 ## Results
 
@@ -225,8 +240,8 @@ duration._
   lifecell) selected with the button and saved to NVS, so a SIM swap needs no
   console. The uplink task already re-opens the bearer on an APN change.
 - Fit the BMA400 and add deep sleep with EXT1 wake, with measured currents.
-- Batch uploads (one request, many points) once a self-hosted server is
-  available.
+- Batch uploads (one request, many points) now that the server is ours;
+  the modem's socket commands make one TCP session per batch possible.
 - GPX export alongside CSV.
 - UBX configuration of the receiver (rate, constellations) instead of the
   module defaults.
