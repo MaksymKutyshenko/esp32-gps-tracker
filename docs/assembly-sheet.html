@@ -1,0 +1,697 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>GPS Tracker Wiring</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600;700&family=Barlow+Semi+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: a bench sheet. One column of module cards, each a pin-to-pin table; a sticky rail legend; checklist at the end. */
+  :root {
+    --bg: #f5f6f8;
+    --paper: #ffffff;
+    --fg: #1d2129;
+    --muted: #5d6675;
+    --line: #d7dbe2;
+    --accent: #e8611a;          /* wire-insulation orange */
+    --accent-ink: #ffffff;
+    --rail-5v: #d7263d;
+    --rail-3v3: #e08a00;
+    --rail-gnd: #2b2f36;
+    --rail-batt: #7a4bd1;
+    --sig: #1b6fb8;
+    --warn-bg: #fff4e8;
+    --warn-line: #f0b27a;
+    --ok: #1f8a4c;
+    --font-body: "Barlow", "Helvetica Neue", Arial, sans-serif;
+    --font-display: "Barlow Semi Condensed", "Barlow", "Arial Narrow", sans-serif;
+    --font-mono: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15181d; --paper: #1d2128; --fg: #e8eaee; --muted: #a2a9b5; --line: #343a44;
+      --accent: #ff7a33; --accent-ink: #15181d;
+      --rail-5v: #ff5c70; --rail-3v3: #ffb340; --rail-gnd: #c9cdd5; --rail-batt: #b494ff; --sig: #6fb3ef;
+      --warn-bg: #2b2117; --warn-line: #8a5a2b; --ok: #4ccf7e;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #15181d; --paper: #1d2128; --fg: #e8eaee; --muted: #a2a9b5; --line: #343a44;
+    --accent: #ff7a33; --accent-ink: #15181d;
+    --rail-5v: #ff5c70; --rail-3v3: #ffb340; --rail-gnd: #c9cdd5; --rail-batt: #b494ff; --sig: #6fb3ef;
+    --warn-bg: #2b2117; --warn-line: #8a5a2b; --ok: #4ccf7e;
+    color-scheme: dark;
+  }
+
+  body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.5; }
+  .wrap { max-width: 980px; margin: 0 auto; padding-block: 28px 64px; padding-inline: 16px; }
+
+  header.top { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: baseline; justify-content: space-between; border-bottom: 2px solid var(--fg); padding-bottom: 12px; }
+  h1 { font-family: var(--font-display); font-size: clamp(30px, 5vw, 44px); font-weight: 700; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+  .meta { font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+  .lede { max-width: 66ch; color: var(--muted); margin: 14px 0 0; }
+
+  h2 { font-family: var(--font-display); font-size: 24px; font-weight: 700; margin: 40px 0 10px; letter-spacing: 0.005em; text-wrap: balance; }
+  h3 { font-family: var(--font-display); font-size: 19px; font-weight: 600; margin: 0; }
+  p { margin: 0 0 10px; max-width: 70ch; }
+  .eyebrow { font-family: var(--font-mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+
+  .warn { background: var(--warn-bg); border: 1px solid var(--warn-line); border-left: 6px solid var(--accent); padding: 14px 16px; margin: 18px 0; }
+  .warn ul { margin: 6px 0 0; padding-left: 20px; }
+  .warn li { margin: 4px 0; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 12px 0 0; font-family: var(--font-mono); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 6px; border: 1px solid var(--line); }
+
+  .module { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 16px; margin: 16px 0; }
+  .module .head { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+  .module .ref { font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+  .module .note { color: var(--muted); font-size: 14.5px; max-width: 72ch; }
+
+  .tbl { overflow-x: auto; min-width: 0; margin-top: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--font-mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 500; }
+  td.pin, td.esp { font-family: var(--font-mono); white-space: nowrap; }
+  td.arrow { text-align: center; color: var(--muted); white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  .net { font-family: var(--font-mono); font-size: 13px; padding: 1px 6px; border-radius: 3px; border: 1px solid var(--line); white-space: nowrap; }
+  .net.v5 { border-color: var(--rail-5v); color: var(--rail-5v); }
+  .net.v33 { border-color: var(--rail-3v3); color: var(--rail-3v3); }
+  .net.gnd { border-color: var(--rail-gnd); color: var(--rail-gnd); }
+  .net.batt { border-color: var(--rail-batt); color: var(--rail-batt); }
+  .net.sig { border-color: var(--sig); color: var(--sig); }
+
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .grid2 > * { min-width: 0; }
+
+  .diagram { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 8px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; height: auto; min-width: 760px; }
+  pre.mermaid { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 12px; overflow-x: auto; }
+
+  .steps { counter-reset: step; list-style: none; padding: 0; margin: 12px 0 0; }
+  .steps li { display: grid; grid-template-columns: 28px 1fr; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); align-items: start; }
+  .steps li:last-child { border-bottom: 0; }
+  .steps input[type="checkbox"] { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--accent); cursor: pointer; }
+  .steps label { cursor: pointer; }
+  .steps .expect { display: block; font-family: var(--font-mono); font-size: 13px; color: var(--muted); margin-top: 4px; white-space: pre-wrap; }
+  .steps li.done label { color: var(--muted); text-decoration: line-through; }
+  .steps li.done .expect { text-decoration: none; }
+  .progress { font-family: var(--font-mono); font-size: 13px; color: var(--muted); margin-top: 8px; }
+
+  code { font-family: var(--font-mono); font-size: 0.92em; background: color-mix(in srgb, var(--fg) 7%, transparent); padding: 1px 5px; border-radius: 3px; }
+  kbd { font-family: var(--font-mono); }
+  a { color: var(--sig); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  footer { margin-top: 48px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+  @media (prefers-reduced-motion: no-preference) { .steps li { transition: color .15s; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <h1>GPS Tracker Wiring</h1>
+    <div class="meta">ESP32-S3 DevKitC-1 build · rev 1 · 2026-10-09 · pins match include/config.hpp</div>
+  </header>
+  <p class="lede">Bench sheet for assembling the tracker on a breadboard. One table per module, read left to right: module pin, wire, where it goes. Wire colours follow the legend so a photo of the board can be checked against this page.</p>
+
+  <div class="warn">
+    <strong>Before the first wire</strong>
+    <ul>
+      <li><strong>3.3 V logic everywhere.</strong> The ESP32-S3 pins are not 5 V tolerant. GNSS modules and the OLED output 3.3 V logic even when fed 5 V, so TX/RX/SDA/SCL go straight in.</li>
+      <li><strong>Measure the shield's "3V" rail first.</strong> Listings disagree whether it is 3.0 V or 3.3 V. Below 3.1 V, feed the OLED and BMA400 from the devkit's 3V3 pin instead and give the SD module 5 V (level-shifter type only).</li>
+      <li><strong>Never join the devkit's 3V3 pin to the shield's 3V rail.</strong> Both are regulator outputs. The devkit gets 5 V on its 5V/VIN pin and makes its own 3.3 V.</li>
+      <li><strong>BIGGA GSM: TX is 5 V logic and the modem draws 2 A bursts.</strong> Put 6.8 kΩ from the board's TX pin to GND before it reaches GPIO18. No external capacitor is needed: the board has 100 + 10 + 1 µF at its VCC input and several hundred µF on the modem rail. Use short 22 AWG or thicker wires for VCC/GND. The 1000 µF is only a fallback across VCC/GND if the boot line ever shows BROWNOUT.</li>
+      <li><strong>One ground.</strong> Every GND goes to the shield's GND. Star it at the shield, not daisy-chained through modules.</li>
+      <li><strong>Check 18650 polarity twice</strong> before inserting. A reversed cell burns the shield's protection IC.</li>
+      <li><strong>Antennas.</strong> GNSS patch antenna face-up with a sky view; keep the GSM antenna cable away from it.</li>
+    </ul>
+  </div>
+
+  <h2>Rails and wire colours</h2>
+  <p>Four rails come off the battery shield. Everything in the tables below is tagged with one of them or with a signal name.</p>
+  <div class="legend">
+    <span><i class="sw" style="background:var(--rail-5v)"></i>+5V red</span>
+    <span><i class="sw" style="background:var(--rail-3v3)"></i>+3V3 orange</span>
+    <span><i class="sw" style="background:var(--rail-gnd)"></i>GND black</span>
+    <span><i class="sw" style="background:var(--rail-batt)"></i>B+ (cell) purple</span>
+    <span><i class="sw" style="background:var(--sig)"></i>signals: TX yellow · RX green · SDA blue · SCL white · SPI grey · control brown</span>
+  </div>
+
+  <pre class="mermaid">
+flowchart LR
+  CELLS["2 x 18650 HG2"] --> SHIELD["Battery Shield V8<br/>boost + protection"]
+  SHIELD -- "+5V ≤ 2.2 A" --> DEV["DevKitC-1 5V pin<br/>(onboard LDO → 3V3_DEVKIT)"]
+  SHIELD -- "+5V" --> GNSS["GNSS module VCC"]
+  SHIELD -- "+5V, short thick wires" --> GSM["BIGGA GSM VCC"]
+  SHIELD -- "+3V3 1 A" --> OLED["SSD1306 VCC"]
+  SHIELD -- "+3V3" --> SD["MicroSD VCC<br/>(5V if level-shifter type)"]
+  SHIELD -- "+3V3" --> ACC["BMA400 VCC (later)"]
+  SHIELD -- "B+ (cell)" --> DIV["100k / 100k divider → GPIO1"]
+  SHIELD -- "GND star" --> ALL["every module GND"]
+  </pre>
+
+  <h2>Wiring diagram</h2>
+  <p>Every wire on the bench, drawn once. The devkit's pins are in logical order here (grouped by module), not in header order; the pin map below gives the physical positions. Rails run along the top from the shield.</p>
+  <div class="diagram">
+<svg viewBox="0 0 1200 775" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Wiring diagram: devkit in the centre, modules left and right, power rails down both sides">
+<style>
+  .t-title { font: 600 14px var(--font-display); fill: var(--fg); }
+  .t-sub { font: 11px var(--font-body); fill: var(--muted); }
+  .t-pin { font: 11.5px var(--font-mono); fill: var(--fg); }
+  .t-part { font: 10px var(--font-mono); fill: var(--fg); }
+  .t-note { font: 11px var(--font-body); fill: var(--muted); }
+  .t-bus { font: 600 11px var(--font-mono); }
+</style>
+<polyline points="26,36 1174,36" fill="none" stroke="#e03a4e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="40,54 1146,54" fill="none" stroke="#f29a1f" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="54,72 1160,72" fill="none" stroke="var(--rail-gnd)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="68,90 68,90" fill="none" stroke="#9b6ff0" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="26,36 26,735" fill="none" stroke="#e03a4e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="30" y="729" class="t-bus" fill="#e03a4e" transform="rotate(-90 30 729)">+5V</text>
+<polyline points="40,54 40,735" fill="none" stroke="#f29a1f" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="44" y="729" class="t-bus" fill="#f29a1f" transform="rotate(-90 44 729)">+3V3</text>
+<polyline points="54,72 54,735" fill="none" stroke="var(--rail-gnd)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="58" y="729" class="t-bus" fill="var(--rail-gnd)" transform="rotate(-90 58 729)">GND</text>
+<polyline points="68,90 68,735" fill="none" stroke="#9b6ff0" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="72" y="729" class="t-bus" fill="#9b6ff0" transform="rotate(-90 72 729)">B+</text>
+<polyline points="1146,54 1146,735" fill="none" stroke="#f29a1f" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1150" y="729" class="t-bus" fill="#f29a1f" transform="rotate(-90 1150 729)">+3V3</text>
+<polyline points="1160,72 1160,735" fill="none" stroke="var(--rail-gnd)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1164" y="729" class="t-bus" fill="var(--rail-gnd)" transform="rotate(-90 1164 729)">GND</text>
+<polyline points="1174,36 1174,735" fill="none" stroke="#e03a4e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1178" y="729" class="t-bus" fill="#e03a4e" transform="rotate(-90 1178 729)">+5V</text>
+<rect x="110" y="104" width="200" height="108" rx="6" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="120" y="126" class="t-title">Battery Shield V8</text>
+<text x="120" y="142" class="t-sub">2×18650 · switch ON · GND = star point</text>
+<line x1="110" y1="150" x2="132" y2="150" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="138" y="154" class="t-pin">5V ×4</text>
+<circle cx="110" cy="150" r="2.5" fill="var(--fg)"/>
+<polyline points="110,150 26,150" fill="none" stroke="#e03a4e" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="26" cy="150" r="3.2" fill="#e03a4e"/>
+<line x1="110" y1="166" x2="132" y2="166" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="138" y="170" class="t-pin">3V ×4</text>
+<circle cx="110" cy="166" r="2.5" fill="var(--fg)"/>
+<polyline points="110,166 40,166" fill="none" stroke="#f29a1f" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="40" cy="166" r="3.2" fill="#f29a1f"/>
+<line x1="110" y1="182" x2="132" y2="182" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="138" y="186" class="t-pin">GND</text>
+<circle cx="110" cy="182" r="2.5" fill="var(--fg)"/>
+<polyline points="110,182 54,182" fill="none" stroke="var(--rail-gnd)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="54" cy="182" r="3.2" fill="var(--rail-gnd)"/>
+<line x1="110" y1="196" x2="132" y2="196" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="138" y="200" class="t-pin">B+ tab</text>
+<circle cx="110" cy="196" r="2.5" fill="var(--fg)"/>
+<polyline points="110,196 68,196" fill="none" stroke="#9b6ff0" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="68" cy="196" r="3.2" fill="#9b6ff0"/>
+<text x="320" y="122" class="t-note" text-anchor="start">Shield USB-A → devkit USB-C: alternative supply for the devkit only</text>
+<rect x="475" y="150" width="250" height="510" rx="6" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="485" y="172" class="t-title">ESP32-S3 DevKitC-1</text>
+<text x="485" y="188" class="t-sub">pins in logical order, not header order</text>
+<line x1="475" y1="215" x2="497" y2="215" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="503" y="219" class="t-pin">GPIO4</text>
+<circle cx="475" cy="215" r="2.5" fill="var(--fg)"/>
+<line x1="475" y1="245" x2="497" y2="245" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="503" y="249" class="t-pin">GPIO5</text>
+<circle cx="475" cy="245" r="2.5" fill="var(--fg)"/>
+<line x1="475" y1="300" x2="497" y2="300" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="503" y="304" class="t-pin">GPIO18</text>
+<circle cx="475" cy="300" r="2.5" fill="var(--fg)"/>
+<line x1="475" y1="330" x2="497" y2="330" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="503" y="334" class="t-pin">GPIO17</text>
+<circle cx="475" cy="330" r="2.5" fill="var(--fg)"/>
+<line x1="475" y1="360" x2="497" y2="360" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="503" y="364" class="t-pin">GPIO7</text>
+<circle cx="475" cy="360" r="2.5" fill="var(--fg)"/>
+<line x1="475" y1="430" x2="497" y2="430" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="503" y="434" class="t-pin">GPIO2</text>
+<circle cx="475" cy="430" r="2.5" fill="var(--fg)"/>
+<line x1="475" y1="470" x2="497" y2="470" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="503" y="474" class="t-pin">GPIO1</text>
+<circle cx="475" cy="470" r="2.5" fill="var(--fg)"/>
+<line x1="703" y1="215" x2="725" y2="215" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="697" y="219" class="t-pin" text-anchor="end">GPIO8 SDA</text>
+<circle cx="725" cy="215" r="2.5" fill="var(--fg)"/>
+<line x1="703" y1="245" x2="725" y2="245" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="697" y="249" class="t-pin" text-anchor="end">GPIO9 SCL</text>
+<circle cx="725" cy="245" r="2.5" fill="var(--fg)"/>
+<line x1="703" y1="300" x2="725" y2="300" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="697" y="304" class="t-pin" text-anchor="end">GPIO13 MISO</text>
+<circle cx="725" cy="300" r="2.5" fill="var(--fg)"/>
+<line x1="703" y1="330" x2="725" y2="330" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="697" y="334" class="t-pin" text-anchor="end">GPIO12 MOSI</text>
+<circle cx="725" cy="330" r="2.5" fill="var(--fg)"/>
+<line x1="703" y1="360" x2="725" y2="360" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="697" y="364" class="t-pin" text-anchor="end">GPIO11 SCK</text>
+<circle cx="725" cy="360" r="2.5" fill="var(--fg)"/>
+<line x1="703" y1="390" x2="725" y2="390" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="697" y="394" class="t-pin" text-anchor="end">GPIO10 CS</text>
+<circle cx="725" cy="390" r="2.5" fill="var(--fg)"/>
+<line x1="703" y1="470" x2="725" y2="470" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="697" y="474" class="t-pin" text-anchor="end">GPIO6 INT1</text>
+<circle cx="725" cy="470" r="2.5" fill="var(--fg)"/>
+<polyline points="660,150 660,36" fill="none" stroke="#e03a4e" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="660" cy="36" r="3.2" fill="#e03a4e"/>
+<text x="660" y="144" class="t-pin" text-anchor="middle">5V pin</text>
+<polyline points="700,150 700,72" fill="none" stroke="var(--rail-gnd)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="700" cy="72" r="3.2" fill="var(--rail-gnd)"/>
+<text x="700" y="144" class="t-pin" text-anchor="middle">GND</text>
+<text x="485" y="630" class="t-sub">3V3 pin: leave free (devkit LDO output)</text>
+<text x="485" y="646" class="t-sub">USB "UART" port → laptop console</text>
+<rect x="110" y="222" width="200" height="150" rx="6" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="120" y="244" class="t-title">GNSS Foxeer M10Q-250</text>
+<text x="120" y="260" class="t-sub">or Beitian BE-220 (4 pins)</text>
+<line x1="110" y1="270" x2="132" y2="270" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="138" y="274" class="t-pin">VCC</text>
+<circle cx="110" cy="270" r="2.5" fill="var(--fg)"/>
+<polyline points="110,270 26,270" fill="none" stroke="#e03a4e" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="26" cy="270" r="3.2" fill="#e03a4e"/>
+<line x1="110" y1="292" x2="132" y2="292" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="138" y="296" class="t-pin">GND</text>
+<circle cx="110" cy="292" r="2.5" fill="var(--fg)"/>
+<polyline points="110,292 54,292" fill="none" stroke="var(--rail-gnd)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="54" cy="292" r="3.2" fill="var(--rail-gnd)"/>
+<line x1="288" y1="270" x2="310" y2="270" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="282" y="274" class="t-pin" text-anchor="end">TX</text>
+<circle cx="310" cy="270" r="2.5" fill="var(--fg)"/>
+<polyline points="310,270 364,270 364,215 475,215" fill="none" stroke="#d9a300" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="288" y1="292" x2="310" y2="292" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="282" y="296" class="t-pin" text-anchor="end">RX</text>
+<circle cx="310" cy="292" r="2.5" fill="var(--fg)"/>
+<polyline points="310,292 378,292 378,245 475,245" fill="none" stroke="#2eaa5e" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="288" y1="318" x2="310" y2="318" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="282" y="322" class="t-pin" text-anchor="end">SCL</text>
+<circle cx="310" cy="318" r="2.5" fill="var(--fg)"/>
+<line x1="288" y1="340" x2="310" y2="340" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="282" y="344" class="t-pin" text-anchor="end">SDA</text>
+<circle cx="310" cy="340" r="2.5" fill="var(--fg)"/>
+<text x="120" y="362" class="t-note" text-anchor="start">SCL/SDA: compass (Foxeer only), optional</text>
+<rect x="110" y="392" width="200" height="206" rx="6" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="120" y="414" class="t-title">BIGGA GSM (SIM800C)</text>
+<text x="120" y="430" class="t-sub">5 V only · nano-SIM · SMA antenna</text>
+<line x1="110" y1="446" x2="132" y2="446" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="138" y="450" class="t-pin">1 GND</text>
+<circle cx="110" cy="446" r="2.5" fill="var(--fg)"/>
+<polyline points="110,446 54,446" fill="none" stroke="var(--rail-gnd)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="54" cy="446" r="3.2" fill="var(--rail-gnd)"/>
+<line x1="110" y1="468" x2="132" y2="468" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="138" y="472" class="t-pin">5 VCC</text>
+<circle cx="110" cy="468" r="2.5" fill="var(--fg)"/>
+<polyline points="110,468 26,468" fill="none" stroke="#e03a4e" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="26" cy="468" r="3.2" fill="#e03a4e"/>
+<text x="120" y="486" class="t-note" text-anchor="start">100+10+1 µF on VCC are on the board: no external cap</text>
+<line x1="288" y1="510" x2="310" y2="510" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="282" y="514" class="t-pin" text-anchor="end">2 TX</text>
+<circle cx="310" cy="510" r="2.5" fill="var(--fg)"/>
+<polyline points="310,510 392,510 392,300 475,300" fill="none" stroke="#d9a300" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="392,446 372,446" fill="none" stroke="#d9a300" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="392" cy="446" r="3.2" fill="#d9a300"/>
+<rect x="344.0" y="438.0" width="28" height="16" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="358" y="450" class="t-part" text-anchor="middle">R3</text>
+<polyline points="344,446 336,446" fill="none" stroke="var(--rail-gnd)" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="336" y1="446" x2="336" y2="454" stroke="var(--rail-gnd)" stroke-width="2"/>
+<line x1="328" y1="454" x2="344" y2="454" stroke="var(--rail-gnd)" stroke-width="2"/>
+<line x1="331" y1="458" x2="341" y2="458" stroke="var(--rail-gnd)" stroke-width="2"/>
+<line x1="334" y1="462" x2="338" y2="462" stroke="var(--rail-gnd)" stroke-width="2"/>
+<text x="358" y="434" class="t-part" text-anchor="middle">6.8k</text>
+<text x="120" y="500" class="t-note" text-anchor="start">R3 6.8k on TX → ~3 V at GPIO18</text>
+<line x1="288" y1="532" x2="310" y2="532" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="282" y="536" class="t-pin" text-anchor="end">3 RX</text>
+<circle cx="310" cy="532" r="2.5" fill="var(--fg)"/>
+<polyline points="310,532 406,532 406,330 475,330" fill="none" stroke="#2eaa5e" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="288" y1="554" x2="310" y2="554" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="282" y="558" class="t-pin" text-anchor="end">4 BOOT</text>
+<circle cx="310" cy="554" r="2.5" fill="var(--fg)"/>
+<polyline points="310,554 420,554 420,360 475,360" fill="none" stroke="#b0733b" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="288" y1="580" x2="310" y2="580" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="282" y="584" class="t-pin" text-anchor="end">6 NET</text>
+<circle cx="310" cy="580" r="2.5" fill="var(--fg)"/>
+<polyline points="310,580 326,580" fill="none" stroke="#b0733b" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="328.0" y="572.0" width="36" height="16" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="346" y="584" class="t-part" text-anchor="middle">R4 1k</text>
+<polyline points="364,580 380,580" fill="none" stroke="#b0733b" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="380,573 380,587 394,580" fill="#e03a4e" stroke="var(--fg)" stroke-width="1"/>
+<line x1="394" y1="573" x2="394" y2="587" stroke="var(--fg)" stroke-width="1.5"/>
+<polyline points="394,580 410,580" fill="none" stroke="var(--rail-gnd)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="410" y1="580" x2="410" y2="588" stroke="var(--rail-gnd)" stroke-width="2"/>
+<line x1="402" y1="588" x2="418" y2="588" stroke="var(--rail-gnd)" stroke-width="2"/>
+<line x1="405" y1="592" x2="415" y2="592" stroke="var(--rail-gnd)" stroke-width="2"/>
+<line x1="408" y1="596" x2="412" y2="596" stroke="var(--rail-gnd)" stroke-width="2"/>
+<text x="424" y="584" class="t-note" text-anchor="start">LED1 blinks: 0.8 s searching · 3 s registered</text>
+<rect x="110" y="610" width="200" height="110" rx="6" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="120" y="632" class="t-title">Button · battery sense</text>
+<text x="120" y="650" class="t-pin">SW1</text>
+<line x1="120" y1="660" x2="140" y2="660" stroke="var(--fg)" stroke-width="1.5"/>
+<line x1="140" y1="660" x2="162" y2="650" stroke="var(--fg)" stroke-width="1.5"/>
+<line x1="164" y1="660" x2="184" y2="660" stroke="var(--fg)" stroke-width="1.5"/>
+<polyline points="110,660 120,660" fill="none" stroke="var(--rail-gnd)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="110,660 54,660" fill="none" stroke="var(--rail-gnd)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="54" cy="660" r="3.2" fill="var(--rail-gnd)"/>
+<polyline points="184,660 310,660" fill="none" stroke="#b0733b" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="310,660 434,660 434,430 475,430" fill="none" stroke="#b0733b" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="140.0" y="692.0" width="40" height="16" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="160" y="704" class="t-part" text-anchor="middle">R1 100k</text>
+<rect x="220.0" y="692.0" width="40" height="16" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="240" y="704" class="t-part" text-anchor="middle">R2 100k</text>
+<polyline points="110,700 140,700" fill="none" stroke="#9b6ff0" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="110,700 68,700" fill="none" stroke="#9b6ff0" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="68" cy="700" r="3.2" fill="#9b6ff0"/>
+<polyline points="180,700 220,700" fill="none" stroke="#9b6ff0" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="200" cy="700" r="3.2" fill="#9b6ff0"/>
+<polyline points="260,700 282,700" fill="none" stroke="var(--rail-gnd)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="282" y1="700" x2="282" y2="708" stroke="var(--rail-gnd)" stroke-width="2"/>
+<line x1="274" y1="708" x2="290" y2="708" stroke="var(--rail-gnd)" stroke-width="2"/>
+<line x1="277" y1="712" x2="287" y2="712" stroke="var(--rail-gnd)" stroke-width="2"/>
+<line x1="280" y1="716" x2="284" y2="716" stroke="var(--rail-gnd)" stroke-width="2"/>
+<polyline points="200,700 200,678 310,678" fill="none" stroke="#9b6ff0" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="310,678 448,678 448,470 475,470" fill="none" stroke="#9b6ff0" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="120" y="718" class="t-note" text-anchor="start">mid = ½ cell voltage → GPIO1</text>
+<rect x="890" y="150" width="200" height="130" rx="6" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="900" y="172" class="t-title">SSD1306 OLED</text>
+<text x="900" y="188" class="t-sub">I2C 0x3C</text>
+<line x1="1068" y1="198" x2="1090" y2="198" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="1062" y="202" class="t-pin" text-anchor="end">GND</text>
+<circle cx="1090" cy="198" r="2.5" fill="var(--fg)"/>
+<polyline points="1090,198 1160,198" fill="none" stroke="var(--rail-gnd)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1160" cy="198" r="3.2" fill="var(--rail-gnd)"/>
+<line x1="1068" y1="220" x2="1090" y2="220" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="1062" y="224" class="t-pin" text-anchor="end">VCC</text>
+<circle cx="1090" cy="220" r="2.5" fill="var(--fg)"/>
+<polyline points="1090,220 1146,220" fill="none" stroke="#f29a1f" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1146" cy="220" r="3.2" fill="#f29a1f"/>
+<line x1="890" y1="242" x2="912" y2="242" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="918" y="246" class="t-pin">SCL</text>
+<circle cx="890" cy="242" r="2.5" fill="var(--fg)"/>
+<polyline points="890,242 851,242 851,245 725,245" fill="none" stroke="#9aa3b2" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="890" y1="264" x2="912" y2="264" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="918" y="268" class="t-pin">SDA</text>
+<circle cx="890" cy="264" r="2.5" fill="var(--fg)"/>
+<polyline points="890,264 837,264 837,215 725,215" fill="none" stroke="#3b8de0" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="890" y="302" width="200" height="170" rx="6" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="900" y="324" class="t-title">MicroSD SPI module</text>
+<text x="900" y="340" class="t-sub">VCC: 3V3 bare type · 5V shifter type</text>
+<line x1="1068" y1="352" x2="1090" y2="352" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="1062" y="356" class="t-pin" text-anchor="end">GND</text>
+<circle cx="1090" cy="352" r="2.5" fill="var(--fg)"/>
+<polyline points="1090,352 1160,352" fill="none" stroke="var(--rail-gnd)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1160" cy="352" r="3.2" fill="var(--rail-gnd)"/>
+<line x1="1068" y1="374" x2="1090" y2="374" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="1062" y="378" class="t-pin" text-anchor="end">VCC</text>
+<circle cx="1090" cy="374" r="2.5" fill="var(--fg)"/>
+<polyline points="1090,374 1146,374" fill="none" stroke="#f29a1f" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1146" cy="374" r="3.2" fill="#f29a1f"/>
+<line x1="890" y1="396" x2="912" y2="396" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="918" y="400" class="t-pin">MISO</text>
+<circle cx="890" cy="396" r="2.5" fill="var(--fg)"/>
+<polyline points="890,396 823,396 823,300 725,300" fill="none" stroke="#7c8696" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="890" y1="418" x2="912" y2="418" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="918" y="422" class="t-pin">MOSI</text>
+<circle cx="890" cy="418" r="2.5" fill="var(--fg)"/>
+<polyline points="890,418 809,418 809,330 725,330" fill="none" stroke="#7c8696" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="890" y1="440" x2="912" y2="440" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="918" y="444" class="t-pin">SCK</text>
+<circle cx="890" cy="440" r="2.5" fill="var(--fg)"/>
+<polyline points="890,440 795,440 795,360 725,360" fill="none" stroke="#7c8696" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="890" y1="462" x2="912" y2="462" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="918" y="466" class="t-pin">CS</text>
+<circle cx="890" cy="462" r="2.5" fill="var(--fg)"/>
+<polyline points="890,462 781,462 781,390 725,390" fill="none" stroke="#7c8696" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="890" y="500" width="200" height="160" rx="6" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="900" y="522" class="t-title">BMA400 (later)</text>
+<text x="900" y="538" class="t-sub">I2C 0x14 · not fitted yet</text>
+<line x1="1068" y1="550" x2="1090" y2="550" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="1062" y="554" class="t-pin" text-anchor="end">VCC</text>
+<circle cx="1090" cy="550" r="2.5" fill="var(--fg)"/>
+<polyline points="1090,550 1146,550" fill="none" stroke="#f29a1f" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+<circle cx="1146" cy="550" r="3.2" fill="#f29a1f"/>
+<line x1="1068" y1="572" x2="1090" y2="572" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="1062" y="576" class="t-pin" text-anchor="end">GND</text>
+<circle cx="1090" cy="572" r="2.5" fill="var(--fg)"/>
+<polyline points="1090,572 1160,572" fill="none" stroke="var(--rail-gnd)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+<circle cx="1160" cy="572" r="3.2" fill="var(--rail-gnd)"/>
+<line x1="890" y1="594" x2="912" y2="594" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="918" y="598" class="t-pin">SDA</text>
+<circle cx="890" cy="594" r="2.5" fill="var(--fg)"/>
+<polyline points="890,594 837,594 837,215" fill="none" stroke="#3b8de0" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+<circle cx="837" cy="215" r="3.2" fill="#3b8de0"/>
+<line x1="890" y1="616" x2="912" y2="616" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="918" y="620" class="t-pin">SCL</text>
+<circle cx="890" cy="616" r="2.5" fill="var(--fg)"/>
+<polyline points="890,616 851,616 851,245" fill="none" stroke="#9aa3b2" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+<circle cx="851" cy="245" r="3.2" fill="#9aa3b2"/>
+<line x1="890" y1="638" x2="912" y2="638" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="918" y="642" class="t-pin">INT1</text>
+<circle cx="890" cy="638" r="2.5" fill="var(--fg)"/>
+<polyline points="890,638 767,638 767,470 725,470" fill="none" stroke="#b0733b" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+<polyline points="475,735 495,735" fill="none" stroke="#e03a4e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="499" y="739" class="t-note" text-anchor="start">+5V</text>
+<polyline points="539,735 559,735" fill="none" stroke="#f29a1f" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="563" y="739" class="t-note" text-anchor="start">+3V3</text>
+<polyline points="603,735 623,735" fill="none" stroke="var(--rail-gnd)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="627" y="739" class="t-note" text-anchor="start">GND</text>
+<polyline points="667,735 687,735" fill="none" stroke="#9b6ff0" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="691" y="739" class="t-note" text-anchor="start">B+</text>
+<polyline points="731,735 751,735" fill="none" stroke="#d9a300" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="755" y="739" class="t-note" text-anchor="start">TX</text>
+<polyline points="795,735 815,735" fill="none" stroke="#2eaa5e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="819" y="739" class="t-note" text-anchor="start">RX</text>
+<polyline points="859,735 879,735" fill="none" stroke="#3b8de0" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="883" y="739" class="t-note" text-anchor="start">SDA</text>
+<polyline points="923,735 943,735" fill="none" stroke="#9aa3b2" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="947" y="739" class="t-note" text-anchor="start">SCL</text>
+<polyline points="987,735 1007,735" fill="none" stroke="#7c8696" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1011" y="739" class="t-note" text-anchor="start">SPI</text>
+<polyline points="1051,735 1071,735" fill="none" stroke="#b0733b" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1075" y="739" class="t-note" text-anchor="start">control</text>
+<text x="475" y="757" class="t-note" text-anchor="start">dashed = optional or not fitted yet · ⏚ = any GND pin on the shield · dots = junctions</text>
+</svg>
+
+  </div>
+
+  <h2>ESP32-S3 DevKitC-1 pin map</h2>
+  <p>The devkit is the hub. Every signal wire ends here; the table is the same assignment as <code>config.hpp</code> and the schematic.</p>
+  <div class="module">
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Devkit pin</th><th>Direction</th><th>Signal</th><th>Goes to</th></tr></thead>
+        <tbody>
+          <tr><td class="esp">5V / VIN</td><td class="arrow">←</td><td><span class="net v5">+5V</span></td><td>Battery shield 5V</td></tr>
+          <tr><td class="esp">GND</td><td class="arrow">—</td><td><span class="net gnd">GND</span></td><td>Battery shield GND (star)</td></tr>
+          <tr><td class="esp">3V3</td><td class="arrow">out</td><td><span class="net v33">3V3_DEVKIT</span></td><td>Leave free. Do not tie to the shield rail.</td></tr>
+          <tr><td class="esp">GPIO1</td><td class="arrow">←</td><td><span class="net batt">BATT_SENSE</span></td><td>Divider midpoint (R1/R2)</td></tr>
+          <tr><td class="esp">GPIO2</td><td class="arrow">←</td><td><span class="net sig">BTN</span></td><td>Push button, other side to GND</td></tr>
+          <tr><td class="esp">GPIO4</td><td class="arrow">←</td><td><span class="net sig">GNSS_TXD</span></td><td>GNSS TX</td></tr>
+          <tr><td class="esp">GPIO5</td><td class="arrow">→</td><td><span class="net sig">GNSS_RXD</span></td><td>GNSS RX</td></tr>
+          <tr><td class="esp">GPIO6</td><td class="arrow">←</td><td><span class="net sig">ACC_INT1</span></td><td>BMA400 INT1 (when fitted)</td></tr>
+          <tr><td class="esp">GPIO7</td><td class="arrow">→</td><td><span class="net sig">GSM_PWRKEY</span></td><td>BIGGA BOOT pin (= PWRKEY), open drain</td></tr>
+          <tr><td class="esp">GPIO8</td><td class="arrow">↔</td><td><span class="net sig">SDA</span></td><td>OLED SDA, BMA400 SDA, GNSS compass SDA</td></tr>
+          <tr><td class="esp">GPIO9</td><td class="arrow">→</td><td><span class="net sig">SCL</span></td><td>OLED SCL, BMA400 SCL, GNSS compass SCL</td></tr>
+          <tr><td class="esp">GPIO10</td><td class="arrow">→</td><td><span class="net sig">SD_CS</span></td><td>MicroSD CS</td></tr>
+          <tr><td class="esp">GPIO11</td><td class="arrow">→</td><td><span class="net sig">SD_SCK</span></td><td>MicroSD SCK (CLK)</td></tr>
+          <tr><td class="esp">GPIO12</td><td class="arrow">→</td><td><span class="net sig">SD_MOSI</span></td><td>MicroSD MOSI (DI)</td></tr>
+          <tr><td class="esp">GPIO13</td><td class="arrow">←</td><td><span class="net sig">SD_MISO</span></td><td>MicroSD MISO (DO)</td></tr>
+          <tr><td class="esp">GPIO17</td><td class="arrow">→</td><td><span class="net sig">GSM_RXD</span></td><td>BIGGA RX</td></tr>
+          <tr><td class="esp">GPIO18</td><td class="arrow">←</td><td><span class="net sig">GSM_TXD</span></td><td>BIGGA TX, with 6.8 kΩ from that pin to GND</td></tr>
+          <tr><td class="esp">USB "UART" port</td><td class="arrow">—</td><td>console</td><td>Laptop, 115200 baud, log + commands</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note" style="margin-top:10px">Keep off: GPIO0 (BOOT), GPIO3, GPIO19/20 (USB), GPIO26–32 (flash), GPIO45/46. The onboard RGB LED (GPIO38 on v1.1 boards, GPIO48 on many clones) is the status light; nothing to wire.</p>
+  </div>
+
+  <h2>Module by module</h2>
+
+  <div class="module">
+    <div class="head"><h3>Battery Shield V8 with 2×18650</h3><span class="ref">J5 · source of every rail</span></div>
+    <p class="note">Cells in parallel. Charge through the shield's own USB port. Expect a 0.5 s dropout when the charger is plugged in; the firmware keeps state in NVS so that is harmless.</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Shield pin</th><th></th><th>Rail</th><th>Feeds</th></tr></thead>
+        <tbody>
+          <tr><td class="pin">5V</td><td class="arrow">→</td><td><span class="net v5">+5V</span></td><td>Devkit 5V, GNSS VCC, BIGGA GSM VCC</td></tr>
+          <tr><td class="pin">3V</td><td class="arrow">→</td><td><span class="net v33">+3V3</span></td><td>OLED VCC, MicroSD VCC (3.3 V type), BMA400 VCC. Measure first.</td></tr>
+          <tr><td class="pin">GND</td><td class="arrow">—</td><td><span class="net gnd">GND</span></td><td>Star point for every module, devkit, capacitor −, divider, button</td></tr>
+          <tr><td class="pin">B+ (cell terminal)</td><td class="arrow">→</td><td><span class="net batt">+BATT</span></td><td>R1 top only (battery divider)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="module">
+    <div class="head"><h3>GNSS: Foxeer M10Q-250 (or Beitian BE-220)</h3><span class="ref">J1 · UART1</span></div>
+    <p class="note">Foxeer has six pads; the BE-220 only the first four. TX and RX cross: the module's TX goes to the ESP's RX pin. Baud: Foxeer 115200 (default profile), BE-220 9600 (<code>set gnss 1</code>, <code>save</code>).</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Module pin</th><th></th><th>Net</th><th>Connect to</th></tr></thead>
+        <tbody>
+          <tr><td class="pin">VCC / 5V</td><td class="arrow">←</td><td><span class="net v5">+5V</span></td><td>Shield 5V</td></tr>
+          <tr><td class="pin">GND</td><td class="arrow">—</td><td><span class="net gnd">GND</span></td><td>Shield GND</td></tr>
+          <tr><td class="pin">TX</td><td class="arrow">→</td><td><span class="net sig">GNSS_TXD</span></td><td class="esp">Devkit GPIO4</td></tr>
+          <tr><td class="pin">RX</td><td class="arrow">←</td><td><span class="net sig">GNSS_RXD</span></td><td class="esp">Devkit GPIO5</td></tr>
+          <tr><td class="pin">SCL (Foxeer compass)</td><td class="arrow">←</td><td><span class="net sig">SCL</span></td><td class="esp">Devkit GPIO9 (optional)</td></tr>
+          <tr><td class="pin">SDA (Foxeer compass)</td><td class="arrow">↔</td><td><span class="net sig">SDA</span></td><td class="esp">Devkit GPIO8 (optional)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="module">
+    <div class="head"><h3>SSD1306 0.96" OLED</h3><span class="ref">J3 · I2C 0x3C</span></div>
+    <p class="note">The module carries its own pull-ups. Bus runs at 100 kHz, so breadboard wires are fine.</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Module pin</th><th></th><th>Net</th><th>Connect to</th></tr></thead>
+        <tbody>
+          <tr><td class="pin">GND</td><td class="arrow">—</td><td><span class="net gnd">GND</span></td><td>Shield GND</td></tr>
+          <tr><td class="pin">VCC</td><td class="arrow">←</td><td><span class="net v33">+3V3</span></td><td>Shield 3V (or devkit 3V3 if the rail measures 3.0 V)</td></tr>
+          <tr><td class="pin">SCL</td><td class="arrow">←</td><td><span class="net sig">SCL</span></td><td class="esp">Devkit GPIO9</td></tr>
+          <tr><td class="pin">SDA</td><td class="arrow">↔</td><td><span class="net sig">SDA</span></td><td class="esp">Devkit GPIO8</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="module">
+    <div class="head"><h3>MicroSD SPI module</h3><span class="ref">J4 · SPI2</span></div>
+    <p class="note">Pins run straight along the devkit header: CS 10, SCK 11, MOSI 12, MISO 13. Two kinds of module exist. The small bare board (no regulator, 6 pins) takes 3.3 V. The larger board with a level shifter (LVC125A) takes 5 V on VCC. Either way the four signals go directly to the devkit. Card: 8–32 GB, FAT32.</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Module pin</th><th></th><th>Net</th><th>Connect to</th></tr></thead>
+        <tbody>
+          <tr><td class="pin">GND</td><td class="arrow">—</td><td><span class="net gnd">GND</span></td><td>Shield GND</td></tr>
+          <tr><td class="pin">VCC</td><td class="arrow">←</td><td><span class="net v33">+3V3</span> or <span class="net v5">+5V</span></td><td>3.3 V bare type / 5 V level-shifter type</td></tr>
+          <tr><td class="pin">MISO (DO)</td><td class="arrow">→</td><td><span class="net sig">SD_MISO</span></td><td class="esp">Devkit GPIO13</td></tr>
+          <tr><td class="pin">MOSI (DI)</td><td class="arrow">←</td><td><span class="net sig">SD_MOSI</span></td><td class="esp">Devkit GPIO12</td></tr>
+          <tr><td class="pin">SCK (CLK)</td><td class="arrow">←</td><td><span class="net sig">SD_SCK</span></td><td class="esp">Devkit GPIO11</td></tr>
+          <tr><td class="pin">CS</td><td class="arrow">←</td><td><span class="net sig">SD_CS</span></td><td class="esp">Devkit GPIO10</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="module">
+    <div class="head"><h3>BIGGA GSM (SIM800C) board</h3><span class="ref">J2 · UART2 · R3 6.8 kΩ on TX · LED1 + 1 kΩ on NET</span></div>
+    <p class="note">Pin order from the board's own schematic (arduino.ua). <strong>TX idles at 5 V</strong>: the board's level shifter is referenced to VCC, so a 6.8 kΩ resistor from TX to GND is required before GPIO18 (gives about 3.0 V). RX needs nothing extra. <code>BOOT</code> is the modem's PWRKEY; the board does not start by itself, the firmware holds BOOT low for a second when the modem is silent. Feed VCC with 5 V only: 9 V damages the ESP through the shifter, 3.3 V is below the regulator's dropout. Nano-SIM, PIN disabled, 2G coverage confirmed, full-size SMA antenna.</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Board pin</th><th></th><th>Net</th><th>Connect to</th></tr></thead>
+        <tbody>
+          <tr><td class="pin">1 GND</td><td class="arrow">—</td><td><span class="net gnd">GND</span></td><td>Shield GND, short thick wire</td></tr>
+          <tr><td class="pin">2 TX</td><td class="arrow">→</td><td><span class="net sig">GSM_TXD</span></td><td class="esp">R3 6.8 kΩ from this pin to GND, then the pin to devkit GPIO18</td></tr>
+          <tr><td class="pin">3 RX</td><td class="arrow">←</td><td><span class="net sig">GSM_RXD</span></td><td class="esp">Devkit GPIO17 directly</td></tr>
+          <tr><td class="pin">4 BOOT</td><td class="arrow">←</td><td><span class="net sig">GSM_PWRKEY</span></td><td class="esp">Devkit GPIO7 (open drain, pulses low to power the modem)</td></tr>
+          <tr><td class="pin">5 VCC</td><td class="arrow">←</td><td><span class="net v5">+5V</span></td><td>Shield 5V, short thick wire. No external capacitor: 100+10+1 µF are on the board</td></tr>
+          <tr><td class="pin">6 NET</td><td class="arrow">→</td><td>LED1</td><td>NET → 1 kΩ → red LED anode; LED cathode → GND. Blink: 0.8 s = searching, 3 s = registered, 0.3 s = GPRS data. 2.8 V signal, dim but visible; no GPIO</td></tr>
+          <tr><td class="pin">7 DTR, 8 RING, 9–12 MIC/SPK</td><td class="arrow">—</td><td>n/c</td><td>Leave open</td></tr>
+          <tr><td class="pin">Antenna</td><td class="arrow">—</td><td>SMA</td><td>GSM SMA antenna, cable routed away from the GNSS patch</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="module">
+      <div class="head"><h3>Button</h3><span class="ref">SW1</span></div>
+      <p class="note">Any momentary switch. Internal pull-up on GPIO2; the firmware debounces. Short press = next display page, hold ≥ 1 s = print diagnostics.</p>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Switch pin</th><th></th><th>Connect to</th></tr></thead>
+          <tbody>
+            <tr><td class="pin">1</td><td class="arrow">→</td><td class="esp">Devkit GPIO2 <span class="net sig">BTN</span></td></tr>
+            <tr><td class="pin">2</td><td class="arrow">—</td><td><span class="net gnd">GND</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="module">
+      <div class="head"><h3>Battery sense divider</h3><span class="ref">R1, R2 · 100 kΩ each</span></div>
+      <p class="note">Halves the cell voltage so 4.2 V becomes 2.1 V at the ADC. 100 k keeps the drain at about 20 µA.</p>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Part</th><th></th><th>Connect to</th></tr></thead>
+          <tbody>
+            <tr><td class="pin">R1 end A</td><td class="arrow">←</td><td><span class="net batt">+BATT</span> shield B+</td></tr>
+            <tr><td class="pin">R1 end B + R2 end A</td><td class="arrow">→</td><td class="esp">Devkit GPIO1 <span class="net batt">BATT_SENSE</span></td></tr>
+            <tr><td class="pin">R2 end B</td><td class="arrow">—</td><td><span class="net gnd">GND</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="module">
+    <div class="head"><h3>BMA400 (CJMCU-400), when it arrives</h3><span class="ref">J6 · I2C 0x14 · INT1 → GPIO6</span></div>
+    <p class="note">Shares the I2C bus with the OLED. INT1 lands on an RTC-capable pin so it can later wake the chip from deep sleep. INT2 stays unconnected. Address is 0x15 if the board's SDO/ADR pad is tied high.</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Module pin</th><th></th><th>Net</th><th>Connect to</th></tr></thead>
+        <tbody>
+          <tr><td class="pin">VCC</td><td class="arrow">←</td><td><span class="net v33">+3V3</span></td><td>Shield 3V (3.3 V only; never 5 V)</td></tr>
+          <tr><td class="pin">GND</td><td class="arrow">—</td><td><span class="net gnd">GND</span></td><td>Shield GND</td></tr>
+          <tr><td class="pin">SDA</td><td class="arrow">↔</td><td><span class="net sig">SDA</span></td><td class="esp">Devkit GPIO8</td></tr>
+          <tr><td class="pin">SCL</td><td class="arrow">←</td><td><span class="net sig">SCL</span></td><td class="esp">Devkit GPIO9</td></tr>
+          <tr><td class="pin">INT1</td><td class="arrow">→</td><td><span class="net sig">ACC_INT1</span></td><td class="esp">Devkit GPIO6</td></tr>
+          <tr><td class="pin">INT2</td><td class="arrow">—</td><td>n/c</td><td>Leave open</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h2>Assembly order with checks</h2>
+  <p>Add one module at a time and watch the console after each. The expected log line comes from the firmware; if it does not appear, stop and fix that module before adding the next. Ticks are remembered in this browser only.</p>
+  <ol class="steps" id="steps">
+    <li><input type="checkbox" id="s1"><div><label for="s1">Shield: insert cells (polarity!), switch on, measure 5V and 3V rails with the multimeter. Write the 3V figure here: ______ V.</label><span class="expect">5V rail: 4.9–5.2 V · 3V rail: 3.0 or 3.3 V (decides OLED/SD supply)</span></div></li>
+    <li><input type="checkbox" id="s2"><div><label for="s2">Devkit alone: 5V and GND from the shield, USB "UART" to the laptop, flash with <code>pio run -t upload -t monitor</code>.</label><span class="expect">I (..) tracker: Boot: reset reason power-on (1)
+I (..) console: Commands on UART0; type 'help'
+LED white, then amber once the GNSS is added</span></div></li>
+    <li><input type="checkbox" id="s3"><div><label for="s3">Button on GPIO2 and the battery divider on GPIO1.</label><span class="expect">type <kbd>diag</kbd> → battery error counter stays 0; the system page shows the cell voltage</span></div></li>
+    <li><input type="checkbox" id="s4"><div><label for="s4">GNSS: 5V, GND, TX→GPIO4, RX→GPIO5. Put the antenna by a window or outside.</label><span class="expect">I (..) tracker: State BOOTING -> ACQUIRING
+I (..) tracker: State ACQUIRING -> TRACKING   (sky view, 30–90 s cold)
+Wrong baud: 'rej' grows in diag → set gnss 1 / save</span></div></li>
+    <li><input type="checkbox" id="s5"><div><label for="s5">OLED: GND, VCC, SCL→GPIO9, SDA→GPIO8.</label><span class="expect">I (..) ssd1306: Display ready at address 0x3C
+Tracking page with state, satellites, position</span></div></li>
+    <li><input type="checkbox" id="s6"><div><label for="s6">MicroSD: GND, VCC, CS→GPIO10, SCK→GPIO11, MOSI→GPIO12, MISO→GPIO13 (a straight run). Card formatted FAT32.</label><span class="expect">I (..) sdcard: Mounted /sdcard: NNNN MiB
+'SD ok' on the screen; TRACKS/YYYYMMDD.CSV appears after the first record</span></div></li>
+    <li><input type="checkbox" id="s7"><div><label for="s7">BIGGA GSM: 6.8 kΩ from TX to GND, LED + 1 kΩ on NET, then VCC/GND with short thick wires, TX→GPIO18, RX→GPIO17, BOOT→GPIO7, antenna. Measure TX idle at GPIO18 with the modem on: expect about 3.0 V, not 5 V. NET LED: fast blink while searching, one blink every 3 s once registered. Console: <kbd>set apn &lt;your apn&gt;</kbd>, <kbd>set url ...</kbd>, <kbd>set id ...</kbd>, <kbd>set uplink 1</kbd>, <kbd>save</kbd>.</label><span class="expect">I (..) sim800: Modem silent at every baud rate, pulsing PWRKEY (1/3)   (normal: the board needs the pulse)
+I (..) sim800: Modem answered at 9600 baud   (or 115200)
+I (..) uplink: GPRS up on APN internet
+'sent:' grows on the system page; the point appears in Traccar</span></div></li>
+    <li><input type="checkbox" id="s8"><div><label for="s8">Soak: leave it running 10 minutes, then <kbd>diag</kbd>. Note the counters and stack headroom for the README.</label><span class="expect">nmea rx N rej 0 silences 0 | log ok N drop 0 err 0 | up ok N ... | stack free: gps … display … logger … uplink … ui …</span></div></li>
+  </ol>
+  <div class="progress" id="progress"></div>
+
+  <footer>
+    Sources in the repository: <code>docs/HARDWARE.md</code> (power tree, GPIO map), <code>docs/kicad/gps_tracker.kicad_sch</code> (schematic, ERC clean), <code>include/config.hpp</code> (the pin constants the firmware uses). Module pin orders on the breakout boards vary by vendor; the tables name pins by function, so follow the silkscreen.
+  </footer>
+</div>
+
+<script>
+  (function () {
+    var key = "gps-tracker-wiring-steps";
+    var boxes = Array.prototype.slice.call(document.querySelectorAll('#steps input[type="checkbox"]'));
+    var progress = document.getElementById("progress");
+    function load() {
+      try {
+        var saved = JSON.parse(localStorage.getItem(key) || "{}");
+        boxes.forEach(function (b) { b.checked = !!saved[b.id]; });
+      } catch (e) { /* storage unavailable: start unchecked */ }
+    }
+    function save() {
+      try {
+        var state = {};
+        boxes.forEach(function (b) { state[b.id] = b.checked; });
+        localStorage.setItem(key, JSON.stringify(state));
+      } catch (e) { /* ignore */ }
+    }
+    function render() {
+      var done = 0;
+      boxes.forEach(function (b) {
+        b.closest("li").classList.toggle("done", b.checked);
+        if (b.checked) done++;
+      });
+      progress.textContent = done + " of " + boxes.length + " steps done";
+    }
+    boxes.forEach(function (b) { b.addEventListener("change", function () { save(); render(); }); });
+    load();
+    render();
+  })();
+</script>
+
+</body></html>
