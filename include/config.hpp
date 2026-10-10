@@ -101,10 +101,13 @@ namespace Config
     constexpr uint8_t displayAddress = 0x3C;
     constexpr uint8_t compassAddress = 0x0D; // QMC5883L on the Foxeer
 
-    // ---- MicroSD (SPI2 / FSPI IOMUX pins, DMA) --------------------------
+    // ---- MicroSD (SPI2, DMA) --------------------------------------------
+    // SCK and MOSI are swapped from SPI2's IOMUX pins (12/11) to make the
+    // breadboard wiring straight (10-11-12-13 = CS-SCK-MOSI-MISO); they go
+    // through the GPIO matrix, which is fine at the 10 MHz used here.
     constexpr spi_host_device_t sdSpiHost = SPI2_HOST;
-    constexpr gpio_num_t sdSclkPin = GPIO_NUM_12;
-    constexpr gpio_num_t sdMosiPin = GPIO_NUM_11;
+    constexpr gpio_num_t sdSclkPin = GPIO_NUM_11;
+    constexpr gpio_num_t sdMosiPin = GPIO_NUM_12;
     constexpr gpio_num_t sdMisoPin = GPIO_NUM_13;
     constexpr gpio_num_t sdCsPin = GPIO_NUM_10;
     // SD cards initialise at <= 400 kHz; the sdspi host handles that itself.

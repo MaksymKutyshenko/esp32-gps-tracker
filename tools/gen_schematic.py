@@ -230,7 +230,7 @@ u1.emit()
 gpio = {
     "IO1": "BATT_SENSE", "IO2": "BTN", "IO4": "GNSS_TXD", "IO5": "GNSS_RXD",
     "IO6": "ACC_INT1", "IO7": "GSM_PWRKEY", "IO8": "SDA", "IO9": "SCL",
-    "IO10": "SD_CS", "IO11": "SD_MOSI", "IO12": "SD_SCK", "IO13": "SD_MISO",
+    "IO10": "SD_CS", "IO11": "SD_SCK", "IO12": "SD_MOSI", "IO13": "SD_MISO",
     "IO17": "GSM_RXD", "IO18": "GSM_TXD",
 }
 by_name = {v[3]: k for k, v in u1.pins.items()}
@@ -311,7 +311,7 @@ connect(j4, "4", "SD_MOSI")
 connect(j4, "5", "SD_SCK")
 connect(j4, "6", "SD_CS")
 text("1 GND  2 VCC 3V3 (or 5V if the module has a level shifter)\n"
-     "3 MISO -> IO13  4 MOSI <- IO11  5 SCK <- IO12  6 CS <- IO10", 300, 107, 1.27)
+     "3 MISO -> IO13  4 MOSI <- IO12  5 SCK <- IO11  6 CS <- IO10", 300, 107, 1.27)
 
 # --- BMA400 (not fitted yet) ----------------------------------------------
 j6 = Part(lib, C6, "J6", "BMA400 CJMCU-400 (not fitted yet)", 320, 135, ref_offset=(-4, -10), value_offset=(-4, -8))

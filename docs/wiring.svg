@@ -83,10 +83,10 @@
 <text x="697" y="304" class="t-pin" text-anchor="end">GPIO13 MISO</text>
 <circle cx="725" cy="300" r="2.5" fill="var(--fg)"/>
 <line x1="703" y1="330" x2="725" y2="330" stroke="var(--fg)" stroke-width="1.5"/>
-<text x="697" y="334" class="t-pin" text-anchor="end">GPIO11 MOSI</text>
+<text x="697" y="334" class="t-pin" text-anchor="end">GPIO12 MOSI</text>
 <circle cx="725" cy="330" r="2.5" fill="var(--fg)"/>
 <line x1="703" y1="360" x2="725" y2="360" stroke="var(--fg)" stroke-width="1.5"/>
-<text x="697" y="364" class="t-pin" text-anchor="end">GPIO12 SCK</text>
+<text x="697" y="364" class="t-pin" text-anchor="end">GPIO11 SCK</text>
 <circle cx="725" cy="360" r="2.5" fill="var(--fg)"/>
 <line x1="703" y1="390" x2="725" y2="390" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="697" y="394" class="t-pin" text-anchor="end">GPIO10 CS</text>

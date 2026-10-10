@@ -99,8 +99,8 @@ DX, DY, DW, DH = 475, 150, 250, 510
 box(DX, DY, DW, DH, "ESP32-S3 DevKitC-1", "pins in logical order, not header order")
 left = [("GPIO4", 215), ("GPIO5", 245), ("GPIO18", 300), ("GPIO17", 330), ("GPIO7", 360),
         ("GPIO2", 430), ("GPIO1", 470)]
-right = [("GPIO8 SDA", 215), ("GPIO9 SCL", 245), ("GPIO13 MISO", 300), ("GPIO11 MOSI", 330),
-         ("GPIO12 SCK", 360), ("GPIO10 CS", 390), ("GPIO6 INT1", 470)]
+right = [("GPIO8 SDA", 215), ("GPIO9 SCL", 245), ("GPIO13 MISO", 300), ("GPIO12 MOSI", 330),
+         ("GPIO11 SCK", 360), ("GPIO10 CS", 390), ("GPIO6 INT1", 470)]
 LP, RP = {}, {}
 for name, y in left:
     pin(DX, y, name, "l"); LP[name] = (DX, y)
@@ -202,7 +202,7 @@ pin(RX_, 264, "SDA", "l"); x_sda = rwire(264, "GPIO8", COL["SDA"])
 box(RX_, 302, RW, 170, "MicroSD SPI module", "VCC: 3V3 bare type · 5V shifter type")
 pin(RX_ + RW, 352, "GND", "r"); to_rrail(RX_ + RW, 352, "GND")
 pin(RX_ + RW, 374, "VCC", "r"); to_rrail(RX_ + RW, 374, "3V3")
-for lab, dev, y in [("MISO", "GPIO13", 396), ("MOSI", "GPIO11", 418), ("SCK", "GPIO12", 440), ("CS", "GPIO10", 462)]:
+for lab, dev, y in [("MISO", "GPIO13", 396), ("MOSI", "GPIO12", 418), ("SCK", "GPIO11", 440), ("CS", "GPIO10", 462)]:
     pin(RX_, y, lab, "l"); rwire(y, dev, COL["SPI"])
 
 box(RX_, 500, RW, 160, "BMA400 (later)", "I2C 0x14 · not fitted yet", dashed=True)

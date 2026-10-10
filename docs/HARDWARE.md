@@ -93,9 +93,9 @@ and on the DevKitC). Only the GSM UART and the status LED differ.
 | BIGGA BOOT (= PWRKEY) | GPIO7 | GPIO7 | Open-drain, held low ≥ 1 s to toggle the modem's power. The board has no auto power-on, so the firmware pulses it when the modem is silent |
 | I2C SDA | GPIO8 | GPIO8 | OLED 0x3C, BMA400 0x14 (0x15 if SDO high), GNSS compass 0x0D (QMC5883L) |
 | I2C SCL | GPIO9 | GPIO9 | 100 kHz on breadboard; modules carry their own pull-ups |
-| SD CS | GPIO10 | GPIO10 | SPI2 (FSPI) IOMUX pins, same as module 4.4 |
-| SD MOSI | GPIO11 | GPIO11 | |
-| SD SCK | GPIO12 | GPIO12 | |
+| SD CS | GPIO10 | GPIO10 | SPI2 through the GPIO matrix (SCK/MOSI swapped from the IOMUX pins for a straight 10-11-12-13 run; fine at 10 MHz) |
+| SD SCK | GPIO11 | GPIO11 | |
+| SD MOSI | GPIO12 | GPIO12 | |
 | SD MISO | GPIO13 | GPIO13 | |
 | GSM UART2 TX | GPIO43 | GPIO17 | → BIGGA RX. On the SuperMini 43/44 are the unused UART0 pins; on the DevKitC they are wired to the CP2102, so the GSM moves to 17/18 |
 | GSM UART2 RX | GPIO44 | GPIO18 | ← BIGGA TX **through a 6.8 kΩ to GND**: the board's TX idles at VCC (5 V) via its 4.7 k pull-up; the divider brings it to ~3.0 V |
