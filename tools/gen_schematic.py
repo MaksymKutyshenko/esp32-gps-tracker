@@ -305,12 +305,12 @@ text("1 GND  2 VCC 3V3  3 SCL <- IO9  4 SDA <> IO8\nModule pull-ups on SDA/SCL; 
 j4 = Part(lib, C6, "J4", "MicroSD SPI module", 320, 85, ref_offset=(-4, -10), value_offset=(-4, -8))
 j4.emit()
 connect(j4, "1", "GND")
-connect(j4, "2", "+3V3")
+connect(j4, "2", "+5V")
 connect(j4, "3", "SD_MISO")
 connect(j4, "4", "SD_MOSI")
 connect(j4, "5", "SD_SCK")
 connect(j4, "6", "SD_CS")
-text("1 GND  2 VCC 3V3 (or 5V if the module has a level shifter)\n"
+text("1 GND  2 VCC 5V (adapter has its own 3.3 V regulator and level shifter)\n"
      "3 MISO -> IO13  4 MOSI <- IO12  5 SCK <- IO11  6 CS <- IO10", 300, 107, 1.27)
 
 # --- BMA400 (not fitted yet) ----------------------------------------------

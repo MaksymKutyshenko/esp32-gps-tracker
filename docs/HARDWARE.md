@@ -22,7 +22,7 @@ when a pin changes.
 | GSM SMA antenna | Antenna for the SIM800C | SMA / IPEX pigtail | — |
 | BMA400 (CJMCU-400) | Motion detection: wakes the tracker from deep sleep and drives the adaptive logging rate. Not delivered yet, so the firmware treats it as optional | I2C, INT1 → GPIO | 3.3 V |
 | SSD1306 0.96" OLED | Status display: fix state, satellites, speed, coordinates, battery, upload state | I2C 0x3C | 3.3 V |
-| MicroSD SPI module + card | Track log (CSV/GPX) and upload backlog while offline | SPI (with DMA) | 3.3 V (or 5 V if the module has a level shifter) |
+| MicroSD adapter (6-pin, 4.5–5.5 V) + card | Track log (CSV) and upload backlog while offline | SPI (with DMA) | 5 V on VCC; onboard regulator and level shifter give 3.3 V signals |
 | Battery Shield V8 + 2×18650 HG2 | Power: cells in parallel (≈6000 mAh), 5 V boost output (≈2.2 A continuous, 3 A peak), 3 V/3.3 V 1 A rail, charging at 0.6–0.8 A | — | — |
 | 6.8 kΩ resistor | From BIGGA TX to GND: level divider for the 5 V TX line (see §5) | — | — |
 | Red LED + 1 kΩ | On BIGGA NET (NETLIGHT): blink rate shows searching / registered / GPRS without any firmware | — | — |
@@ -33,10 +33,9 @@ when a pin changes.
 2×18650 HG2 ──► Battery Shield V8 ──► 5V rail ──┬─► ESP32-S3 SuperMini (5V pin → onboard LDO → 3V3)
    (parallel)   (boost + protection)             ├─► BIGGA GSM VCC (board has 100+10+1 µF on VCC, ~600–900 µF on VBAT)
                                                  ├─► Foxeer M10Q-250 (5V in)  /  BE-220 (3.0–5.5 V)
-                                                 └─► MicroSD module, only if it is the 5 V level-shifter type
+                                                 └─► MicroSD adapter VCC (5 V type: regulator + level shifter on board)
                                       3V rail ───┬─► SSD1306 OLED
                                       (1 A)      ├─► BMA400
-                                                 └─► MicroSD module, if it is the bare 3.3 V type
                                       GND ────────── common ground for everything, star point at the shield
 ```
 

@@ -248,8 +248,8 @@
 <circle cx="890" cy="264" r="2.5" fill="var(--fg)"/>
 <polyline points="890,264 837,264 837,215 725,215" fill="none" stroke="#3b8de0" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
 <rect x="890" y="302" width="200" height="170" rx="6" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
-<text x="900" y="324" class="t-title">MicroSD SPI module</text>
-<text x="900" y="340" class="t-sub">SPI2 · 10 MHz · FAT32 · VCC 3V3 (5V if shifter)</text>
+<text x="900" y="324" class="t-title">MicroSD adapter</text>
+<text x="900" y="340" class="t-sub">SPI2 · 10 MHz · FAT32 · VCC 5 V (regulator + shifter on board)</text>
 <line x1="1068" y1="352" x2="1090" y2="352" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="1062" y="356" class="t-pin" text-anchor="end">GND</text>
 <circle cx="1090" cy="352" r="2.5" fill="var(--fg)"/>
@@ -258,8 +258,8 @@
 <line x1="1068" y1="374" x2="1090" y2="374" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="1062" y="378" class="t-pin" text-anchor="end">VCC</text>
 <circle cx="1090" cy="374" r="2.5" fill="var(--fg)"/>
-<polyline points="1090,374 1146,374" fill="none" stroke="#f29a1f" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="1146" cy="374" r="3.2" fill="#f29a1f"/>
+<polyline points="1090,374 1174,374" fill="none" stroke="#e03a4e" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1174" cy="374" r="3.2" fill="#e03a4e"/>
 <line x1="890" y1="396" x2="912" y2="396" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="918" y="400" class="t-pin">MISO</text>
 <circle cx="890" cy="396" r="2.5" fill="var(--fg)"/>

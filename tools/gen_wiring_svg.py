@@ -208,9 +208,9 @@ pin(RX_ + RW, 220, "VCC", "r"); to_rrail(RX_ + RW, 220, "3V3")
 pin(RX_, 242, "SCL", "l"); x_scl = rwire(242, "GPIO9", COL["SCL"])
 pin(RX_, 264, "SDA", "l"); x_sda = rwire(264, "GPIO8", COL["SDA"])
 
-box(RX_, 302, RW, 170, "MicroSD SPI module", "SPI2 · 10 MHz · FAT32 · VCC 3V3 (5V if shifter)")
+box(RX_, 302, RW, 170, "MicroSD adapter", "SPI2 · 10 MHz · FAT32 · VCC 5 V (regulator + shifter on board)")
 pin(RX_ + RW, 352, "GND", "r"); to_rrail(RX_ + RW, 352, "GND")
-pin(RX_ + RW, 374, "VCC", "r"); to_rrail(RX_ + RW, 374, "3V3")
+pin(RX_ + RW, 374, "VCC", "r"); to_rrail(RX_ + RW, 374, "5V")
 for lab, dev, y in [("MISO", "GPIO13", 396), ("MOSI", "GPIO12", 418), ("SCK", "GPIO11", 440), ("CS", "GPIO10", 462)]:
     pin(RX_, y, lab, "l"); rwire(y, dev, COL["SPI"])
 

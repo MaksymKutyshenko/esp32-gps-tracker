@@ -140,7 +140,7 @@ flowchart LR
   SHIELD -- "+5V" --> GNSS["GNSS module VCC"]
   SHIELD -- "+5V, short thick wires" --> GSM["BIGGA GSM VCC"]
   SHIELD -- "+3V3 1 A" --> OLED["SSD1306 VCC"]
-  SHIELD -- "+3V3" --> SD["MicroSD VCC<br/>(5V if level-shifter type)"]
+  SHIELD -- "+5V" --> SD["MicroSD adapter VCC<br/>(onboard 3.3 V regulator + shifter)"]
   SHIELD -- "+3V3" --> ACC["BMA400 VCC (later)"]
   SHIELD -- "B+ (cell)" --> DIV["100k / 100k divider → GPIO1"]
   SHIELD -- "GND star" --> ALL["every module GND"]
@@ -399,8 +399,8 @@ flowchart LR
 <circle cx="890" cy="264" r="2.5" fill="var(--fg)"/>
 <polyline points="890,264 837,264 837,215 725,215" fill="none" stroke="#3b8de0" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
 <rect x="890" y="302" width="200" height="170" rx="6" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
-<text x="900" y="324" class="t-title">MicroSD SPI module</text>
-<text x="900" y="340" class="t-sub">SPI2 · 10 MHz · FAT32 · VCC 3V3 (5V if shifter)</text>
+<text x="900" y="324" class="t-title">MicroSD adapter</text>
+<text x="900" y="340" class="t-sub">SPI2 · 10 MHz · FAT32 · VCC 5 V (regulator + shifter on board)</text>
 <line x1="1068" y1="352" x2="1090" y2="352" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="1062" y="356" class="t-pin" text-anchor="end">GND</text>
 <circle cx="1090" cy="352" r="2.5" fill="var(--fg)"/>
@@ -409,8 +409,8 @@ flowchart LR
 <line x1="1068" y1="374" x2="1090" y2="374" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="1062" y="378" class="t-pin" text-anchor="end">VCC</text>
 <circle cx="1090" cy="374" r="2.5" fill="var(--fg)"/>
-<polyline points="1090,374 1146,374" fill="none" stroke="#f29a1f" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="1146" cy="374" r="3.2" fill="#f29a1f"/>
+<polyline points="1090,374 1174,374" fill="none" stroke="#e03a4e" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1174" cy="374" r="3.2" fill="#e03a4e"/>
 <line x1="890" y1="396" x2="912" y2="396" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="918" y="400" class="t-pin">MISO</text>
 <circle cx="890" cy="396" r="2.5" fill="var(--fg)"/>
@@ -519,8 +519,8 @@ flowchart LR
       <table>
         <thead><tr><th>Shield pin</th><th></th><th>Rail</th><th>Feeds</th></tr></thead>
         <tbody>
-          <tr><td class="pin">5V</td><td class="arrow">→</td><td><span class="net v5">+5V</span></td><td>Devkit 5V, GNSS VCC, BIGGA GSM VCC</td></tr>
-          <tr><td class="pin">3V</td><td class="arrow">→</td><td><span class="net v33">+3V3</span></td><td>OLED VCC, MicroSD VCC (3.3 V type), BMA400 VCC. Measure first.</td></tr>
+          <tr><td class="pin">5V</td><td class="arrow">→</td><td><span class="net v5">+5V</span></td><td>Devkit 5V, GNSS VCC, BIGGA GSM VSS, MicroSD VCC</td></tr>
+          <tr><td class="pin">3V</td><td class="arrow">→</td><td><span class="net v33">+3V3</span></td><td>OLED VCC, BMA400 VCC. Measure first.</td></tr>
           <tr><td class="pin">GND</td><td class="arrow">—</td><td><span class="net gnd">GND</span></td><td>Star point for every module, devkit, capacitor −, divider, button</td></tr>
           <tr><td class="pin">B+ (cell terminal)</td><td class="arrow">→</td><td><span class="net batt">+BATT</span></td><td>R1 top only (battery divider)</td></tr>
         </tbody>
@@ -564,13 +564,13 @@ flowchart LR
 
   <div class="module">
     <div class="head"><h3>MicroSD SPI module</h3><span class="ref">J4 · SPI2</span></div>
-    <p class="note">Pins run straight along the devkit header: CS 10, SCK 11, MOSI 12, MISO 13. Two kinds of module exist. The small bare board (no regulator, 6 pins) takes 3.3 V. The larger board with a level shifter (LVC125A) takes 5 V on VCC. Either way the four signals go directly to the devkit. Card: 8–32 GB, FAT32.</p>
+    <p class="note">Pins run straight along the devkit header: CS 10, SCK 11, MOSI 12, MISO 13. This adapter (6 pins, rated 4.5–5.5 V) is the 5 V kind: it has its own 3.3 V regulator and a level-shifter chip, so <strong>VCC goes to a shield 5V pin</strong> and the four signals go directly to the devkit at 3.3 V. On 3.3 V it stays silent and the firmware reports a mount timeout. Card: 8–32 GB, FAT32.</p>
     <div class="tbl">
       <table>
         <thead><tr><th>Module pin</th><th></th><th>Net</th><th>Connect to</th></tr></thead>
         <tbody>
           <tr><td class="pin">GND</td><td class="arrow">—</td><td><span class="net gnd">GND</span></td><td>Shield GND</td></tr>
-          <tr><td class="pin">VCC</td><td class="arrow">←</td><td><span class="net v33">+3V3</span> or <span class="net v5">+5V</span></td><td>3.3 V bare type / 5 V level-shifter type</td></tr>
+          <tr><td class="pin">VCC</td><td class="arrow">←</td><td><span class="net v5">+5V</span></td><td>Shield 5V (module regulates to 3.3 V internally)</td></tr>
           <tr><td class="pin">MISO (DO)</td><td class="arrow">→</td><td><span class="net sig">SD_MISO</span></td><td class="esp">Devkit GPIO13</td></tr>
           <tr><td class="pin">MOSI (DI)</td><td class="arrow">←</td><td><span class="net sig">SD_MOSI</span></td><td class="esp">Devkit GPIO12</td></tr>
           <tr><td class="pin">SCK (CLK)</td><td class="arrow">←</td><td><span class="net sig">SD_SCK</span></td><td class="esp">Devkit GPIO11</td></tr>
@@ -662,7 +662,7 @@ I (..) tracker: State ACQUIRING -> TRACKING   (sky view, 30–90 s cold)
 Wrong baud: 'rej' grows in diag → set gnss 1 / save</span></div></li>
     <li><input type="checkbox" id="s5"><div><label for="s5">OLED: GND, VCC, SCL→GPIO9, SDA→GPIO8.</label><span class="expect">I (..) ssd1306: Display ready at address 0x3C
 Tracking page with state, satellites, position</span></div></li>
-    <li><input type="checkbox" id="s6"><div><label for="s6">MicroSD: GND, VCC, CS→GPIO10, SCK→GPIO11, MOSI→GPIO12, MISO→GPIO13 (a straight run). Card formatted FAT32.</label><span class="expect">I (..) sdcard: Mounted /sdcard: NNNN MiB
+    <li><input type="checkbox" id="s6"><div><label for="s6">MicroSD: GND, VCC→shield 5V (not 3V), CS→GPIO10, SCK→GPIO11, MOSI→GPIO12, MISO→GPIO13 (a straight run). Card formatted FAT32.</label><span class="expect">I (..) sdcard: Mounted /sdcard: NNNN MiB
 'SD ok' on the screen; TRACKS/YYYYMMDD.CSV appears after the first record</span></div></li>
     <li><input type="checkbox" id="s7"><div><label for="s7">BIGGA GSM: 6.8 kΩ from TX to GND, LED + 1 kΩ on NET, then VCC/GND with short thick wires, TX→GPIO18, RX→GPIO17, PK→GPIO7, VSS→5V (it is the supply, not ground), antenna. Measure TX idle at GPIO18 with the modem on: expect about 3.0 V, not 5 V. NET LED: fast blink while searching, one blink every 3 s once registered. Console: <kbd>set apn &lt;your apn&gt;</kbd>, <kbd>set url ...</kbd>, <kbd>set id ...</kbd>, <kbd>set uplink 1</kbd>, <kbd>save</kbd>.</label><span class="expect">I (..) sim800: Modem silent at every baud rate, pulsing PWRKEY (1/3)   (normal: the board needs the pulse)
 I (..) sim800: Modem answered at 9600 baud   (or 115200)

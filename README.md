@@ -160,7 +160,7 @@ failure are logged once a minute (`diag` prints them on demand).
 | UART1 | GNSS receiver | NMEA 0183 in; 115200 (Foxeer) or 9600 (BE-220), `set gnss` |
 | UART2 | SIM800C | AT commands, 115200 fixed with `AT+IPR`; PWRKEY on a GPIO |
 | I2C0 | SSD1306 (0x3C), BMA400 (0x14) later | 100 kHz, one mutex |
-| SPI2 | MicroSD | sdspi host with DMA, FAT, 8.3 names |
+| SPI2 | MicroSD adapter (5 V type) | sdspi host with DMA, FAT, 8.3 names |
 | ADC1 | Battery divider | eFuse-calibrated, ×2 divider |
 | GPIO | Button, BMA400 INT1 | interrupts → queues; RTC-capable for wake |
 | RMT | WS2812 status LED | bytes encoder |

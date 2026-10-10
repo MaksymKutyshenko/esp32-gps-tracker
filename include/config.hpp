@@ -102,6 +102,8 @@ namespace Config
     constexpr uint8_t compassAddress = 0x0D; // QMC5883L on the Foxeer
 
     // ---- MicroSD (SPI2, DMA) --------------------------------------------
+    // The adapter is the 5 V type (onboard regulator + level shifter); its
+    // VCC goes to the 5 V rail, the signals are 3.3 V.
     // SCK and MOSI are swapped from SPI2's IOMUX pins (12/11) to make the
     // breadboard wiring straight (10-11-12-13 = CS-SCK-MOSI-MISO); they go
     // through the GPIO matrix, which is fine at the 10 MHz used here.
