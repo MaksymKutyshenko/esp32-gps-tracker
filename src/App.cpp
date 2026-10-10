@@ -889,12 +889,14 @@ void App::logDiagnostics()
 {
     const Diagnostics &d = diagnostics_;
     ESP_LOGI(logTag,
-             "nmea rx %" PRIu32 " rej %" PRIu32 " (cks %" PRIu32 " fld %" PRIu32 ") silences %" PRIu32 " | "
+             "nmea rx %" PRIu32 " rej %" PRIu32 " (cks %" PRIu32 " fld %" PRIu32 ") silences %" PRIu32
+             " sky %u sig %u cn0 %u | "
              "log ok %" PRIu32 " drop %" PRIu32 " err %" PRIu32 " | "
              "up ok %" PRIu32 " drop %" PRIu32 " fail %" PRIu32 " cycles %" PRIu32 " | "
              "disp err %" PRIu32 " bus to %" PRIu32 " batt err %" PRIu32 " btn drop %" PRIu32,
              d.sentencesReceived.load(), d.sentencesRejected.load(),
              parser_.checksumFailures(), parser_.fieldFailures(), d.gnssSilences.load(),
+             parser_.fix().satellitesInView, parser_.fix().satellitesTracked, parser_.fix().maxSnrDbHz,
              d.recordsLogged.load(), d.recordsDroppedLogQueue.load(), d.storageErrors.load(),
              d.recordsUploaded.load(), d.recordsDroppedUplinkQueue.load(),
              d.uplinkFailures.load(), d.modemPowerCycles.load(),
