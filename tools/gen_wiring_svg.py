@@ -62,6 +62,12 @@ def part(x, y, w, h, label, vertical=False):
         add(f'<rect x="{x-w/2}" y="{y-h/2}" width="{w}" height="{h}" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>')
         add(f'<text x="{x}" y="{y+4}" class="t-part" text-anchor="middle">{label}</text>')
 
+def tag(x, y, text):
+    """Small pill naming the bus a pin group belongs to."""
+    w = 7 * len(text) + 10
+    add(f'<rect x="{x - w/2}" y="{y - 8}" width="{w}" height="16" rx="8" fill="var(--bg)" stroke="var(--line)" stroke-width="1"/>')
+    add(f'<text x="{x}" y="{y + 4}" class="t-tag" text-anchor="middle">{text}</text>')
+
 def note(x, y, text, anchor="start"):
     add(f'<text x="{x}" y="{y}" class="t-note" text-anchor="{anchor}">{text}</text>')
 
@@ -109,6 +115,9 @@ for name, y in right:
 for x, rail, lab in [(660, "5V", "5V pin"), (700, "GND", "GND")]:
     wire([(x, DY), (x, TOP[rail])], COL[rail]); dot(x, TOP[rail], COL[rail])
     add(f'<text x="{x}" y="{DY-6}" class="t-pin" text-anchor="middle">{lab}</text>')
+for x, y, label in [(572, 230, "UART1"), (572, 330, "UART2"), (572, 430, "IRQ"), (572, 470, "ADC1"),
+                    (640, 230, "I2C0"), (640, 345, "SPI2"), (640, 446, "IRQ")]:
+    tag(x, y, label)
 add(f'<text x="{DX+10}" y="{DY+DH-30}" class="t-sub">3V3 pin: leave free (devkit LDO output)</text>')
 add(f'<text x="{DX+10}" y="{DY+DH-14}" class="t-sub">USB "UART" port → laptop console</text>')
 
@@ -126,7 +135,7 @@ def lwire(py, dev, color):
     return xc
 
 # GNSS
-box(MX, 222, MW, 150, "GNSS Foxeer M10Q-250", "or Beitian BE-220 (4 pins)")
+box(MX, 222, MW, 150, "GNSS Foxeer M10Q-250", "UART1 · NMEA out · 115200 (BE-220: 9600)")
 pin(MX, 270, "VCC", "l"); to_lrail(MX, 270, "5V")
 pin(MX, 292, "GND", "l"); to_lrail(MX, 292, "GND")
 pin(MX + MW, 270, "TX", "r"); lwire(270, "GPIO4", COL["TX"])
@@ -136,7 +145,7 @@ note(MX + 10, 362, "SCL/SDA: compass (Foxeer only), optional")
 
 # BIGGA GSM
 BY = 392
-box(MX, BY, MW, 206, "BIGGA GSM (SIM800C)", "silkscreen: NET VSS PK RX TX GND · VSS = supply")
+box(MX, BY, MW, 206, "BIGGA GSM (SIM800C)", "UART2 · AT commands · 115200 · VSS = 5 V supply")
 g = {"GND": BY + 54, "VCC": BY + 76, "TX": BY + 118, "RX": BY + 140, "BOOT": BY + 162, "NET": BY + 188}
 pin(MX, g["GND"], "GND", "l"); to_lrail(MX, g["GND"], "GND")
 pin(MX, g["VCC"], "VSS=5V in", "l"); to_lrail(MX, g["VCC"], "5V")
@@ -164,7 +173,7 @@ note(ax + 44, g["NET"] + 4, "LED1 blinks: 0.8 s searching · 3 s registered")
 
 # Button and battery divider
 UY = 610
-box(MX, UY, MW, 110, "Button · battery sense", None)
+box(MX, UY, MW, 110, "Button · battery sense", "GPIO interrupt · ADC1 channel 0")
 sy = UY + 50
 add(f'<text x="{MX+10}" y="{sy-10}" class="t-pin">SW1</text>')
 add(f'<line x1="{MX+10}" y1="{sy}" x2="{MX+30}" y2="{sy}" stroke="var(--fg)" stroke-width="1.5"/>')
@@ -193,19 +202,19 @@ def rwire(py, dev, color, xc=None, dashed=False):
     wire([(RX_, py), (xc, py), (xc, dy), (dx, dy)], color, dashed=dashed)
     return xc
 
-box(RX_, 150, RW, 130, "SSD1306 OLED", "I2C 0x3C")
+box(RX_, 150, RW, 130, "SSD1306 OLED", "I2C0 · 100 kHz · address 0x3C")
 pin(RX_ + RW, 198, "GND", "r"); to_rrail(RX_ + RW, 198, "GND")
 pin(RX_ + RW, 220, "VCC", "r"); to_rrail(RX_ + RW, 220, "3V3")
 pin(RX_, 242, "SCL", "l"); x_scl = rwire(242, "GPIO9", COL["SCL"])
 pin(RX_, 264, "SDA", "l"); x_sda = rwire(264, "GPIO8", COL["SDA"])
 
-box(RX_, 302, RW, 170, "MicroSD SPI module", "VCC: 3V3 bare type · 5V shifter type")
+box(RX_, 302, RW, 170, "MicroSD SPI module", "SPI2 · 10 MHz · FAT32 · VCC 3V3 (5V if shifter)")
 pin(RX_ + RW, 352, "GND", "r"); to_rrail(RX_ + RW, 352, "GND")
 pin(RX_ + RW, 374, "VCC", "r"); to_rrail(RX_ + RW, 374, "3V3")
 for lab, dev, y in [("MISO", "GPIO13", 396), ("MOSI", "GPIO12", 418), ("SCK", "GPIO11", 440), ("CS", "GPIO10", 462)]:
     pin(RX_, y, lab, "l"); rwire(y, dev, COL["SPI"])
 
-box(RX_, 500, RW, 160, "BMA400 (later)", "I2C 0x14 · not fitted yet", dashed=True)
+box(RX_, 500, RW, 160, "BMA400 (later)", "I2C0 · address 0x14 · INT1 interrupt · not fitted", dashed=True)
 pin(RX_ + RW, 550, "VCC", "r"); to_rrail(RX_ + RW, 550, "3V3", dashed=True)
 pin(RX_ + RW, 572, "GND", "r"); to_rrail(RX_ + RW, 572, "GND", dashed=True)
 pin(RX_, 594, "SDA", "l"); wire([(RX_, 594), (x_sda, 594), (x_sda, RP["GPIO8"][1])], COL["SDA"], dashed=True); dot(x_sda, RP["GPIO8"][1], COL["SDA"])
@@ -230,6 +239,7 @@ svg = f'''<svg viewBox="0 0 {W} {H}" xmlns="http://www.w3.org/2000/svg" role="im
   .t-part {{ font: 10px var(--font-mono); fill: var(--fg); }}
   .t-note {{ font: 11px var(--font-body); fill: var(--muted); }}
   .t-bus {{ font: 600 11px var(--font-mono); }}
+  .t-tag {{ font: 600 10px var(--font-mono); fill: var(--muted); letter-spacing: 0.04em; }}
 </style>
 {chr(10).join(out)}
 </svg>'''

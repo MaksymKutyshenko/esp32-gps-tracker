@@ -6,6 +6,7 @@
   .t-part { font: 10px var(--font-mono); fill: var(--fg); }
   .t-note { font: 11px var(--font-body); fill: var(--muted); }
   .t-bus { font: 600 11px var(--font-mono); }
+  .t-tag { font: 600 10px var(--font-mono); fill: var(--muted); letter-spacing: 0.04em; }
 </style>
 <polyline points="26,36 1174,36" fill="none" stroke="#e03a4e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
 <polyline points="40,54 1146,54" fill="none" stroke="#f29a1f" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
@@ -100,11 +101,25 @@
 <polyline points="700,150 700,72" fill="none" stroke="var(--rail-gnd)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="700" cy="72" r="3.2" fill="var(--rail-gnd)"/>
 <text x="700" y="144" class="t-pin" text-anchor="middle">GND</text>
+<rect x="549.5" y="222" width="45" height="16" rx="8" fill="var(--bg)" stroke="var(--line)" stroke-width="1"/>
+<text x="572" y="234" class="t-tag" text-anchor="middle">UART1</text>
+<rect x="549.5" y="322" width="45" height="16" rx="8" fill="var(--bg)" stroke="var(--line)" stroke-width="1"/>
+<text x="572" y="334" class="t-tag" text-anchor="middle">UART2</text>
+<rect x="556.5" y="422" width="31" height="16" rx="8" fill="var(--bg)" stroke="var(--line)" stroke-width="1"/>
+<text x="572" y="434" class="t-tag" text-anchor="middle">IRQ</text>
+<rect x="553.0" y="462" width="38" height="16" rx="8" fill="var(--bg)" stroke="var(--line)" stroke-width="1"/>
+<text x="572" y="474" class="t-tag" text-anchor="middle">ADC1</text>
+<rect x="621.0" y="222" width="38" height="16" rx="8" fill="var(--bg)" stroke="var(--line)" stroke-width="1"/>
+<text x="640" y="234" class="t-tag" text-anchor="middle">I2C0</text>
+<rect x="621.0" y="337" width="38" height="16" rx="8" fill="var(--bg)" stroke="var(--line)" stroke-width="1"/>
+<text x="640" y="349" class="t-tag" text-anchor="middle">SPI2</text>
+<rect x="624.5" y="438" width="31" height="16" rx="8" fill="var(--bg)" stroke="var(--line)" stroke-width="1"/>
+<text x="640" y="450" class="t-tag" text-anchor="middle">IRQ</text>
 <text x="485" y="630" class="t-sub">3V3 pin: leave free (devkit LDO output)</text>
 <text x="485" y="646" class="t-sub">USB "UART" port → laptop console</text>
 <rect x="110" y="222" width="200" height="150" rx="6" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="120" y="244" class="t-title">GNSS Foxeer M10Q-250</text>
-<text x="120" y="260" class="t-sub">or Beitian BE-220 (4 pins)</text>
+<text x="120" y="260" class="t-sub">UART1 · NMEA out · 115200 (BE-220: 9600)</text>
 <line x1="110" y1="270" x2="132" y2="270" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="138" y="274" class="t-pin">VCC</text>
 <circle cx="110" cy="270" r="2.5" fill="var(--fg)"/>
@@ -132,7 +147,7 @@
 <text x="120" y="362" class="t-note" text-anchor="start">SCL/SDA: compass (Foxeer only), optional</text>
 <rect x="110" y="392" width="200" height="206" rx="6" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="120" y="414" class="t-title">BIGGA GSM (SIM800C)</text>
-<text x="120" y="430" class="t-sub">silkscreen: NET VSS PK RX TX GND · VSS = supply</text>
+<text x="120" y="430" class="t-sub">UART2 · AT commands · 115200 · VSS = 5 V supply</text>
 <line x1="110" y1="446" x2="132" y2="446" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="138" y="450" class="t-pin">GND</text>
 <circle cx="110" cy="446" r="2.5" fill="var(--fg)"/>
@@ -184,6 +199,7 @@
 <text x="424" y="584" class="t-note" text-anchor="start">LED1 blinks: 0.8 s searching · 3 s registered</text>
 <rect x="110" y="610" width="200" height="110" rx="6" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="120" y="632" class="t-title">Button · battery sense</text>
+<text x="120" y="648" class="t-sub">GPIO interrupt · ADC1 channel 0</text>
 <text x="120" y="650" class="t-pin">SW1</text>
 <line x1="120" y1="660" x2="140" y2="660" stroke="var(--fg)" stroke-width="1.5"/>
 <line x1="140" y1="660" x2="162" y2="650" stroke="var(--fg)" stroke-width="1.5"/>
@@ -212,7 +228,7 @@
 <text x="120" y="718" class="t-note" text-anchor="start">mid = ½ cell voltage → GPIO1</text>
 <rect x="890" y="150" width="200" height="130" rx="6" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="900" y="172" class="t-title">SSD1306 OLED</text>
-<text x="900" y="188" class="t-sub">I2C 0x3C</text>
+<text x="900" y="188" class="t-sub">I2C0 · 100 kHz · address 0x3C</text>
 <line x1="1068" y1="198" x2="1090" y2="198" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="1062" y="202" class="t-pin" text-anchor="end">GND</text>
 <circle cx="1090" cy="198" r="2.5" fill="var(--fg)"/>
@@ -233,7 +249,7 @@
 <polyline points="890,264 837,264 837,215 725,215" fill="none" stroke="#3b8de0" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
 <rect x="890" y="302" width="200" height="170" rx="6" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="900" y="324" class="t-title">MicroSD SPI module</text>
-<text x="900" y="340" class="t-sub">VCC: 3V3 bare type · 5V shifter type</text>
+<text x="900" y="340" class="t-sub">SPI2 · 10 MHz · FAT32 · VCC 3V3 (5V if shifter)</text>
 <line x1="1068" y1="352" x2="1090" y2="352" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="1062" y="356" class="t-pin" text-anchor="end">GND</text>
 <circle cx="1090" cy="352" r="2.5" fill="var(--fg)"/>
@@ -262,7 +278,7 @@
 <polyline points="890,462 781,462 781,390 725,390" fill="none" stroke="#7c8696" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
 <rect x="890" y="500" width="200" height="160" rx="6" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5" stroke-dasharray="6 4"/>
 <text x="900" y="522" class="t-title">BMA400 (later)</text>
-<text x="900" y="538" class="t-sub">I2C 0x14 · not fitted yet</text>
+<text x="900" y="538" class="t-sub">I2C0 · address 0x14 · INT1 interrupt · not fitted</text>
 <line x1="1068" y1="550" x2="1090" y2="550" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="1062" y="554" class="t-pin" text-anchor="end">VCC</text>
 <circle cx="1090" cy="550" r="2.5" fill="var(--fg)"/>
