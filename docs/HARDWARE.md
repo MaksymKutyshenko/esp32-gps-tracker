@@ -148,9 +148,12 @@ it to GPIO16 if wanted.
   sends it.
 - Keep the GSM antenna cable away from the GNSS patch antenna; GSM bursts
   desensitise the receiver. Mount the GNSS antenna face-up with sky view.
-  Indoors the receiver reports a handful of satellites heard and none used
+  Indoors the receiver reports satellites with a signal but none used
   (`0/2 sat`, `SEARCH` on the screen); that is the antenna, not the
-  firmware. The two worst neighbours on the bench are the SSD1306 (its
+  firmware. The system page's `sky N sig M cn0 X` line separates the two
+  failures: `sig 0 cn0 0` with a non-zero `sky` is an antenna that
+  delivers nothing (cable, connector, placement), `sig` > 0 with `cn0`
+  below ~30 is a signal too weak to decode (move to the window or out). The two worst neighbours on the bench are the SSD1306 (its
   charge pump radiates right into the L1 band) and the devkit with its
   USB cable: keep the patch at least 10–15 cm from both, on the window
   side. A cold start wants 30–60 s of clear sky; near a window it can take

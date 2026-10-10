@@ -187,7 +187,10 @@ http://host:5055/?id=<device>&lat=..&lon=..&timestamp=<unix>&speed=<kn>&bearing=
    on the LED, console `help` answers.
 2. GNSS on GPIO4/5: state goes `SEARCH` within seconds, `TRACK` with a sky
    view; `show` the fix on the log. Wrong baud shows as `rej` growing in
-   `diag`.
+   `diag`. The top-right `u/s sat` is satellites used / satellites with a
+   measured signal; the system page adds `sky` (almanac count above the
+   horizon) and `cn0` (strongest signal, dB-Hz). `sky 11 sig 0 cn0 0` is
+   an antenna with no signal; `sig 6 cn0 38` is a fix in the making.
 3. OLED on GPIO8/9: tracking page appears. A NACK at boot aborts with the
    address in the log.
 4. MicroSD on GPIO10–13: `Mounted /sdcard` at boot, `SD ok` on the screen,

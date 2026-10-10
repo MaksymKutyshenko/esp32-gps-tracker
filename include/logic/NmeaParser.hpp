@@ -118,7 +118,9 @@ public:
     }
 
 private:
-    static constexpr size_t maxFields = 20;
+    // GSV in NMEA 4.11 is the widest sentence: 4 header fields, four
+    // satellites of 4 fields each and a trailing signal id = 21.
+    static constexpr size_t maxFields = 24;
 
     static int32_t hexValue(char c)
     {
@@ -295,13 +297,21 @@ private:
         // GSV counts arrive per constellation between two RMCs; the epoch
         // takes the largest one, which is "satellites heard" for the user.
         next.satellitesInView = inViewPending_;
+        next.satellitesTracked = trackedPending_;
+        next.maxSnrDbHz = maxSnrPending_;
         inViewPending_ = 0;
+        trackedPending_ = 0;
+        maxSnrPending_ = 0;
 
         fix_ = next;
         return true;
     }
 
-    // $--GSV,total_msgs,msg_num,sats_in_view,... — only field 3 is used.
+    // $--GSV,total_msgs,msg_num,sats_in_view,{prn,elev,azim,cno}*4[,sigId]
+    // Field 3 is the talker's count of satellites above the horizon; each
+    // group's C/N0 is empty when that satellite is not actually received.
+    // "In view" tells whether the almanac is loaded; "tracked" and the
+    // strongest C/N0 tell whether the antenna delivers a signal at all.
     bool parseGsv(const char **field, size_t count)
     {
         if (count < 4)
@@ -320,6 +330,26 @@ private:
         if (value > inViewPending_)
         {
             inViewPending_ = static_cast<uint8_t>(value);
+        }
+        for (size_t i = 4; i + 3 < count; i += 4)
+        {
+            const char *cno = field[i + 3];
+            if (cno[0] == '\0')
+            {
+                continue;
+            }
+            if (!DecimalParser::parseScaled(cno, 0, value) || value < 0 || value > 99)
+            {
+                return false;
+            }
+            if (trackedPending_ < 255)
+            {
+                ++trackedPending_;
+            }
+            if (value > maxSnrPending_)
+            {
+                maxSnrPending_ = static_cast<uint8_t>(value);
+            }
         }
         return true;
     }
@@ -371,6 +401,8 @@ private:
 
     Fix fix_ = {};
     uint8_t inViewPending_ = 0;
+    uint8_t trackedPending_ = 0;
+    uint8_t maxSnrPending_ = 0;
     uint32_t checksumFailures_ = 0;
     uint32_t fieldFailures_ = 0;
 };

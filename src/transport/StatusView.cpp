@@ -47,9 +47,10 @@ void StatusView::drawTrackingPage(const StatusSnapshot &snapshot)
 
     // Line 1: state bold, satellites right.
     display_.drawText(0, 0, stateLabel(snapshot.state), 2);
-    // used / heard: "0/9" means satellites are audible but no fix yet,
-    // "0/0" means the antenna sees nothing.
-    snprintf(text, sizeof text, "%u/%u sat", snapshot.fix.satellites, snapshot.fix.satellitesInView);
+    // used / with signal: "0/6" means satellites are being received but
+    // not yet decoded, "0/0" means the antenna delivers nothing. The
+    // almanac's own count is on the system page.
+    snprintf(text, sizeof text, "%u/%u sat", snapshot.fix.satellites, snapshot.fix.satellitesTracked);
     display_.drawText(Ssd1306::width - Ssd1306::textWidth(text, 1), 4, text, 1);
 
     // Line 2: time (UTC) and speed.
@@ -115,7 +116,13 @@ void StatusView::drawSystemPage(const StatusSnapshot &snapshot)
              static_cast<unsigned long>(snapshot.uplinkFailures));
     display_.drawText(0, 20 + 3 * lineHeight, text, 1);
 
-    snprintf(text, sizeof text, "HDOP %u.%02u  Q%u", snapshot.fix.hdopCenti / 100,
+    snprintf(text, sizeof text, "HDOP %u.%02u Q%u", snapshot.fix.hdopCenti / 100,
              snapshot.fix.hdopCenti % 100, snapshot.fix.quality);
+    display_.drawText(0, 20 + 4 * lineHeight, text, 1);
+
+    // Sky: satellites the almanac puts above the horizon; sig: those with
+    // a measured C/N0; cn0: the strongest one in dB-Hz (open sky 35-50).
+    snprintf(text, sizeof text, "sky %u sig %u cn0 %u", snapshot.fix.satellitesInView,
+             snapshot.fix.satellitesTracked, snapshot.fix.maxSnrDbHz);
     display_.drawText(0, 56, text, 1);
 }

@@ -172,6 +172,29 @@ void nmea_western_and_southern_hemispheres_are_negative()
     TEST_ASSERT_EQUAL_INT32(-1512000000, parser.fix().longitudeE7);
 }
 
+void nmea_gsv_counts_tracked_satellites_and_strongest_cno()
+{
+    NmeaParser parser;
+    // NMEA 4.11 GSV: four satellites plus the trailing signal id, 21
+    // fields; the third satellite has no C/N0 (predicted, not received).
+    TEST_ASSERT_EQUAL(NmeaParser::Sentence::Gsv,
+                      parser.parse("$GPGSV,2,1,07,01,40,083,41,02,17,308,43,12,07,344,,14,22,228,45,1*68"));
+    TEST_ASSERT_EQUAL(NmeaParser::Sentence::Gsv,
+                      parser.parse("$GLGSV,1,1,02,65,55,120,,66,44,060,38,1*77"));
+    TEST_ASSERT_EQUAL_UINT32(0, parser.fieldFailures());
+    parser.parse(rmcNoFix);
+    TEST_ASSERT_EQUAL_UINT8(7, parser.fix().satellitesInView);
+    TEST_ASSERT_EQUAL_UINT8(4, parser.fix().satellitesTracked); // 3 GPS + 1 GLONASS
+    TEST_ASSERT_EQUAL_UINT8(45, parser.fix().maxSnrDbHz);
+
+    // Almanac known, nothing received: in view but none tracked.
+    parser.parse("$GPGSV,1,1,03,01,40,083,,02,17,308,,12,07,344,*4C");
+    parser.parse(rmcNoFix);
+    TEST_ASSERT_EQUAL_UINT8(3, parser.fix().satellitesInView);
+    TEST_ASSERT_EQUAL_UINT8(0, parser.fix().satellitesTracked);
+    TEST_ASSERT_EQUAL_UINT8(0, parser.fix().maxSnrDbHz);
+}
+
 void nmea_gsv_counts_satellites_in_view_per_epoch()
 {
     NmeaParser parser;
