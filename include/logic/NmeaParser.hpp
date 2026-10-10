@@ -239,7 +239,21 @@ private:
         Fix next = fix_;
         next.valid = (field[2][0] == 'A' && field[2][1] == '\0');
 
-        if (!parseTime(field[1], next.utc) || !parseDate(field[9], next.utc))
+        // Until the receiver has decoded time from at least one satellite
+        // it sends RMC with empty time and date fields; that is a legal
+        // "no time yet" sentence, not a malformed one. With a valid fix
+        // both fields are mandatory.
+        const bool haveTime = field[1][0] != '\0';
+        const bool haveDate = field[9][0] != '\0';
+        if (next.valid && (!haveTime || !haveDate))
+        {
+            return false;
+        }
+        if (haveTime && !parseTime(field[1], next.utc))
+        {
+            return false;
+        }
+        if (haveDate && !parseDate(field[9], next.utc))
         {
             return false;
         }

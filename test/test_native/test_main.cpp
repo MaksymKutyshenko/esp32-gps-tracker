@@ -13,6 +13,7 @@ void nmea_checksum_rejects_missing_star_and_bad_hex();
 void nmea_rmc_parses_position_speed_course_and_time();
 void nmea_gga_merges_quality_satellites_hdop_altitude();
 void nmea_rmc_without_fix_clears_valid_but_keeps_time();
+void nmea_rmc_without_time_is_accepted_while_invalid();
 void nmea_rmc_rejects_minutes_over_sixty_and_keeps_previous_fix();
 void nmea_rmc_empty_speed_and_course_mean_zero();
 void nmea_gga_without_fix_parses_zero_satellites();
@@ -89,6 +90,7 @@ int main()
     RUN_TEST(nmea_rmc_parses_position_speed_course_and_time);
     RUN_TEST(nmea_gga_merges_quality_satellites_hdop_altitude);
     RUN_TEST(nmea_rmc_without_fix_clears_valid_but_keeps_time);
+    RUN_TEST(nmea_rmc_without_time_is_accepted_while_invalid);
     RUN_TEST(nmea_rmc_rejects_minutes_over_sixty_and_keeps_previous_fix);
     RUN_TEST(nmea_rmc_empty_speed_and_course_mean_zero);
     RUN_TEST(nmea_gga_without_fix_parses_zero_satellites);

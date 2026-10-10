@@ -104,6 +104,21 @@ void nmea_rmc_without_fix_clears_valid_but_keeps_time()
     TEST_ASSERT_EQUAL_INT32(504520575, fix.latitudeE7);
 }
 
+void nmea_rmc_without_time_is_accepted_while_invalid()
+{
+    // What a cold receiver sends before its first satellite: no time, no
+    // date, status V. Legal, and not a field failure.
+    NmeaParser parser;
+    TEST_ASSERT_EQUAL(NmeaParser::Sentence::Rmc, parser.parse("$GNRMC,,V,,,,,,,,,,N,V*37"));
+    TEST_ASSERT_FALSE(parser.fix().valid);
+    TEST_ASSERT_EQUAL_UINT16(0, parser.fix().utc.year);
+    TEST_ASSERT_EQUAL_UINT32(0, parser.fieldFailures());
+
+    // With status A the time and date are mandatory.
+    TEST_ASSERT_EQUAL(NmeaParser::Sentence::Invalid, parser.parse("$GNRMC,,A,5027.12345,N,03031.23456,E,0.0,0.0,,,,A,V*12"));
+    TEST_ASSERT_EQUAL_UINT32(1, parser.fieldFailures());
+}
+
 void nmea_rmc_rejects_minutes_over_sixty_and_keeps_previous_fix()
 {
     NmeaParser parser;
