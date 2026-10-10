@@ -213,6 +213,9 @@ duration._
 
 ## What I would improve next
 
+- Operator menu on the screen: a table of known APNs (Kyivstar, Vodafone UA,
+  lifecell) selected with the button and saved to NVS, so a SIM swap needs no
+  console. The uplink task already re-opens the bearer on an APN change.
 - Fit the BMA400 and add deep sleep with EXT1 wake, with measured currents.
 - Batch uploads (one request, many points) once a self-hosted server is
   available.

@@ -1,5 +1,7 @@
 #include "transport/ModemTransport.hpp"
 
+#include <string.h>
+
 #include "esp_log.h"
 
 namespace
@@ -8,8 +10,36 @@ namespace
 }
 
 ModemTransport::ModemTransport(Sim800Modem &modem, const char *apn)
-    : modem_(modem), apn_(apn)
+    : modem_(modem)
 {
+    strlcpy(apn_, apn, sizeof apn_);
+}
+
+esp_err_t ModemTransport::setApn(const char *apn)
+{
+    if (strcmp(apn, apn_) == 0)
+    {
+        return ESP_OK;
+    }
+    strlcpy(apn_, apn, sizeof apn_);
+    ESP_LOGI(logTag, "APN changed to %s", apn_);
+    if (!connected_)
+    {
+        return ESP_OK;
+    }
+    // Re-open the bearer on the new APN without a power cycle.
+    connected_ = false;
+    modem_.closeBearer();
+    const esp_err_t err = modem_.openBearer(apn_);
+    if (err != ESP_OK)
+    {
+        ESP_LOGW(logTag, "GPRS bearer failed (APN %s): %s", apn_, esp_err_to_name(err));
+        modem_.logNetworkStatus();
+        return err;
+    }
+    connected_ = true;
+    ESP_LOGI(logTag, "GPRS up on APN %s", apn_);
+    return ESP_OK;
 }
 
 esp_err_t ModemTransport::connect()

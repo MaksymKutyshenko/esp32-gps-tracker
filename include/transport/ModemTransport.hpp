@@ -1,6 +1,7 @@
 #pragma once
 
 #include "periph/Sim800Modem.hpp"
+#include "reliability/Settings.hpp"
 #include "transport/IUplinkTransport.hpp"
 
 // IUplinkTransport on the SIM800C: connect = power on + GPRS bearer,
@@ -15,9 +16,10 @@ public:
     esp_err_t reset() override;
     esp_err_t httpGet(const char *url, uint16_t &status) override;
     uint8_t signalQuality() override;
+    esp_err_t setApn(const char *apn) override;
 
 private:
     Sim800Modem &modem_;
-    const char *apn_;
+    char apn_[Settings::apnCapacity] = {};
     bool connected_ = false;
 };

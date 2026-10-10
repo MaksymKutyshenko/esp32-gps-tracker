@@ -24,6 +24,10 @@ public:
 
     // Link quality for the display, 0..31; 99 when unknown.
     virtual uint8_t signalQuality() = 0;
+
+    // New access point name from Settings. A connected link re-opens its
+    // bearer on the new APN; a disconnected one just remembers it.
+    virtual esp_err_t setApn(const char *apn) = 0;
 };
 
 // Null Object: pretends every upload succeeded. Lets the uplink queue
@@ -45,6 +49,7 @@ public:
         return ESP_OK;
     }
     uint8_t signalQuality() override { return 99; }
+    esp_err_t setApn(const char *) override { return ESP_OK; }
 
 private:
     bool connected_ = false;

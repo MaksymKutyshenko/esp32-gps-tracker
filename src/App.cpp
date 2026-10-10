@@ -502,6 +502,23 @@ void App::uplinkLoop()
     WatchdogSubscription watchdog;
     char url[Config::gsmCommandBytes];
     uint32_t failures = 0;
+    // The task's own copy of the settings; the console publishes a new one
+    // through uplinkSettingsQueue_ and it is applied here, never shared.
+    Settings::Values live = values_;
+
+    auto pollSettings = [&]()
+    {
+        Settings::Values updated = {};
+        if (xQueueReceive(uplinkSettingsQueue_, &updated, 0) != pdTRUE)
+        {
+            return;
+        }
+        live = updated;
+        scheduler_.setParams({live.uplinkMinIntervalMs, Config::uplinkBackoffInitialMs,
+                              Config::uplinkBackoffMaxMs, Config::gsmFailuresBeforePowerCycle});
+        uplink_->setApn(live.apn);
+        ESP_LOGI(logTag, "uplink task applied new settings (url %s, id %s)", live.serverUrl, live.deviceId);
+    };
 
     auto report = [&]()
     {
@@ -517,6 +534,7 @@ void App::uplinkLoop()
     while (!uplink_->isConnected())
     {
         watchdog.feed();
+        pollSettings();
         if (uplink_->connect() != ESP_OK)
         {
             ++failures;
@@ -531,12 +549,20 @@ void App::uplinkLoop()
     {
         watchdog.feed();
 
-        Settings::Values updated = {};
-        if (xQueueReceive(uplinkSettingsQueue_, &updated, 0) == pdTRUE)
+        pollSettings();
+        if (!uplink_->isConnected())
         {
-            scheduler_.setParams({updated.uplinkMinIntervalMs, Config::uplinkBackoffInitialMs,
-                                  Config::uplinkBackoffMaxMs, Config::gsmFailuresBeforePowerCycle});
-            ESP_LOGI(logTag, "uplink task applied new settings");
+            // The bearer dropped (e.g. an APN change failed): back to the
+            // connect loop with the scheduler's back-off.
+            if (uplink_->connect() != ESP_OK)
+            {
+                ++failures;
+                scheduler_.onFailure(nowMs());
+                report();
+                sleepFeeding(watchdog, scheduler_.currentWaitMs());
+                continue;
+            }
+            report();
         }
 
         TrackRecord record = {};
@@ -550,7 +576,7 @@ void App::uplinkLoop()
             continue;
         }
 
-        if (OsmAndProtocol::buildUrl(values_.serverUrl, values_.deviceId, record, url, sizeof url) == 0)
+        if (OsmAndProtocol::buildUrl(live.serverUrl, live.deviceId, record, url, sizeof url) == 0)
         {
             // Cannot ever be sent: drop it rather than wedge the queue.
             xQueueReceive(uplinkQueue_, &record, 0);
@@ -676,7 +702,7 @@ void App::consoleLoop()
             ESP_LOGI(logTag, "keys: moving_ms stationary_ms min_distance_m motion_start motion_stop "
                              "motion_stop_delay_ms gnss(0=%s,1=%s) uplink(0/1) uplink_min_ms apn url id",
                      GnssProfiles::byIndex(0).name, GnssProfiles::byIndex(1).name);
-            ESP_LOGI(logTag, "apn, url, id and gnss take effect after a restart; the rest immediately on save");
+            ESP_LOGI(logTag, "everything applies on save; only gnss needs a restart");
             break;
         case CommandParser::Command::Show:
             printSettings(draft);
