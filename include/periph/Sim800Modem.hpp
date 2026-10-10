@@ -46,9 +46,15 @@ public:
     // Stops at the first failure and returns its error.
     esp_err_t executeSequence(const AtCommand *commands, size_t count);
 
-    // Attaches GPRS and opens the bearer used by the HTTP stack.
+    // Attaches GPRS and opens the bearer used by the HTTP stack. Looks at
+    // the bearer's state first: one left open or still opening by an
+    // earlier attempt (or by the modem surviving an ESP reset) is reused or
+    // waited for, since AT+SAPBR=1,1 answers ERROR while it exists.
     esp_err_t openBearer(const char *apn);
     esp_err_t closeBearer();
+
+    // +SAPBR: 1,<status>: 0 connecting, 1 connected, 2 closing, 3 closed.
+    esp_err_t bearerStatus(uint8_t &status);
 
     // HTTP GET through the modem's HTTP stack; `status` is the HTTP code.
     esp_err_t httpGet(const char *url, uint16_t &status);

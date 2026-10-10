@@ -229,20 +229,92 @@ esp_err_t Sim800Modem::readUntil(const char *expect, uint32_t timeoutMs,
     }
 }
 
+esp_err_t Sim800Modem::bearerStatus(uint8_t &status)
+{
+    const AtCommand query = {"AT+SAPBR=2,1", "OK", 2000};
+    const esp_err_t err = execute(query, scratch_, sizeof scratch_);
+    if (err != ESP_OK)
+    {
+        return err;
+    }
+    const char *marker = strstr(scratch_, "+SAPBR:");
+    const char *comma = marker != nullptr ? strchr(marker, ',') : nullptr;
+    if (comma == nullptr)
+    {
+        return ESP_ERR_INVALID_RESPONSE;
+    }
+    status = static_cast<uint8_t>(strtoul(comma + 1, nullptr, 10));
+    return ESP_OK;
+}
+
 esp_err_t Sim800Modem::openBearer(const char *apn)
 {
-    char apnCommand[Config::gsmCommandBytes];
-    snprintf(apnCommand, sizeof apnCommand, "AT+SAPBR=3,1,\"APN\",\"%s\"", apn);
-
-    const AtCommand sequence[] = {
+    const AtCommand attach[] = {
         {"AT+CFUN=1", "OK", 2000},
         {"AT+CGATT=1", "OK", 10'000},
+    };
+    esp_err_t err = executeSequence(attach, sizeof attach / sizeof attach[0]);
+    if (err != ESP_OK)
+    {
+        return err;
+    }
+
+    // A bearer the modem still holds from before: use it or wait for it.
+    uint8_t status = 3;
+    err = bearerStatus(status);
+    if (err != ESP_OK)
+    {
+        return err;
+    }
+    if (status == 1)
+    {
+        ESP_LOGI(logTag, "Bearer already open, reusing it");
+        return ESP_OK;
+    }
+    for (uint8_t i = 0; (status == 0 || status == 2) && i < 30; ++i)
+    {
+        wait(1000);
+        err = bearerStatus(status);
+        if (err != ESP_OK)
+        {
+            return err;
+        }
+    }
+    if (status == 1)
+    {
+        ESP_LOGI(logTag, "Bearer finished opening on its own");
+        return ESP_OK;
+    }
+    if (status != 3)
+    {
+        ESP_LOGW(logTag, "Bearer stuck in state %u, closing it", status);
+        closeBearer();
+    }
+
+    char apnCommand[Config::gsmCommandBytes];
+    snprintf(apnCommand, sizeof apnCommand, "AT+SAPBR=3,1,\"APN\",\"%s\"", apn);
+    const AtCommand open[] = {
         {"AT+SAPBR=3,1,\"Contype\",\"GPRS\"", "OK", 2000},
         {apnCommand, "OK", 2000},
         {"AT+SAPBR=1,1", "OK", 30'000},
-        {"AT+SAPBR=2,1", "OK", 2000},
     };
-    return executeSequence(sequence, sizeof sequence / sizeof sequence[0]);
+    err = executeSequence(open, sizeof open / sizeof open[0]);
+    if (err != ESP_OK)
+    {
+        return err;
+    }
+
+    // SAPBR=1,1 is normally synchronous; confirm rather than assume.
+    for (uint8_t i = 0; i < 10; ++i)
+    {
+        if (bearerStatus(status) == ESP_OK && status == 1)
+        {
+            return ESP_OK;
+        }
+        wait(1000);
+    }
+    ESP_LOGW(logTag, "Bearer did not reach the connected state (status %u)", status);
+    return ESP_ERR_TIMEOUT;
 }
 
 esp_err_t Sim800Modem::closeBearer()
