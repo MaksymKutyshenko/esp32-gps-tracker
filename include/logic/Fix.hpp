@@ -31,6 +31,7 @@ struct Fix
     uint16_t courseDeciDeg;  // track over ground * 10, 0..3599 (RMC)
     uint16_t hdopCenti;      // horizontal dilution * 100 (GGA)
     uint8_t satellites;      // satellites used in the solution (GGA)
+    uint8_t satellitesInView; // satellites the receiver can hear (GSV), max over talkers per epoch
     uint8_t quality;         // GGA fix quality: 0 none, 1 GPS, 2 DGPS, ...
     UtcTime utc;
 };

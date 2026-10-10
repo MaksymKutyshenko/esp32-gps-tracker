@@ -157,6 +157,23 @@ void nmea_western_and_southern_hemispheres_are_negative()
     TEST_ASSERT_EQUAL_INT32(-1512000000, parser.fix().longitudeE7);
 }
 
+void nmea_gsv_counts_satellites_in_view_per_epoch()
+{
+    NmeaParser parser;
+    // GPS talker hears 7, GLONASS talker hears 9: the epoch reports 9.
+    TEST_ASSERT_EQUAL(NmeaParser::Sentence::Gsv,
+                      parser.parse("$GPGSV,2,1,07,01,40,083,41,02,17,308,43,12,07,344,39,14,22,228,45*7F"));
+    TEST_ASSERT_EQUAL(NmeaParser::Sentence::Gsv,
+                      parser.parse("$GLGSV,3,1,09,65,55,120,40,66,44,060,38,67,10,010,,72,30,290,36*6E"));
+    TEST_ASSERT_EQUAL_UINT8(0, parser.fix().satellitesInView); // not yet folded in
+    parser.parse(rmcNoFix);
+    TEST_ASSERT_EQUAL_UINT8(9, parser.fix().satellitesInView);
+    TEST_ASSERT_FALSE(parser.fix().valid);
+    // Next epoch with no GSV at all reports zero again.
+    parser.parse(rmcValid);
+    TEST_ASSERT_EQUAL_UINT8(0, parser.fix().satellitesInView);
+}
+
 // --- assembler ----------------------------------------------------------
 
 void assembler_delivers_sentence_without_line_ending()

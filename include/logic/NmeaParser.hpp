@@ -27,6 +27,7 @@ public:
     {
         Rmc,       // position epoch complete, fix() is up to date
         Gga,       // quality / satellites / altitude merged into fix()
+        Gsv,       // satellites in view noted; folded into fix() at the next RMC
         Other,     // valid sentence of a type this parser does not use
         Invalid,   // checksum, framing or field failure; counted
     };
@@ -70,6 +71,15 @@ public:
                 return Sentence::Invalid;
             }
             return Sentence::Gga;
+        }
+        if (strcmp(type, "GSV") == 0)
+        {
+            if (!parseGsv(field, count))
+            {
+                ++fieldFailures_;
+                return Sentence::Invalid;
+            }
+            return Sentence::Gsv;
         }
         return Sentence::Other;
     }
@@ -268,7 +278,35 @@ private:
             next.courseDeciDeg = static_cast<uint16_t>(deciDegrees);
         }
 
+        // GSV counts arrive per constellation between two RMCs; the epoch
+        // takes the largest one, which is "satellites heard" for the user.
+        next.satellitesInView = inViewPending_;
+        inViewPending_ = 0;
+
         fix_ = next;
+        return true;
+    }
+
+    // $--GSV,total_msgs,msg_num,sats_in_view,... — only field 3 is used.
+    bool parseGsv(const char **field, size_t count)
+    {
+        if (count < 4)
+        {
+            return false;
+        }
+        int64_t value = 0;
+        if (field[3][0] == '\0')
+        {
+            return true; // some receivers send an empty count with no satellites
+        }
+        if (!DecimalParser::parseScaled(field[3], 0, value) || value < 0 || value > 99)
+        {
+            return false;
+        }
+        if (value > inViewPending_)
+        {
+            inViewPending_ = static_cast<uint8_t>(value);
+        }
         return true;
     }
 
@@ -318,6 +356,7 @@ private:
     }
 
     Fix fix_ = {};
+    uint8_t inViewPending_ = 0;
     uint32_t checksumFailures_ = 0;
     uint32_t fieldFailures_ = 0;
 };

@@ -19,6 +19,7 @@ void nmea_gga_without_fix_parses_zero_satellites();
 void nmea_other_sentence_types_are_ignored_but_valid();
 void nmea_corrupted_sentence_counts_checksum_failure();
 void nmea_western_and_southern_hemispheres_are_negative();
+void nmea_gsv_counts_satellites_in_view_per_epoch();
 void assembler_delivers_sentence_without_line_ending();
 void assembler_ignores_bytes_before_dollar_and_resyncs_mid_sentence();
 void assembler_drops_and_counts_oversized_sentence();
@@ -89,6 +90,7 @@ int main()
     RUN_TEST(nmea_other_sentence_types_are_ignored_but_valid);
     RUN_TEST(nmea_corrupted_sentence_counts_checksum_failure);
     RUN_TEST(nmea_western_and_southern_hemispheres_are_negative);
+    RUN_TEST(nmea_gsv_counts_satellites_in_view_per_epoch);
     RUN_TEST(assembler_delivers_sentence_without_line_ending);
     RUN_TEST(assembler_ignores_bytes_before_dollar_and_resyncs_mid_sentence);
     RUN_TEST(assembler_drops_and_counts_oversized_sentence);

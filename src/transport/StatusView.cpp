@@ -47,7 +47,9 @@ void StatusView::drawTrackingPage(const StatusSnapshot &snapshot)
 
     // Line 1: state bold, satellites right.
     display_.drawText(0, 0, stateLabel(snapshot.state), 2);
-    snprintf(text, sizeof text, "%2u sat", snapshot.fix.satellites);
+    // used / heard: "0/9" means satellites are audible but no fix yet,
+    // "0/0" means the antenna sees nothing.
+    snprintf(text, sizeof text, "%u/%u sat", snapshot.fix.satellites, snapshot.fix.satellitesInView);
     display_.drawText(Ssd1306::width - Ssd1306::textWidth(text, 1), 4, text, 1);
 
     // Line 2: time (UTC) and speed.
