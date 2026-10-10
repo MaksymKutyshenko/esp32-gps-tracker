@@ -172,6 +172,17 @@ it to GPIO16 if wanted.
   autodetect by trying both.
 - The BMA400 is optional until it arrives: without it the firmware derives
   motion from GNSS speed and never deep-sleeps.
+- 5 V pins differ between the two boards. The devkit's `5VIN` sits behind
+  a diode: input only, reads ~1.7 V of leakage on a meter, cannot feed a
+  module. The SuperMini's `5V` is the USB VBUS line itself: a real 5 V
+  output on USB power and the supply input from the shield otherwise, so
+  the shield must never be on that pin while a USB cable is plugged in.
+- Breadboard power: the modem's VSS and GND get their own two wires to
+  shield pins, twisted; the devkit's GND gets its own wire to another
+  shield GND pin. The modem's 2 A transmit pulses through a shared rail
+  bounce the common ground by ~200 mV and corrupt every bus at once
+  (seen on the bench: UART bytes, I2C timeouts, lost tick interrupt,
+  watchdog resets 20 s after the first upload).
 - SuperMini quirks: some units have the Wi-Fi antenna mis-mounted (not
   relevant, no Wi-Fi here); a crashed or deep-sleeping board can drop the
   USB port, so hold BOOT while plugging in to re-enter the bootloader.
