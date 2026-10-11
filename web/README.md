@@ -74,6 +74,26 @@ the device, or give the device its own port that proxies to the app.
 `ALLOWED_DEVICE_IDS` limits which `id` values are accepted; leave it empty
 to accept any device, which is how Traccar behaves too.
 
+### On Fly.io (no server, no domain)
+
+`fly.toml` is ready; it turns the HTTPS redirect off so the modem's plain
+GET gets through, and keeps one small machine running. Postgres can be
+[Neon](https://neon.tech)'s free tier or `fly postgres create`.
+
+```bash
+brew install flyctl && fly auth login
+fly launch --copy-config --no-deploy        # choose an app name, e.g. my-tracker
+fly secrets set DATABASE_URL='postgres://...?sslmode=require' \
+  GOOGLE_CLIENT_ID='...' ALLOWED_EMAILS='you@example.com' \
+  SESSION_SECRET="$(openssl rand -hex 32)"
+fly deploy
+curl -i "http://my-tracker.fly.dev/?id=test&lat=50.45&lon=30.52"   # expect 200 OK, no redirect
+```
+
+Then on the tracker: `set url http://my-tracker.fly.dev` (no port: Fly
+serves the device on 80 and the dashboard on 443), and in the Google
+console add `https://my-tracker.fly.dev` as an authorised origin.
+
 ### Behind a Cloudflare Tunnel (no public IP)
 
 A *named* tunnel works from a machine at home: `cloudflared/config.yml.example`
