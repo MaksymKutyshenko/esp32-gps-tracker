@@ -133,6 +133,9 @@ namespace Config
     // ---- Modem timing --------------------------------------------------
     constexpr uint32_t gsmPowerKeyPulseMs = 1200;   // PWRKEY low >= 1 s toggles power
     constexpr uint32_t gsmBootWaitMs = 4000;        // network registration starts after this
+    // After a cold boot the network takes a few more seconds to accept the
+    // registration; a GPRS attach asked before that is refused.
+    constexpr uint32_t gsmRegistrationWaitMs = 20'000;
     constexpr uint8_t gsmPowerOnAttempts = 3;
     constexpr uint32_t gsmHttpTimeoutMs = 30'000;
     // Longest report URL: server URL (95) + device id (23) + the health

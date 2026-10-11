@@ -59,6 +59,9 @@ public:
 
     // +SAPBR: 1,<status>: 0 connecting, 1 connected, 2 closing, 3 closed.
     esp_err_t bearerStatus(uint8_t &status);
+    // +CREG stat: 1 registered home, 5 registered roaming; anything else
+    // (0 idle, 2 searching, 3 denied) is not registered.
+    esp_err_t isRegistered(bool &registered);
 
     // HTTP GET through the modem's HTTP stack; `status` is the HTTP code.
     esp_err_t httpGet(const char *url, uint16_t &status);

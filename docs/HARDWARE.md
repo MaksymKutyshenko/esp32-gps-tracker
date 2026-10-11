@@ -194,7 +194,14 @@ it to GPIO16 if wanted.
   registration: three in a row without a reset means the supply and
   ground are good enough. If it resets, the next steps in order are the
   antenna on the SMA, 1000 µF + 100 nF at the modem's VSS/GND pins, and
-  distance between the modem and the devkit.
+  distance between the modem and the devkit. A cold boot is the heavier
+  case (SIM init and band scan at full power) and is forced with
+  `at AT+CPOWD=1`: the modem switches off, three uploads time out and the
+  firmware pulses PWRKEY. Result on 2026-10-11 with the antenna on the
+  SMA, modem VSS/GND on their own shield pins and the devkit GND on its
+  own wire: 3/3 radio restarts and 3/3 cold boots without a reset, nine
+  minutes of uptime across three power cycles. The same two commands
+  are the acceptance test for the SuperMini build.
 - SuperMini quirks: some units have the Wi-Fi antenna mis-mounted (not
   relevant, no Wi-Fi here); a crashed or deep-sleeping board can drop the
   USB port, so hold BOOT while plugging in to re-enter the bootloader.

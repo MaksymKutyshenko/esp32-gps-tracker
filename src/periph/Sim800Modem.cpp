@@ -247,15 +247,56 @@ esp_err_t Sim800Modem::bearerStatus(uint8_t &status)
     return ESP_OK;
 }
 
-esp_err_t Sim800Modem::openBearer(const char *apn)
+esp_err_t Sim800Modem::isRegistered(bool &registered)
 {
-    const AtCommand attach[] = {
-        {"AT+CFUN=1", "OK", 2000},
-        {"AT+CGATT=1", "OK", 10'000},
-    };
-    esp_err_t err = executeSequence(attach, sizeof attach / sizeof attach[0]);
+    const AtCommand query = {"AT+CREG?", "OK", 2000};
+    const esp_err_t err = execute(query, scratch_, sizeof scratch_);
     if (err != ESP_OK)
     {
+        return err;
+    }
+    const char *marker = strstr(scratch_, "+CREG:");
+    const char *comma = marker != nullptr ? strchr(marker, ',') : nullptr;
+    if (comma == nullptr)
+    {
+        return ESP_ERR_INVALID_RESPONSE;
+    }
+    const unsigned long stat = strtoul(comma + 1, nullptr, 10);
+    registered = (stat == 1 || stat == 5);
+    return ESP_OK;
+}
+
+esp_err_t Sim800Modem::openBearer(const char *apn)
+{
+    const AtCommand fullFunction = {"AT+CFUN=1", "OK", 2000};
+    esp_err_t err = execute(fullFunction);
+    if (err != ESP_OK)
+    {
+        return err;
+    }
+
+    // Fresh from a power-up the modem is still registering; an attach
+    // asked now is refused with ERROR. Wait for the network first.
+    bool registered = false;
+    for (uint32_t waited = 0; waited < Config::gsmRegistrationWaitMs; waited += 1000)
+    {
+        if (isRegistered(registered) == ESP_OK && registered)
+        {
+            break;
+        }
+        wait(1000);
+    }
+    if (!registered)
+    {
+        ESP_LOGW(logTag, "Not registered on the network after %" PRIu32 " ms",
+                 Config::gsmRegistrationWaitMs);
+    }
+
+    const AtCommand attach = {"AT+CGATT=1", "OK", 10'000};
+    err = execute(attach);
+    if (err != ESP_OK)
+    {
+        ESP_LOGW(logTag, "'AT+CGATT=1' failed: %s", esp_err_to_name(err));
         return err;
     }
 
