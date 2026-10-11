@@ -48,6 +48,23 @@ namespace
         }
     }
 
+    // Short form for the server's attribute: "reset=task_wdt".
+    const char *resetReasonKey(esp_reset_reason_t reason)
+    {
+        switch (reason)
+        {
+        case ESP_RST_POWERON: return "poweron";
+        case ESP_RST_SW: return "sw";
+        case ESP_RST_PANIC: return "panic";
+        case ESP_RST_INT_WDT: return "int_wdt";
+        case ESP_RST_TASK_WDT: return "task_wdt";
+        case ESP_RST_WDT: return "wdt";
+        case ESP_RST_DEEPSLEEP: return "deepsleep";
+        case ESP_RST_BROWNOUT: return "brownout";
+        default: return "other";
+        }
+    }
+
     const char *resetReasonName(esp_reset_reason_t reason)
     {
         switch (reason)
@@ -67,6 +84,7 @@ namespace
 
 App::App()
     : values_(Settings::defaults()),
+      eventLog_(Config::eventLogDepth),
       gpsUart_(Config::gpsUart, Config::gpsTxPin, Config::gpsRxPin,
                Config::gpsBaudRate, Config::gpsRxBufferBytes),
       gnss_(gpsUart_),
@@ -102,8 +120,10 @@ App::App()
 
 void App::begin()
 {
-    const esp_reset_reason_t reason = esp_reset_reason();
-    ESP_LOGI(logTag, "Boot: reset reason %s (%d)", resetReasonName(reason), static_cast<int>(reason));
+    eventLog_.begin(); // from here on every log line is also queued for the card
+    resetReason_ = esp_reset_reason();
+    ESP_LOGI(logTag, "Boot: reset reason %s (%d)", resetReasonName(resetReason_),
+             static_cast<int>(resetReason_));
 
     settings_.begin();
     loadSettings();
@@ -468,7 +488,19 @@ void App::loggerLoop()
         watchdog.feed();
 
         TrackRecord record = {};
-        if (xQueueReceive(logQueue_, &record, pdMS_TO_TICKS(Config::queueWaitMs)) != pdTRUE)
+        const bool haveRecord =
+            xQueueReceive(logQueue_, &record, pdMS_TO_TICKS(Config::queueWaitMs)) == pdTRUE;
+
+        if (eventLog_.pending())
+        {
+            BusLock lock(sdMutex_, Config::busLockTimeoutMs);
+            if (lock.locked())
+            {
+                eventLog_.flush(storage_, Config::eventLogFile);
+            }
+        }
+
+        if (!haveRecord)
         {
             // Idle: a console 'mount' or a recovery elsewhere may have
             // changed the card state since the last record.
@@ -533,6 +565,11 @@ void App::uplinkLoop()
     WatchdogSubscription watchdog;
     char url[Config::gsmUrlBytes];
     uint32_t failures = 0;
+    // The first delivered report tells the server why the device restarted;
+    // after that the field is left out.
+    char bootAttribute[24];
+    snprintf(bootAttribute, sizeof bootAttribute, "&reset=%s", resetReasonKey(resetReason_));
+    const char *extra = bootAttribute;
     // The task's own copy of the settings; the console publishes a new one
     // through uplinkSettingsQueue_ and it is applied here, never shared.
     Settings::Values live = values_;
@@ -619,7 +656,7 @@ void App::uplinkLoop()
             continue;
         }
 
-        if (OsmAndProtocol::buildUrl(live.serverUrl, live.deviceId, record, url, sizeof url) == 0)
+        if (OsmAndProtocol::buildUrl(live.serverUrl, live.deviceId, record, url, sizeof url, extra) == 0)
         {
             // Cannot ever be sent: drop it rather than wedge the queue.
             xQueueReceive(uplinkQueue_, &record, 0);
@@ -643,6 +680,7 @@ void App::uplinkLoop()
             xQueueReceive(uplinkQueue_, &record, 0);
             Diagnostics::increment(diagnostics_.recordsUploaded);
             scheduler_.onSuccess(nowMs());
+            extra = "";
         }
         else
         {
@@ -903,7 +941,8 @@ void App::logDiagnostics()
              " sky %u sig %u cn0 %u | "
              "log ok %" PRIu32 " drop %" PRIu32 " err %" PRIu32 " | "
              "up ok %" PRIu32 " drop %" PRIu32 " fail %" PRIu32 " cycles %" PRIu32 " | "
-             "disp err %" PRIu32 " bus to %" PRIu32 " batt err %" PRIu32 " btn drop %" PRIu32,
+             "disp err %" PRIu32 " bus to %" PRIu32 " batt err %" PRIu32 " btn drop %" PRIu32
+             " evt drop %" PRIu32,
              d.sentencesReceived.load(), d.sentencesRejected.load(),
              parser_.checksumFailures(), parser_.fieldFailures(), d.gnssSilences.load(),
              parser_.fix().satellitesInView, parser_.fix().satellitesTracked, parser_.fix().maxSnrDbHz,
@@ -911,7 +950,7 @@ void App::logDiagnostics()
              d.recordsUploaded.load(), d.recordsDroppedUplinkQueue.load(),
              d.uplinkFailures.load(), d.modemPowerCycles.load(),
              d.displayErrors.load(), d.busTimeouts.load(), d.batteryReadErrors.load(),
-             button_.droppedEdges());
+             button_.droppedEdges(), eventLog_.dropped());
 
     // Stack headroom in bytes (ESP-IDF reports words of one byte); the
     // sizes in Config are trimmed against these numbers.

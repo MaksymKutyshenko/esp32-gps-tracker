@@ -182,6 +182,16 @@ void osmand_widest_settings_fit_the_url_buffer()
     TEST_ASSERT_LESS_THAN(sizeof url, n + 1);
 }
 
+void osmand_url_appends_extra_attributes_verbatim()
+{
+    char url[256];
+    const size_t n = OsmAndProtocol::buildUrl("http://h", "d", sampleRecord(), url, sizeof url,
+                                              "&reset=task_wdt");
+    TEST_ASSERT_NOT_EQUAL(0, n);
+    TEST_ASSERT_EQUAL_STRING("&reset=task_wdt", url + n - strlen("&reset=task_wdt"));
+    TEST_ASSERT_EQUAL_size_t(strlen(url), n);
+}
+
 void osmand_url_too_long_returns_zero()
 {
     char url[40];

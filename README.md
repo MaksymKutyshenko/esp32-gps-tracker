@@ -195,7 +195,11 @@ http://host:5055/?id=<device>&lat=..&lon=..&timestamp=<unix>&speed=<kn>&bearing=
    `No display at address 0x3C` and the tracker runs without a screen; the
    display task re-initialises the controller after five failed frames.
 4. MicroSD on GPIO10–13: `Mounted /sdcard` at boot, `SD ok` on the screen,
-   a CSV on the card after the first record.
+   a CSV on the card after the first record. The card also carries
+   `TRACKS/EVENTS.LOG`, a mirror of the firmware's console log, so a run
+   without a monitor still shows what preceded a reset and the boot line
+   after it (`Boot: reset reason ...`). The first upload after a boot adds
+   `&reset=<reason>` to the report, so the server keeps the restart history.
 5. SIM800C on UART2 and PWRKEY: `GPRS up on APN ...`, then `sent:` grows on
    the system page. Set `apn`, `url` and `id` first.
 

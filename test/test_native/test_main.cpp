@@ -73,6 +73,7 @@ void osmand_unix_time_matches_known_dates();
 void osmand_battery_percent_is_clamped_linear();
 void osmand_url_carries_every_field();
 void osmand_widest_settings_fit_the_url_buffer();
+void osmand_url_appends_extra_attributes_verbatim();
 void osmand_url_too_long_returns_zero();
 void scheduler_first_attempt_is_immediate_then_paced_by_min_interval();
 void scheduler_backs_off_exponentially_up_to_cap();
@@ -149,6 +150,7 @@ int main()
     RUN_TEST(osmand_battery_percent_is_clamped_linear);
     RUN_TEST(osmand_url_carries_every_field);
     RUN_TEST(osmand_widest_settings_fit_the_url_buffer);
+    RUN_TEST(osmand_url_appends_extra_attributes_verbatim);
     RUN_TEST(osmand_url_too_long_returns_zero);
     RUN_TEST(scheduler_first_attempt_is_immediate_then_paced_by_min_interval);
     RUN_TEST(scheduler_backs_off_exponentially_up_to_cap);

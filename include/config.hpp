@@ -145,6 +145,9 @@ namespace Config
     constexpr const char *sdMountPoint = "/sdcard";
     // FAT without long-file-name support: 8.3 names only.
     constexpr const char *trackDirectory = "/sdcard/TRACKS";
+    // The firmware's own log, mirrored line by line (see EventLog).
+    constexpr const char *eventLogFile = "/sdcard/TRACKS/EVENTS.LOG";
+    constexpr UBaseType_t eventLogDepth = 48; // lines held between two flushes
     constexpr uint8_t storageRetries = 3;
     constexpr size_t trackLineBytes = 128;
 

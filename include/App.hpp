@@ -9,6 +9,8 @@
 #include "freertos/semphr.h"
 #include "freertos/task.h"
 
+#include "esp_system.h"
+
 #include "logic/ButtonDecoder.hpp"
 #include "logic/EmaFilter.hpp"
 #include "logic/LogPolicy.hpp"
@@ -27,6 +29,7 @@
 #include "periph/StatusLed.hpp"
 #include "periph/UartPort.hpp"
 #include "reliability/Diagnostics.hpp"
+#include "reliability/EventLog.hpp"
 #include "reliability/Settings.hpp"
 #include "transport/DisplayMessage.hpp"
 #include "transport/IUplinkTransport.hpp"
@@ -118,6 +121,8 @@ private:
     Settings settings_;
     Settings::Values values_;
     Diagnostics diagnostics_;
+    EventLog eventLog_;
+    esp_reset_reason_t resetReason_ = ESP_RST_UNKNOWN;
 
     // Periph
     UartPort gpsUart_;
