@@ -1,30 +1,47 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { AccessKeyGate, keyFingerprint } from '../src/accessKey.js';
+import { AttemptLimiter, generateKey, hashKey, keyFingerprint, verifyKey } from '../src/accessKey.js';
 
-test('right key passes, wrong key fails, lockout after the limit and release after the window', () => {
-  const gate = new AccessKeyGate('correct-horse-battery', { maxAttempts: 3, windowMs: 1000 });
-  assert.equal(gate.check('correct-horse-battery', 'a', 0), 'ok');
-  assert.equal(gate.check('nope', 'a', 1), 'bad');
-  assert.equal(gate.check('nope', 'a', 2), 'bad');
-  assert.equal(gate.check('nope', 'a', 3), 'bad');
-  assert.equal(gate.check('correct-horse-battery', 'a', 4), 'locked', 'even the right key is refused while locked');
-  assert.equal(gate.check('nope', 'b', 4), 'bad', 'other addresses are not affected');
-  assert.equal(gate.check('correct-horse-battery', 'a', 1002), 'ok', 'window elapsed');
+test('hash verifies the right key only and never stores it in clear', async () => {
+  const stored = await hashKey('correct-horse-battery');
+  assert.match(stored, /^scrypt\$[0-9a-f]{32}\$[0-9a-f]{64}$/);
+  assert.equal(stored.includes('correct'), false);
+  assert.equal(await verifyKey('correct-horse-battery', stored), true);
+  assert.equal(await verifyKey('correct-horse-batter', stored), false);
+  assert.equal(await verifyKey('', stored), false);
+  assert.equal(await verifyKey('x', 'garbage'), false);
 });
 
-test('a success clears the counter; a key of another length is just wrong', () => {
-  const gate = new AccessKeyGate('abc', { maxAttempts: 2, windowMs: 1000 });
-  assert.equal(gate.check('x', 'a', 0), 'bad');
-  assert.equal(gate.check('abc', 'a', 1), 'ok');
-  assert.equal(gate.check('x', 'a', 2), 'bad');
-  assert.equal(gate.check('abcd', 'a', 3), 'bad');
-  assert.equal(gate.check('abc', 'a', 4), 'locked');
+test('two hashes of one key differ (salted) but both verify; fingerprints differ', async () => {
+  const a = await hashKey('same');
+  const b = await hashKey('same');
+  assert.notEqual(a, b);
+  assert.equal(await verifyKey('same', a), true);
+  assert.equal(await verifyKey('same', b), true);
+  assert.notEqual(keyFingerprint(a), keyFingerprint(b));
+  assert.equal(keyFingerprint(a).length, 16);
 });
 
-test('fingerprint is stable and short', () => {
-  assert.equal(keyFingerprint('abc'), keyFingerprint('abc'));
-  assert.notEqual(keyFingerprint('abc'), keyFingerprint('abd'));
-  assert.equal(keyFingerprint('abc').length, 16);
+test('generated keys are long, URL-safe and distinct', () => {
+  const k = generateKey();
+  assert.equal(k.length, 24);
+  assert.match(k, /^[A-Za-z0-9_-]+$/);
+  assert.notEqual(k, generateKey());
+});
+
+test('limiter locks an address after the limit and releases after the window', () => {
+  const limiter = new AttemptLimiter({ maxAttempts: 3, windowMs: 1000 });
+  assert.equal(limiter.check('a', 0), 'allowed');
+  limiter.failure('a', 1);
+  limiter.failure('a', 2);
+  assert.equal(limiter.check('a', 3), 'allowed');
+  limiter.failure('a', 3);
+  assert.equal(limiter.check('a', 4), 'locked');
+  assert.equal(limiter.check('b', 4), 'allowed', 'other addresses are not affected');
+  assert.equal(limiter.check('a', 1002), 'allowed', 'window elapsed');
+  limiter.failure('a', 1002);
+  limiter.success('a');
+  limiter.failure('a', 1003);
+  assert.equal(limiter.check('a', 1004), 'allowed', 'a success cleared the count');
 });

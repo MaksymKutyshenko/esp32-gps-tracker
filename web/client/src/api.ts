@@ -1,4 +1,4 @@
-import type { AppConfig, DeviceOverview, DeviceSummary, HealthReport, Me, Position } from '../../shared/types';
+import type { AccessKeyInfo, AppConfig, DeviceOverview, DeviceSummary, HealthReport, Me, Position } from '../../shared/types';
 
 export class ApiError extends Error {
   constructor(readonly status: number, message: string) {
@@ -40,6 +40,9 @@ export const getMe = () => api<Me | null>('/api/me');
 export const signInWithGoogle = (credential: string) => api<Me>('/api/auth/google', json({ credential }));
 export const signInWithKey = (key: string) => api<Me>('/api/auth/key', json({ key }));
 export const signInDev = () => api<Me>('/api/auth/dev', json({}));
+export const getAccessKeyInfo = () => api<AccessKeyInfo>('/api/access-key');
+export const rotateAccessKey = (key?: string) =>
+  api<AccessKeyInfo & { key: string }>('/api/access-key', json(key ? { key } : {}));
 export const signOut = () => api<{ ok: boolean }>('/api/auth/logout', json({}));
 export const listDevices = () => api<DeviceSummary[]>('/api/devices');
 export const getOverview = (id: string) => api<DeviceOverview>(`/api/devices/${encodeURIComponent(id)}/overview`);

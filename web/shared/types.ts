@@ -68,10 +68,20 @@ export interface DeviceOverview {
   onlineTimeoutS: number;
 }
 
+export type Role = 'admin' | 'viewer';
+
 export interface Me {
   email: string;
   name: string | null;
   picture: string | null;
+  // Admins (admin key, Google, dev mode) may rotate the shared viewer key.
+  role: Role;
+}
+
+export interface AccessKeyInfo {
+  configured: boolean;
+  updatedAt: string | null;
+  updatedBy: string | null;
 }
 
 export interface AppConfig {

@@ -4,6 +4,7 @@ import type { AppConfig, DeviceOverview, DeviceSummary, HealthReport, Me, Positi
 import { getHealth, getOverview, getPositions, listDevices } from '../api';
 import type { Theme } from '../hooks';
 import { useNow } from '../hooks';
+import { AccessKeyDialog } from './AccessKeyDialog';
 import { Charts } from './Charts';
 import { FixStrip } from './FixStrip';
 import { Header } from './Header';
@@ -42,6 +43,7 @@ export function Dashboard({ me, config, theme, onToggleTheme, onSignOut }: Props
   const [focus, setFocus] = useState<Position | null>(null);
   const [streamOk, setStreamOk] = useState(true);
   const [loaded, setLoaded] = useState(false);
+  const [keyDialog, setKeyDialog] = useState(false);
   const now = useNow();
 
   const selected = useMemo(() => devices.find((d) => d.id === selectedId) ?? devices[0] ?? null, [devices, selectedId]);
@@ -150,13 +152,16 @@ export function Dashboard({ me, config, theme, onToggleTheme, onSignOut }: Props
       onSignOut={onSignOut}
       streamOk={streamOk}
       now={now}
+      onAccessKey={() => setKeyDialog(true)}
     />
   );
+  const dialog = keyDialog ? <AccessKeyDialog onClose={() => setKeyDialog(false)} /> : null;
 
   if (!selected) {
     return (
       <div className="app">
         {header}
+        {dialog}
         <div className="empty">
           {loaded ? (
             <>
@@ -182,6 +187,7 @@ export function Dashboard({ me, config, theme, onToggleTheme, onSignOut }: Props
     <div className="app">
       {config.authDisabled && <div className="banner">Development mode: authentication is disabled on this server.</div>}
       {header}
+      {dialog}
       <div className="main">
         <div className="left">
           <MapView

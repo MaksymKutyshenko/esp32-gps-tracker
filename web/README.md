@@ -45,19 +45,29 @@ a public IP (or a reverse proxy that still accepts HTTP on the device port).
 
 ## Sign-in
 
-### Shared access key (default)
+### Access keys (default)
 
-Set `ACCESS_KEY` to a long random string (`openssl rand -base64 18`). The
-login page is one input; give the key to whoever may watch, or hand them a
-link of the form `https://your.host/#key=<the key>`, which signs them in
-and drops the key from the address bar (a URL fragment is never sent to
-the server or written to its logs). Sessions are HttpOnly cookies valid
-for 30 days and carry a fingerprint of the key, so changing `ACCESS_KEY`
-signs everyone out at once. Wrong guesses are compared in constant time
-and an address is locked out after 10 failures in 15 minutes.
+One login field, two keys:
 
-Treat the key like a password to the map: anyone holding it sees where
-the tracker is. Rotate it when you stop trusting a holder.
+- **Admin key** (`ADMIN_KEY`, a server secret): the owner. Signing in with
+  it adds an *Access key* button to the header, which generates (or sets)
+  a new shared viewer key and shows it once together with a share link.
+- **Viewer key** (in the database): everyone else. Give it to whoever may
+  watch, or hand them `https://your.host/#key=<the key>`, which signs
+  them in and drops the key from the address bar (a URL fragment is never
+  sent to the server). `ACCESS_KEY` in the environment only seeds the
+  database on the first start; after that the dashboard owns it and the
+  secret can be removed.
+
+Keys are stored as scrypt hashes, compared in constant time, and an
+address is locked out after 10 wrong guesses in 15 minutes. Sessions are
+HttpOnly cookies valid for 30 days that carry a fingerprint of the key
+generation they were issued for: rotating the viewer key signs every
+viewer out within seconds, and a viewer can never rotate it, so the owner
+cannot be locked out.
+
+Treat the viewer key like a password to the map: anyone holding it sees
+where the tracker is. Rotate it when you stop trusting a holder.
 
 ### Google sign-in (optional, for named accounts)
 

@@ -174,7 +174,9 @@ tbody tr.clickable { cursor: pointer; }
 
 /* ---- map ---- */
 .map-card { display: flex; flex-direction: column; }
-.map { height: 460px; border-radius: 0 0 var(--radius) var(--radius); overflow: hidden; background: var(--surface-2); }
+/* isolation keeps Leaflet's own z-indexes (panes 400, controls 1000)
+   inside the map box so they never paint over the sticky header or a dialog. */
+.map { height: 460px; border-radius: 0 0 var(--radius) var(--radius); overflow: hidden; background: var(--surface-2); isolation: isolate; }
 @media (max-width: 640px) { .map { height: 320px; } }
 .leaflet-container { font: inherit; }
 .leaflet-control-attribution { font-size: 10px; }
@@ -218,6 +220,14 @@ tbody tr.clickable { cursor: pointer; }
 .raw dt { color: var(--muted); display: inline; }
 .raw dd { display: inline; margin: 0 0 0 6px; font-variant-numeric: tabular-nums; }
 .raw .row { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px dashed var(--border); padding: 2px 0; }
+
+/* ---- dialog ---- */
+.overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); display: grid; place-items: center; z-index: 100; padding: 16px; }
+.dialog { width: min(560px, 100%); }
+.dialog .actions { display: flex; flex-direction: column; gap: 10px; }
+.fresh .label { font-size: 11px; color: var(--muted); margin: 10px 0 4px; }
+.keyrow { display: flex; gap: 8px; align-items: center; }
+.keyrow code { flex: 1; padding: 8px 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; overflow-wrap: anywhere; user-select: all; }
 
 /* ---- login ---- */
 .login { min-height: 100%; display: grid; place-items: center; padding: 24px; }

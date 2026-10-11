@@ -23,6 +23,7 @@ interface Props {
   onSignOut: () => void;
   streamOk: boolean;
   now: number;
+  onAccessKey?: () => void;
 }
 
 export function Header(p: Props) {
@@ -67,6 +68,11 @@ export function Header(p: Props) {
       <button className="btn icon" onClick={p.onToggleTheme} title="Toggle light / dark">
         {p.theme === 'dark' ? '☀' : '☾'}
       </button>
+      {p.me.role === 'admin' && p.onAccessKey && (
+        <button className="btn" onClick={p.onAccessKey} title="Change the shared access key">
+          Access key
+        </button>
+      )}
       <span className="chip" title={p.me.email}>
         {p.me.picture && <img src={p.me.picture} alt="" referrerPolicy="no-referrer" />}
         {p.me.name ?? p.me.email}

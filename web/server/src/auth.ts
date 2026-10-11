@@ -7,17 +7,18 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import { OAuth2Client } from 'google-auth-library';
 import { SignJWT, jwtVerify } from 'jose';
 
-import type { Me } from '../../shared/types.js';
-import { AccessKeyGate, keyFingerprint } from './accessKey.js';
+import type { Me, Role } from '../../shared/types.js';
+import { AttemptLimiter } from './accessKey.js';
 import { config } from './config.js';
+import { adminFingerprint, matchKey, viewerFingerprint } from './keys.js';
 
 export const SESSION_COOKIE = 'tracker_session';
 const secret = new TextEncoder().encode(config.sessionSecret);
 const google = config.googleClientId ? new OAuth2Client(config.googleClientId) : null;
-const gate = config.accessKey ? new AccessKeyGate(config.accessKey) : null;
-const keyFingerprintNow = config.accessKey ? keyFingerprint(config.accessKey) : null;
+const limiter = new AttemptLimiter();
 
-export const VIEWER: Me = { email: 'viewer', name: 'Shared access', picture: null };
+export const VIEWER: Me = { email: 'viewer', name: 'Shared access', picture: null, role: 'viewer' };
+export const ADMIN: Me = { email: 'admin', name: 'Owner', picture: null, role: 'admin' };
 
 export class AuthError extends Error {
   constructor(message: string, readonly status = 401) {
@@ -32,22 +33,26 @@ export async function verifyGoogleCredential(credential: string): Promise<Me> {
   const email = payload?.email?.toLowerCase();
   if (!email || !payload?.email_verified) throw new AuthError('Google account has no verified e-mail');
   if (!config.allowedEmails.includes(email)) throw new AuthError(`${email} is not on the allow list`, 403);
-  return { email, name: payload.name ?? null, picture: payload.picture ?? null };
+  return { email, name: payload.name ?? null, picture: payload.picture ?? null, role: 'admin' };
 }
 
-// Shared key: anyone with it may watch. The session remembers which key it
-// was issued for, so changing ACCESS_KEY signs everyone out at once.
-export function verifyAccessKey(key: string, address: string): Me {
-  if (!gate) throw new AuthError('Access key sign-in is not enabled', 503);
-  const verdict = gate.check(key, address);
-  if (verdict === 'locked') throw new AuthError('Too many attempts, try again in 15 minutes', 429);
-  if (verdict === 'bad') throw new AuthError('Wrong access key');
-  return VIEWER;
+// One field, two keys: the admin key (server secret) or the shared viewer
+// key (database). Wrong guesses are limited per address.
+export async function verifyAccessKey(key: string, address: string): Promise<Me> {
+  if (limiter.check(address) === 'locked') throw new AuthError('Too many attempts, try again in 15 minutes', 429);
+  const match = await matchKey(key);
+  if (!match) {
+    limiter.failure(address);
+    throw new AuthError('Wrong access key');
+  }
+  limiter.success(address);
+  return match === 'admin' ? ADMIN : VIEWER;
 }
 
 export async function issueSession(reply: FastifyReply, request: FastifyRequest, me: Me): Promise<void> {
-  const viaKey = me.email === VIEWER.email;
-  const token = await new SignJWT({ name: me.name, picture: me.picture, key: viaKey ? keyFingerprintNow : undefined })
+  // Key sessions remember the generation of the key they were issued for.
+  const kid = me.email === VIEWER.email ? await viewerFingerprint() : me.email === ADMIN.email ? adminFingerprint() : undefined;
+  const token = await new SignJWT({ name: me.name, picture: me.picture, role: me.role, kid: kid ?? undefined })
     .setProtectedHeader({ alg: 'HS256' })
     .setSubject(me.email)
     .setIssuedAt()
@@ -67,7 +72,7 @@ export function clearSession(reply: FastifyReply): void {
 }
 
 export async function currentUser(request: FastifyRequest): Promise<Me | null> {
-  if (config.authDisabled) return { email: 'dev@localhost', name: 'Developer', picture: null };
+  if (config.authDisabled) return { email: 'dev@localhost', name: 'Developer', picture: null, role: 'admin' };
   const token = request.cookies[SESSION_COOKIE];
   if (!token) return null;
   try {
@@ -75,13 +80,20 @@ export async function currentUser(request: FastifyRequest): Promise<Me | null> {
     const email = payload.sub;
     if (!email) return null;
     if (email === VIEWER.email) {
-      return keyFingerprintNow && payload.key === keyFingerprintNow ? VIEWER : null;
+      const current = await viewerFingerprint();
+      return current && payload.kid === current ? VIEWER : null;
+    }
+    if (email === ADMIN.email) {
+      const current = adminFingerprint();
+      return current && payload.kid === current ? ADMIN : null;
     }
     if (!config.allowedEmails.includes(email)) return null;
+    const role: Role = 'admin';
     return {
       email,
       name: typeof payload.name === 'string' ? payload.name : null,
       picture: typeof payload.picture === 'string' ? payload.picture : null,
+      role,
     };
   } catch {
     return null;

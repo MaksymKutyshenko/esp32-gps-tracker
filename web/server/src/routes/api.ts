@@ -1,9 +1,10 @@
 import type { FastifyInstance } from 'fastify';
 
-import type { AppConfig } from '../../../shared/types.js';
+import type { AccessKeyInfo, AppConfig } from '../../../shared/types.js';
 import { AuthError, clearSession, currentUser, issueSession, verifyAccessKey, verifyGoogleCredential } from '../auth.js';
 import { config } from '../config.js';
 import { hub } from '../events.js';
+import { setViewerKey, viewerKeyInfo } from '../keys.js';
 import * as repo from '../repo.js';
 import { buildOverview } from './ingest.js';
 
@@ -32,7 +33,7 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
 
   app.get('/api/config', async (): Promise<AppConfig> => ({
     googleClientId: config.googleClientId,
-    accessKeyEnabled: config.accessKey !== null,
+    accessKeyEnabled: true,
     authDisabled: config.authDisabled,
     onlineTimeoutS: config.onlineTimeoutS,
   }));
@@ -58,9 +59,9 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
       return reply.code(400).send({ error: 'key missing' });
     }
     try {
-      const me = verifyAccessKey(key, request.ip);
+      const me = await verifyAccessKey(key, request.ip);
       await issueSession(reply, request, me);
-      app.log.info(`signed in with the access key from ${request.ip}`);
+      app.log.info(`signed in with the ${me.role} key from ${request.ip}`);
       return me;
     } catch (err) {
       const status = err instanceof AuthError ? err.status : 401;
@@ -82,6 +83,26 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.get('/api/me', async (request) => currentUser(request));
+
+  // The shared viewer key: admins see when it last changed and can replace
+  // it. The clear text is returned exactly once, on rotation.
+  app.get('/api/access-key', async (request, reply): Promise<AccessKeyInfo | void> => {
+    const me = await currentUser(request);
+    if (me?.role !== 'admin') return reply.code(403).send({ error: 'admin only' });
+    return viewerKeyInfo();
+  });
+
+  app.post<{ Body: { key?: string } }>('/api/access-key', async (request, reply) => {
+    const me = await currentUser(request);
+    if (me?.role !== 'admin') return reply.code(403).send({ error: 'admin only' });
+    const custom = request.body?.key;
+    if (custom !== undefined && (typeof custom !== 'string' || custom.length < 12 || custom.length > 256)) {
+      return reply.code(400).send({ error: 'a custom key needs 12 to 256 characters' });
+    }
+    const key = await setViewerKey(custom ?? null, me.email);
+    app.log.info(`viewer access key rotated by ${me.email}`);
+    return { key, ...(await viewerKeyInfo()) };
+  });
 
   app.get('/api/devices', async () => repo.listDevices(new Date(), config.onlineTimeoutS));
 
