@@ -5,6 +5,7 @@
 
 #include "config.hpp"
 #include "logic/NmeaLineAssembler.hpp"
+#include "logic/UbxAck.hpp"
 #include "periph/GnssProfile.hpp"
 #include "periph/UartPort.hpp"
 
@@ -29,6 +30,9 @@ public:
     uint32_t overflows() const { return assembler_.overflows(); }
 
 private:
+    // Waits for the receiver's answer to one setup frame.
+    UbxAckScanner::Result awaitAck(uint8_t messageClass, uint8_t messageId);
+
     UartPort &uart_;
     NmeaLineAssembler<Config::gpsLineBytes> assembler_;
     uint8_t chunk_[64] = {};

@@ -64,6 +64,8 @@ namespace Config
     constexpr size_t gpsLineBytes = 96;
     // No sentence for this long means the receiver is dead or unplugged.
     constexpr uint32_t gpsSilenceTimeoutMs = 5000;
+    // The receiver answers a configuration frame within milliseconds.
+    constexpr uint32_t gpsAckTimeoutMs = 300;
 
     // ---- Accelerometer (BMA400, optional until delivered) --------------
     constexpr gpio_num_t accelInterruptPin = GPIO_NUM_6; // INT1, RTC GPIO

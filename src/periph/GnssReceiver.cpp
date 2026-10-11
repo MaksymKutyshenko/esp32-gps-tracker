@@ -3,6 +3,8 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 
+#include "logic/UbxAck.hpp"
+
 namespace
 {
     constexpr const char *logTag = "gnss";
@@ -16,22 +18,54 @@ void GnssReceiver::begin(const GnssProfile &profile)
 {
     ESP_ERROR_CHECK(uart_.setBaudRate(profile.baudRate));
 
-    // Rate and sentence selection for this module. Sent blind: the UBX
-    // acknowledgements come back in the NMEA stream, where the assembler
-    // skips them, and the effect shows up as the per-minute 'nmea rx'
-    // count (about 180 at 1 Hz with three sentences, 7200 untouched).
-    size_t sent = 0;
+    // Rate, sentence selection, static hold and accuracy mask for this
+    // module. Each frame is answered with UBX-ACK-ACK or -NAK inside the
+    // NMEA stream; a NAK means the receiver's firmware does not know a
+    // key, and the log says which frame so the profile can be adjusted.
+    size_t acknowledged = 0;
     for (size_t i = 0; i < profile.setupCount; ++i)
     {
-        if (uart_.write(profile.setup[i].bytes, profile.setup[i].length) == ESP_OK)
+        const UbxCommand &command = profile.setup[i];
+        if (uart_.write(command.bytes, command.length) != ESP_OK)
         {
-            ++sent;
+            ESP_LOGW(logTag, "Setup frame %u: UART write failed", static_cast<unsigned>(i + 1));
+            continue;
+        }
+        const UbxAckScanner::Result answer = awaitAck(command.bytes[2], command.bytes[3]);
+        if (answer == UbxAckScanner::Result::Ack)
+        {
+            ++acknowledged;
+        }
+        else
+        {
+            ESP_LOGW(logTag, "Setup frame %u (class 0x%02X id 0x%02X): %s", static_cast<unsigned>(i + 1),
+                     command.bytes[2], command.bytes[3],
+                     answer == UbxAckScanner::Result::Nak ? "rejected (NAK)" : "no answer");
         }
     }
     ESP_ERROR_CHECK(uart_.discardInput());
-    ESP_LOGI(logTag, "Receiver profile: %s at %" PRIu32 " baud, %u/%u setup frames sent",
-             profile.name, profile.baudRate, static_cast<unsigned>(sent),
+    ESP_LOGI(logTag, "Receiver profile: %s at %" PRIu32 " baud, %u/%u setup frames acknowledged",
+             profile.name, profile.baudRate, static_cast<unsigned>(acknowledged),
              static_cast<unsigned>(profile.setupCount));
+}
+
+UbxAckScanner::Result GnssReceiver::awaitAck(uint8_t messageClass, uint8_t messageId)
+{
+    UbxAckScanner scanner;
+    const int64_t deadlineUs = esp_timer_get_time() + static_cast<int64_t>(Config::gpsAckTimeoutMs) * 1000;
+    while (esp_timer_get_time() < deadlineUs)
+    {
+        const size_t count = uart_.read(chunk_, sizeof chunk_, pdMS_TO_TICKS(20));
+        for (size_t i = 0; i < count; ++i)
+        {
+            const UbxAckScanner::Result result = scanner.push(chunk_[i], messageClass, messageId);
+            if (result != UbxAckScanner::Result::None)
+            {
+                return result;
+            }
+        }
+    }
+    return UbxAckScanner::Result::None;
 }
 
 bool GnssReceiver::readSentence(const char *&line, uint32_t timeoutMs)

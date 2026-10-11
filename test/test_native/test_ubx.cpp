@@ -2,6 +2,7 @@
 // computed independently (Python, Fletcher-8 over class..payload).
 #include <unity.h>
 
+#include "logic/UbxAck.hpp"
 #include "logic/UbxFrame.hpp"
 #include "periph/GnssProfile.hpp"
 
@@ -61,4 +62,47 @@ void ubx_static_hold_frames_carry_threshold_and_checksum()
     TEST_ASSERT_EQUAL_UINT8(30, acc.bytes[14]); // accuracy mask, metres
     TEST_ASSERT_EQUAL_UINT8(0x11, acc.bytes[16]);
     TEST_ASSERT_EQUAL_UINT8(0x71, acc.bytes[17]);
+}
+
+namespace
+{
+    UbxAckScanner::Result feed(UbxAckScanner &scanner, const uint8_t *bytes, size_t length,
+                               uint8_t cls, uint8_t id)
+    {
+        UbxAckScanner::Result last = UbxAckScanner::Result::None;
+        for (size_t i = 0; i < length; ++i)
+        {
+            const UbxAckScanner::Result r = scanner.push(bytes[i], cls, id);
+            if (r != UbxAckScanner::Result::None)
+            {
+                last = r;
+            }
+        }
+        return last;
+    }
+}
+
+void ubx_ack_scanner_finds_ack_and_nak_inside_nmea_text()
+{
+    // "$GNRMC,...*7A\r\n" then ACK-ACK for CFG-VALSET (0x06 0x8A), more text.
+    const uint8_t ackStream[] = {'$', 'G', 'N', 'R', 'M', 'C', ',', '*', '7', 'A', '\r', '\n',
+                                 0xB5, 0x62, 0x05, 0x01, 0x02, 0x00, 0x06, 0x8A, 0x98, 0xC1,
+                                 '$', 'G', 'N'};
+    UbxAckScanner scanner;
+    TEST_ASSERT_EQUAL(UbxAckScanner::Result::Ack, feed(scanner, ackStream, sizeof ackStream, 0x06, 0x8A));
+
+    const uint8_t nakStream[] = {0xB5, 0x62, 0x05, 0x00, 0x02, 0x00, 0x06, 0x8A, 0x97, 0xBC};
+    UbxAckScanner scanner2;
+    TEST_ASSERT_EQUAL(UbxAckScanner::Result::Nak, feed(scanner2, nakStream, sizeof nakStream, 0x06, 0x8A));
+}
+
+void ubx_ack_scanner_ignores_other_frames_and_bad_checksums()
+{
+    const uint8_t ackForOther[] = {0xB5, 0x62, 0x05, 0x01, 0x02, 0x00, 0x06, 0x8A, 0x98, 0xC1};
+    UbxAckScanner scanner;
+    TEST_ASSERT_EQUAL(UbxAckScanner::Result::None, feed(scanner, ackForOther, sizeof ackForOther, 0x06, 0x24));
+
+    const uint8_t corrupted[] = {0xB5, 0x62, 0x05, 0x01, 0x02, 0x00, 0x06, 0x8A, 0x98, 0xC0};
+    UbxAckScanner scanner2;
+    TEST_ASSERT_EQUAL(UbxAckScanner::Result::None, feed(scanner2, corrupted, sizeof corrupted, 0x06, 0x8A));
 }

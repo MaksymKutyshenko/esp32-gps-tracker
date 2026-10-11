@@ -31,6 +31,8 @@ void ubx_frame_matches_reference_cfg_rate();
 void ubx_frame_matches_reference_cfg_msg();
 void ubx_m10_setup_frame_has_valset_header_and_checksum();
 void ubx_static_hold_frames_carry_threshold_and_checksum();
+void ubx_ack_scanner_finds_ack_and_nak_inside_nmea_text();
+void ubx_ack_scanner_ignores_other_frames_and_bad_checksums();
 
 // test_fsm.cpp
 void fsm_starts_booting_and_acquires_on_first_sentence();
@@ -116,6 +118,8 @@ int main()
     RUN_TEST(ubx_frame_matches_reference_cfg_msg);
     RUN_TEST(ubx_m10_setup_frame_has_valset_header_and_checksum);
     RUN_TEST(ubx_static_hold_frames_carry_threshold_and_checksum);
+    RUN_TEST(ubx_ack_scanner_finds_ack_and_nak_inside_nmea_text);
+    RUN_TEST(ubx_ack_scanner_ignores_other_frames_and_bad_checksums);
 
     RUN_TEST(fsm_starts_booting_and_acquires_on_first_sentence);
     RUN_TEST(fsm_tracks_on_valid_fix_and_returns_to_acquiring_when_lost);
