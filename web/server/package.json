@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "PORT=5055 tsx watch --env-file-if-exists=../.env src/index.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && cp -R src/migrations dist/server/src/migrations",
     "start": "node --env-file-if-exists=../.env dist/server/src/index.js",
     "test": "tsx --test test/*.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"

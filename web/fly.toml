@@ -1,34 +1,32 @@
-# Fly.io deployment: `fly launch --copy-config --no-deploy` once (pick a
-# unique app name), set the secrets, then `fly deploy`. See README.md.
-app = "gps-tracker-web"
-primary_region = "waw"
+# fly.toml app configuration file generated for gps-tracker-mk on 2026-10-11T12:08:21+03:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'gps-tracker-mk'
+primary_region = 'ams'
 
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = 'Dockerfile'
 
 [env]
-  PORT = "5055"
-  HOST = "0.0.0.0"
-  ONLINE_TIMEOUT_S = "150"
+  HOST = '0.0.0.0'
+  ONLINE_TIMEOUT_S = '150'
+  PORT = '5055'
 
 [http_service]
   internal_port = 5055
-  # The SIM800C speaks plain HTTP only: no redirect to HTTPS. The browser
-  # still uses https://<app>.fly.dev, Fly terminates TLS for it.
-  force_https = false
-  # Keep one machine up: the device reports every few seconds and open
-  # dashboards hold an SSE stream.
-  auto_stop_machines = "off"
+  auto_stop_machines = 'off'
   auto_start_machines = true
   min_machines_running = 1
 
   [[http_service.checks]]
-    interval = "30s"
-    timeout = "5s"
-    grace_period = "10s"
-    method = "GET"
-    path = "/api/healthz"
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '10s'
+    method = 'GET'
+    path = '/api/healthz'
 
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "256mb"
+  size = 'shared-cpu-1x'
+  memory = '256mb'

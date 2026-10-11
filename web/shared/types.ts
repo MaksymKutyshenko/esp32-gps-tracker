@@ -76,6 +76,7 @@ export interface Me {
 
 export interface AppConfig {
   googleClientId: string | null;
+  accessKeyEnabled: boolean;
   authDisabled: boolean;
   onlineTimeoutS: number;
 }

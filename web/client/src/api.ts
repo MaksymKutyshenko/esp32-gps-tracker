@@ -37,6 +37,7 @@ function json(body: unknown): RequestInit {
 export const getConfig = () => api<AppConfig>('/api/config');
 export const getMe = () => api<Me | null>('/api/me');
 export const signInWithGoogle = (credential: string) => api<Me>('/api/auth/google', json({ credential }));
+export const signInWithKey = (key: string) => api<Me>('/api/auth/key', json({ key }));
 export const signInDev = () => api<Me>('/api/auth/dev', json({}));
 export const signOut = () => api<{ ok: boolean }>('/api/auth/logout', json({}));
 export const listDevices = () => api<DeviceSummary[]>('/api/devices');

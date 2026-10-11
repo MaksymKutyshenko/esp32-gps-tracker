@@ -1,13 +1,13 @@
 import type { FastifyInstance } from 'fastify';
 
 import type { AppConfig } from '../../../shared/types.js';
-import { AuthError, clearSession, currentUser, issueSession, verifyGoogleCredential } from '../auth.js';
+import { AuthError, clearSession, currentUser, issueSession, verifyAccessKey, verifyGoogleCredential } from '../auth.js';
 import { config } from '../config.js';
 import { hub } from '../events.js';
 import * as repo from '../repo.js';
 import { buildOverview } from './ingest.js';
 
-const PUBLIC = new Set(['/api/config', '/api/auth/google', '/api/auth/dev', '/api/auth/logout', '/api/healthz']);
+const PUBLIC = new Set(['/api/config', '/api/auth/google', '/api/auth/key', '/api/auth/dev', '/api/auth/logout', '/api/healthz']);
 
 function parseRange(query: Record<string, unknown>, defaultHours: number, maxLimit: number): repo.RangeQuery {
   const now = Date.now();
@@ -32,6 +32,7 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
 
   app.get('/api/config', async (): Promise<AppConfig> => ({
     googleClientId: config.googleClientId,
+    accessKeyEnabled: config.accessKey !== null,
     authDisabled: config.authDisabled,
     onlineTimeoutS: config.onlineTimeoutS,
   }));
@@ -47,6 +48,23 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     } catch (err) {
       const status = err instanceof AuthError ? err.status : 401;
       app.log.warn(`sign-in refused: ${(err as Error).message}`);
+      return reply.code(status).send({ error: (err as Error).message });
+    }
+  });
+
+  app.post<{ Body: { key?: string } }>('/api/auth/key', async (request, reply) => {
+    const key = request.body?.key;
+    if (typeof key !== 'string' || key.length === 0 || key.length > 256) {
+      return reply.code(400).send({ error: 'key missing' });
+    }
+    try {
+      const me = verifyAccessKey(key, request.ip);
+      await issueSession(reply, request, me);
+      app.log.info(`signed in with the access key from ${request.ip}`);
+      return me;
+    } catch (err) {
+      const status = err instanceof AuthError ? err.status : 401;
+      app.log.warn(`access key refused from ${request.ip}: ${(err as Error).message}`);
       return reply.code(status).send({ error: (err as Error).message });
     }
   });

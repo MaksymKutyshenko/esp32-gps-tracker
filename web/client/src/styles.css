@@ -225,5 +225,8 @@ tbody tr.clickable { cursor: pointer; }
 .login h1 { font-size: 22px; margin-bottom: 6px; }
 .login p { color: var(--text-2); margin: 0 0 20px; }
 .login .gsi { display: flex; justify-content: center; min-height: 44px; }
+.keyform { display: flex; gap: 8px; }
+.keyform input { flex: 1; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); min-width: 0; }
+.keyform input:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: transparent; }
 .error { color: var(--err); font-size: 13px; margin-top: 12px; }
 .banner { background: var(--accent-soft); border-bottom: 1px solid var(--border); padding: 6px 16px; font-size: 12px; text-align: center; }

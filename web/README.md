@@ -9,7 +9,7 @@ dashboard; Postgres keeps the history.
 | Server | Node 22, TypeScript, Fastify; plain SQL on Postgres 16 (`pg`), no ORM |
 | Client | React 18, Vite, Leaflet (OpenStreetMap tiles), Recharts |
 | Live updates | Server-sent events: every report reaches every open tab the moment it lands |
-| Sign-in | Google Identity Services; the server verifies the ID token and keeps an allow list of e-mails |
+| Sign-in | A shared access key (one input, easy to hand to friends), optionally Google sign-in with an e-mail allow list |
 | Device protocol | The firmware's OsmAnd position GET plus a `health=1` GET with every diagnostics counter |
 
 ## Run it locally
@@ -43,7 +43,23 @@ once there is a fix. The device needs plain HTTP on a routable address; a
 SIM800C cannot do TLS, so on the internet put the server behind a host with
 a public IP (or a reverse proxy that still accepts HTTP on the device port).
 
-## Google sign-in
+## Sign-in
+
+### Shared access key (default)
+
+Set `ACCESS_KEY` to a long random string (`openssl rand -base64 18`). The
+login page is one input; give the key to whoever may watch, or hand them a
+link of the form `https://your.host/#key=<the key>`, which signs them in
+and drops the key from the address bar (a URL fragment is never sent to
+the server or written to its logs). Sessions are HttpOnly cookies valid
+for 30 days and carry a fingerprint of the key, so changing `ACCESS_KEY`
+signs everyone out at once. Wrong guesses are compared in constant time
+and an address is locked out after 10 failures in 15 minutes.
+
+Treat the key like a password to the map: anyone holding it sees where
+the tracker is. Rotate it when you stop trusting a holder.
+
+### Google sign-in (optional, for named accounts)
 
 1. In [Google Cloud console → Credentials](https://console.cloud.google.com/apis/credentials)
    create an OAuth client ID of type **Web application**.
@@ -51,12 +67,12 @@ a public IP (or a reverse proxy that still accepts HTTP on the device port).
    development and `https://your.host` for production. No redirect URI and
    no client secret are needed: the browser gets an ID token and posts it to
    the server, which verifies it against Google's keys.
-3. Put the client ID in `.env` as `GOOGLE_CLIENT_ID`, list who may sign in
-   in `ALLOWED_EMAILS`, set a long random `SESSION_SECRET`, and set
-   `AUTH_DISABLED=false`.
+3. Put the client ID in `.env` as `GOOGLE_CLIENT_ID` and list who may sign
+   in in `ALLOWED_EMAILS`.
 
-Sessions are signed JWT cookies (HttpOnly, SameSite=Lax, 30 days); the
-server keeps no session table.
+Both methods can be on at once. Either way set a long random
+`SESSION_SECRET` and keep `AUTH_DISABLED=false`; sessions are signed JWT
+cookies, the server keeps no session table.
 
 ## Production
 
@@ -91,8 +107,8 @@ curl -i "http://my-tracker.fly.dev/?id=test&lat=50.45&lon=30.52"   # expect 200 
 ```
 
 Then on the tracker: `set url http://my-tracker.fly.dev` (no port: Fly
-serves the device on 80 and the dashboard on 443), and in the Google
-console add `https://my-tracker.fly.dev` as an authorised origin.
+serves the device on 80 and the dashboard on 443). For Google sign-in add
+`https://my-tracker.fly.dev` as an authorised origin in the Google console.
 
 ### Behind a Cloudflare Tunnel (no public IP)
 

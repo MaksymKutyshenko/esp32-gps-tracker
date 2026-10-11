@@ -8,11 +8,16 @@ import { OAuth2Client } from 'google-auth-library';
 import { SignJWT, jwtVerify } from 'jose';
 
 import type { Me } from '../../shared/types.js';
+import { AccessKeyGate, keyFingerprint } from './accessKey.js';
 import { config } from './config.js';
 
 export const SESSION_COOKIE = 'tracker_session';
 const secret = new TextEncoder().encode(config.sessionSecret);
 const google = config.googleClientId ? new OAuth2Client(config.googleClientId) : null;
+const gate = config.accessKey ? new AccessKeyGate(config.accessKey) : null;
+const keyFingerprintNow = config.accessKey ? keyFingerprint(config.accessKey) : null;
+
+export const VIEWER: Me = { email: 'viewer', name: 'Shared access', picture: null };
 
 export class AuthError extends Error {
   constructor(message: string, readonly status = 401) {
@@ -30,8 +35,19 @@ export async function verifyGoogleCredential(credential: string): Promise<Me> {
   return { email, name: payload.name ?? null, picture: payload.picture ?? null };
 }
 
+// Shared key: anyone with it may watch. The session remembers which key it
+// was issued for, so changing ACCESS_KEY signs everyone out at once.
+export function verifyAccessKey(key: string, address: string): Me {
+  if (!gate) throw new AuthError('Access key sign-in is not enabled', 503);
+  const verdict = gate.check(key, address);
+  if (verdict === 'locked') throw new AuthError('Too many attempts, try again in 15 minutes', 429);
+  if (verdict === 'bad') throw new AuthError('Wrong access key');
+  return VIEWER;
+}
+
 export async function issueSession(reply: FastifyReply, request: FastifyRequest, me: Me): Promise<void> {
-  const token = await new SignJWT({ name: me.name, picture: me.picture })
+  const viaKey = me.email === VIEWER.email;
+  const token = await new SignJWT({ name: me.name, picture: me.picture, key: viaKey ? keyFingerprintNow : undefined })
     .setProtectedHeader({ alg: 'HS256' })
     .setSubject(me.email)
     .setIssuedAt()
@@ -57,7 +73,11 @@ export async function currentUser(request: FastifyRequest): Promise<Me | null> {
   try {
     const { payload } = await jwtVerify(token, secret);
     const email = payload.sub;
-    if (!email || !config.allowedEmails.includes(email)) return null;
+    if (!email) return null;
+    if (email === VIEWER.email) {
+      return keyFingerprintNow && payload.key === keyFingerprintNow ? VIEWER : null;
+    }
+    if (!config.allowedEmails.includes(email)) return null;
     return {
       email,
       name: typeof payload.name === 'string' ? payload.name : null,

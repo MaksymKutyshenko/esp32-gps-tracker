@@ -2,6 +2,7 @@
   "name": "gps-tracker-web",
   "private": true,
   "version": "0.1.0",
+  "type": "module",
   "description": "Web app for the ESP32-S3 GPS tracker: live map, device health, analysis",
   "scripts": {
     "dev": "concurrently -n server,client -c blue,magenta \"pnpm --filter server dev\" \"pnpm --filter client dev\"",
@@ -16,5 +17,7 @@
     "concurrently": "^9.1.2"
   },
   "packageManager": "pnpm@10.17.1",
-  "engines": { "node": ">=22" }
+  "engines": {
+    "node": ">=22"
+  }
 }
