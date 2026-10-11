@@ -137,11 +137,14 @@ blue parked.
 
 - **LogPolicy** sets the record interval from measured movement: a short
   interval and a distance trigger while moving, a long heartbeat while
-  parked. Thresholds and intervals are settings.
+  parked. Thresholds and intervals are settings. It also refuses fixes
+  with fewer than 5 satellites or HDOP above 3.0: shown on the screen,
+  never recorded, so a window-side wander does not become a track.
+- **UplinkScheduler** paces successful uploads and backs off exponentially
+  on failures; after a run of unanswered requests the modem is
+  power-cycled, while a request the server refuses only backs off.
 - **SpeedMotionDetector** applies hysteresis and a stop delay to GNSS speed
   so receiver noise does not toggle the state.
-- **UplinkScheduler** paces successful uploads and backs off exponentially
-  on failures; after a run of failures the modem is power-cycled.
 - **EmaFilter** smooths speed and altitude for the display only; records
   carry raw values.
 

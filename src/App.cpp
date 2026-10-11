@@ -103,7 +103,8 @@ App::App()
                     Config::Defaults::motionStopDelayMs}),
       motion_(&speedMotion_),
       policy_({Config::Defaults::movingIntervalMs, Config::Defaults::stationaryIntervalMs,
-               Config::Defaults::minDistanceM}),
+               Config::Defaults::minDistanceM, Config::Defaults::minSatellites,
+               Config::Defaults::maxHdopCenti}),
       buttonDecoder_(Config::buttonDebounceUs, Config::buttonLongPressUs),
       view_(display_),
       storage_(sdCard_, Config::trackDirectory),
@@ -178,7 +179,8 @@ void App::applyLiveSettings(const Settings::Values &values)
     // The transport copied the compile-time default when it was
     // constructed, before NVS was read; hand it the loaded value.
     modemTransport_.setApn(values.apn);
-    policy_.setParams({values.movingIntervalMs, values.stationaryIntervalMs, values.minDistanceM});
+    policy_.setParams({values.movingIntervalMs, values.stationaryIntervalMs, values.minDistanceM,
+                       Config::Defaults::minSatellites, Config::Defaults::maxHdopCenti});
     speedMotion_.setParams({values.motionStartCmPerS, values.motionStopCmPerS, values.motionStopDelayMs});
     scheduler_.setParams({values.uplinkMinIntervalMs, Config::uplinkBackoffInitialMs,
                           Config::uplinkBackoffMaxMs, Config::gsmFailuresBeforePowerCycle});
@@ -272,7 +274,8 @@ void App::gpsLoop()
         Settings::Values updated = {};
         if (xQueueReceive(gpsSettingsQueue_, &updated, 0) == pdTRUE)
         {
-            policy_.setParams({updated.movingIntervalMs, updated.stationaryIntervalMs, updated.minDistanceM});
+            policy_.setParams({updated.movingIntervalMs, updated.stationaryIntervalMs, updated.minDistanceM,
+                               Config::Defaults::minSatellites, Config::Defaults::maxHdopCenti});
             speedMotion_.setParams({updated.motionStartCmPerS, updated.motionStopCmPerS,
                                     updated.motionStopDelayMs});
             ESP_LOGI(logTag, "gps task applied new settings");

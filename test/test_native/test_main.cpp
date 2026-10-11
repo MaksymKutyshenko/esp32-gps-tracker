@@ -55,6 +55,7 @@ void geodesy_same_point_is_zero();
 void geodesy_one_hundredth_degree_of_latitude_is_about_1112_m();
 void geodesy_longitude_shrinks_with_latitude();
 void logpolicy_never_logs_invalid_fix();
+void logpolicy_skips_fixes_with_few_satellites_or_poor_hdop();
 void logpolicy_logs_first_valid_fix_immediately();
 void logpolicy_moving_uses_short_interval();
 void logpolicy_stationary_uses_long_interval();
@@ -137,6 +138,7 @@ int main()
     RUN_TEST(geodesy_one_hundredth_degree_of_latitude_is_about_1112_m);
     RUN_TEST(geodesy_longitude_shrinks_with_latitude);
     RUN_TEST(logpolicy_never_logs_invalid_fix);
+    RUN_TEST(logpolicy_skips_fixes_with_few_satellites_or_poor_hdop);
     RUN_TEST(logpolicy_logs_first_valid_fix_immediately);
     RUN_TEST(logpolicy_moving_uses_short_interval);
     RUN_TEST(logpolicy_stationary_uses_long_interval);

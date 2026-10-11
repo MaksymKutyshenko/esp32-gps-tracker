@@ -33,7 +33,7 @@ void ubx_m10_setup_frame_has_valset_header_and_checksum()
     TEST_ASSERT_EQUAL_UINT8(0x01, cmd.bytes[7]); // RAM layer only
     TEST_ASSERT_EQUAL_UINT8(0x86, cmd.bytes[46]);
     TEST_ASSERT_EQUAL_UINT8(0xCF, cmd.bytes[47]);
-    TEST_ASSERT_EQUAL_size_t(2, GnssProfiles::foxeerM10q250.setupCount);
+    TEST_ASSERT_EQUAL_size_t(3, GnssProfiles::foxeerM10q250.setupCount);
     TEST_ASSERT_EQUAL_size_t(5, GnssProfiles::beitianBe220.setupCount);
 }
 
@@ -49,9 +49,16 @@ void ubx_static_hold_frames_carry_threshold_and_checksum()
     const UbxCommand &m8 = GnssProfiles::m8Commands[4];
     TEST_ASSERT_EQUAL_size_t(44, m8.length);
     TEST_ASSERT_EQUAL_UINT8(0x24, m8.bytes[3]);  // CFG-NAV5
-    TEST_ASSERT_EQUAL_UINT8(0x40, m8.bytes[6]);  // staticHold mask bit
+    TEST_ASSERT_EQUAL_UINT8(0x50, m8.bytes[6]);  // posMask | staticHold
+    TEST_ASSERT_EQUAL_UINT8(30, m8.bytes[6 + 18]); // pAcc
     TEST_ASSERT_EQUAL_UINT8(100, m8.bytes[6 + 22]);
     TEST_ASSERT_EQUAL_UINT8(20, m8.bytes[6 + 28]);
-    TEST_ASSERT_EQUAL_UINT8(0x06, m8.bytes[42]);
-    TEST_ASSERT_EQUAL_UINT8(0xDC, m8.bytes[43]);
+    TEST_ASSERT_EQUAL_UINT8(0x34, m8.bytes[42]);
+    TEST_ASSERT_EQUAL_UINT8(0x38, m8.bytes[43]);
+
+    const UbxCommand &acc = GnssProfiles::m10Commands[2];
+    TEST_ASSERT_EQUAL_size_t(18, acc.length);
+    TEST_ASSERT_EQUAL_UINT8(30, acc.bytes[14]); // accuracy mask, metres
+    TEST_ASSERT_EQUAL_UINT8(0x11, acc.bytes[16]);
+    TEST_ASSERT_EQUAL_UINT8(0x71, acc.bytes[17]);
 }

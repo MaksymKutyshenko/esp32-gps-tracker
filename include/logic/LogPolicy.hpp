@@ -13,6 +13,11 @@
 //   stationary  -> every stationaryIntervalMs (heartbeat, proves the device
 //                  is alive without filling the card with one point)
 //
+// A fix also has to be worth recording: with few satellites or a poor
+// geometry (HDOP) the position wanders tens of metres while the device
+// sits still, and every wander would be logged and uploaded as movement.
+// Such fixes are skipped; 0 disables either gate.
+//
 // The parameters come from Settings (NVS), so the trade-off between track
 // detail and storage/airtime is a field setting, not a rebuild. Pure
 // logic, no ESP-IDF dependency; unit-tested on the host.
@@ -24,6 +29,8 @@ public:
         uint32_t movingIntervalMs;
         uint32_t stationaryIntervalMs;
         uint32_t minDistanceM;
+        uint8_t minSatellites;   // used in the solution; 0 = any
+        uint16_t maxHdopCenti;   // HDOP * 100; 0 = any
     };
 
     explicit LogPolicy(const Params &params) : params_(params) {}
@@ -33,7 +40,7 @@ public:
 
     bool shouldLog(const Fix &fix, uint32_t nowMs, bool moving) const
     {
-        if (!fix.valid)
+        if (!fix.valid || !isAccurate(fix))
         {
             return false;
         }
@@ -69,6 +76,19 @@ public:
     }
 
     void reset() { hasLast_ = false; }
+
+    bool isAccurate(const Fix &fix) const
+    {
+        if (params_.minSatellites > 0 && fix.satellites < params_.minSatellites)
+        {
+            return false;
+        }
+        if (params_.maxHdopCenti > 0 && fix.hdopCenti > params_.maxHdopCenti)
+        {
+            return false;
+        }
+        return true;
+    }
 
 private:
     Params params_;

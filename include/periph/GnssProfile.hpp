@@ -52,9 +52,19 @@ namespace GnssProfiles
         0x38, 0x00, 0x25, 0x20, staticHoldSpeedCmPerS,   // CFG-MOT-GNSSSPEED_THRS (cm/s)
         0x3B, 0x00, 0x25, 0x30, staticHoldReleaseM, 0x00, // CFG-MOT-GNSSDIST_THRS (m)
     });
+    // Output filter: a fix whose own horizontal accuracy estimate is worse
+    // than this is reported as invalid (RMC status V) instead of as a
+    // position. The receiver's estimate includes signal quality and
+    // multipath, which HDOP alone does not; at a window it sits at 20-60 m.
+    constexpr uint8_t positionAccuracyMaskM = 30;
+    inline constexpr UbxFrame<10> m10AccuracyMask(0x06, 0x8A, {
+        0x00, 0x01, 0x00, 0x00,
+        0x17, 0x00, 0x11, 0x30, positionAccuracyMaskM, 0x00, // CFG-NAVSPG-OUTFIL_PACC (m)
+    });
     inline constexpr UbxCommand m10Commands[] = {
         {m10Setup.data(), m10Setup.length()},
         {m10StaticHold.data(), m10StaticHold.length()},
+        {m10AccuracyMask.data(), m10AccuracyMask.length()},
     };
 
     // ---- u-blox M8 (protocol < 24): legacy UBX-CFG-RATE and UBX-CFG-MSG --
@@ -67,16 +77,17 @@ namespace GnssProfiles
     inline constexpr UbxFrame<3> m8GllOff(0x06, 0x01, {0xF0, 0x01, 0x00});
     inline constexpr UbxFrame<3> m8GsaOff(0x06, 0x01, {0xF0, 0x02, 0x00});
     inline constexpr UbxFrame<3> m8VtgOff(0x06, 0x01, {0xF0, 0x05, 0x00});
-    // UBX-CFG-NAV5 with only the staticHold mask bit (0x0040) set, so the
-    // other 34 bytes are ignored by the receiver.
+    // UBX-CFG-NAV5 with the posMask (0x0010) and staticHold (0x0040) bits
+    // set, so only pAcc, staticHoldThresh and staticHoldMaxDist apply and
+    // the other bytes are ignored by the receiver.
     inline constexpr UbxFrame<36> m8StaticHold(0x06, 0x24, {
-        0x40, 0x00,              // mask: staticHoldMask only
+        0x50, 0x00,              // mask: posMask | staticHoldMask
         0x00, 0x00,              // dynModel, fixMode (masked out)
         0x00, 0x00, 0x00, 0x00,  // fixedAlt
         0x00, 0x00, 0x00, 0x00,  // fixedAltVar
         0x00, 0x00,              // minElev, drLimit
         0x00, 0x00, 0x00, 0x00,  // pDop, tDop
-        0x00, 0x00, 0x00, 0x00,  // pAcc, tAcc
+        positionAccuracyMaskM, 0x00, 0x00, 0x00, // pAcc (m), tAcc
         staticHoldSpeedCmPerS,   // staticHoldThresh (cm/s)
         0x00, 0x00, 0x00,        // dgnssTimeout, cnoThreshNumSVs, cnoThresh
         0x00, 0x00,              // reserved

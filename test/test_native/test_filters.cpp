@@ -79,7 +79,7 @@ namespace
         fix.longitudeE7 = lonE7;
         return fix;
     }
-    const LogPolicy::Params params = {5000, 60'000, 50};
+    const LogPolicy::Params params = {5000, 60'000, 50, 0, 0}; // gates off
 }
 
 void logpolicy_never_logs_invalid_fix()
@@ -88,6 +88,20 @@ void logpolicy_never_logs_invalid_fix()
     Fix fix = fixAt(0, 0);
     fix.valid = false;
     TEST_ASSERT_FALSE(policy.shouldLog(fix, 0, true));
+}
+
+void logpolicy_skips_fixes_with_few_satellites_or_poor_hdop()
+{
+    LogPolicy policy({5000, 60'000, 50, 5, 300});
+    Fix fix = fixAt(0, 0);
+    fix.satellites = 4;
+    fix.hdopCenti = 120;
+    TEST_ASSERT_FALSE(policy.shouldLog(fix, 0, true)); // one satellite short
+    fix.satellites = 5;
+    fix.hdopCenti = 301;
+    TEST_ASSERT_FALSE(policy.shouldLog(fix, 0, true)); // geometry too poor
+    fix.hdopCenti = 300;
+    TEST_ASSERT_TRUE(policy.shouldLog(fix, 0, true));  // both at the limit
 }
 
 void logpolicy_logs_first_valid_fix_immediately()

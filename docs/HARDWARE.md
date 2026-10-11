@@ -163,10 +163,13 @@ it to GPIO16 if wanted.
   so a power cycle restores the module's own settings. Untouched, the
   Foxeer streams 120 sentences a second, most of the UART's capacity.
   The same sequence enables the receiver's static hold (speed below
-  1 m/s: report 0 and freeze the position until it moves 20 m). Without
-  it a parked tracker shows 1-3 km/h and coordinates drifting a few
-  metres a second, which the screen and the motion detector would take
-  for movement.
+  1 m/s: report 0 and freeze the position until it moves 20 m) and its
+  accuracy mask (a fix whose own horizontal accuracy estimate is worse
+  than 30 m is reported as invalid). Without them a parked tracker at a
+  window shows 1-3 km/h and a position that jumps 50 m at a time, and
+  every jump would be recorded and drawn on the map as a walk. The
+  firmware adds its own gate in `LogPolicy`: at least 5 satellites in
+  the solution and HDOP ≤ 3.0, or the fix is shown but not recorded.
 - The GNSS modules' default baud rates differ (Foxeer 115200, BE-220 9600).
   `Config::gpsBaudRate` must match the module in use; the firmware can later
   autodetect by trying both.

@@ -177,6 +177,11 @@ namespace Config
         constexpr uint32_t movingIntervalMs = 1000;    // every receiver epoch
         constexpr uint32_t stationaryIntervalMs = 60'000;
         constexpr uint32_t minDistanceM = 20;
+        // A fix is recorded only with this many satellites in the solution
+        // and HDOP at or below this value: at a window a 4-satellite fix
+        // with HDOP 5 wanders 50 m and would be logged as a walk.
+        constexpr uint8_t minSatellites = 5;
+        constexpr uint16_t maxHdopCenti = 300; // HDOP 3.0
         // 150 cm/s = 5.4 km/h, 50 cm/s = 1.8 km/h, 30 s below that = parked.
         constexpr uint32_t motionStartCmPerS = 150;
         constexpr uint32_t motionStopCmPerS = 50;
