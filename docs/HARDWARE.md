@@ -205,8 +205,10 @@ it to GPIO16 if wanted.
 - Battery Shield V8 has no seamless power path: plugging or unplugging
   the charger switches the boost converter between the input and the
   cells, and the 5 V / 3 V outputs dip for tens of milliseconds. The
-  ESP32 browns out and restarts (`Boot: reset reason BROWNOUT`), the OLED
-  goes black for a moment, the modem rides through on its own capacitors.
+  ESP32 browns out or power-on resets (`Boot: reset reason power-on`),
+  the OLED goes black for a moment, the modem rides through on its own
+  capacitors or restarts. On the bench pulling the charger out reset the
+  chip; plugging it in did not.
   Plug and unplug the charger with the tracker off, or hold the 5 V rail
   up with a 1000 µF capacitor near the devkit.
 - SuperMini quirks: some units have the Wi-Fi antenna mis-mounted (not

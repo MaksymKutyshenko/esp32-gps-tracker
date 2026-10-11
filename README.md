@@ -223,9 +223,31 @@ http://gps-tracker-mk.fly.dev/?id=<device>&health=1&fw=..&up=..&rst=..&st=..&fix
 
 ## Results
 
-_Pending hardware: current draw (idle / tracking / uploading), stack
-high-water marks, CPU load from the minute diagnostics line, soak test
-duration._
+Bench, DevKitC-1 on the battery shield, 2026-10-11 (minute diagnostics
+line and the web dashboard):
+
+- Stack headroom after 30 min: gps 1400 B, display 2000 B, logger 3600 B,
+  uplink 3000 B, ui 1400 B of 4096 / 4096 / 6144 / 7168 / 4096.
+- GNSS at a window: 6-9 satellites above the horizon, 13-17 with a
+  signal, strongest C/N0 28-34 dB-Hz; 1 Hz, 0 checksum failures per
+  minute when the modem is idle, 1-3 per minute while it transmits.
+- Uplink over 2G (Kyivstar, CSQ 14-20): one HTTP request takes 10-15 s;
+  with a position every 5 s and a health report every minute the modem
+  delivers 4-5 requests a minute, which is why the live queue is kept
+  short (see "Known issues").
+- Fault injection: `at AT+CFUN=1,1` (radio restart) 3/3 and
+  `at AT+CPOWD=1` (modem power-down, firmware power-cycles it) 3/3 without
+  a reset, after the modem got its own supply pair and the antenna was
+  attached; the same firmware on the earlier wiring reset within 25 s of
+  every registration.
+- Charger pulled from the shield while running: card, display and modem
+  all glitched in the same second; the card remounted itself, the
+  display re-initialised, the modem answered after PWRKEY, and the chip
+  then took a power-on reset from the rail dip. Charger plugged in: no
+  reset.
+
+_Still to measure: current draw (idle / tracking / uploading), CPU load,
+an outdoor track and a multi-hour soak on battery._
 
 ## Known issues and limitations
 
