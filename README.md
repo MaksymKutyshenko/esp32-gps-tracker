@@ -235,9 +235,11 @@ duration._
 - SIM800C is 2G only.
 - FAT without long file names: track files use 8.3 names.
 - The uplink gets one record per `uplink_min_ms` while the card gets
-  every one; its queue of 64 therefore buffers about five minutes of
-  outage, after which the oldest records are dropped (counted, and shown
-  on the dashboard) while the card keeps them all.
+  every one, and while the link is up its queue is kept to a few records
+  so the map always shows the latest position even when a 2G request
+  takes longer than the interval. While the link is down the queue of 64
+  buffers the outage, after which the oldest records are dropped
+  (counted, and shown on the dashboard); the card keeps them all.
 
 ## What I would improve next
 

@@ -234,6 +234,11 @@ namespace Config
     constexpr UBaseType_t displayQueueDepth = 8;
     constexpr UBaseType_t logQueueDepth = 32;
     constexpr UBaseType_t uplinkQueueDepth = 64;
+    // While the link is up the queue is kept this short, so the map shows
+    // the latest position rather than one from ten minutes ago when the
+    // modem delivers fewer requests than are offered (a 2G request takes
+    // 5-15 s). While the link is down the whole depth buffers the outage.
+    constexpr UBaseType_t uplinkLiveBacklog = 3;
     constexpr UBaseType_t buttonEdgeQueueDepth = 8;
     constexpr uint32_t busLockTimeoutMs = 200;
     // A modem transaction (connect attempt, HTTP request) can take tens of

@@ -353,9 +353,16 @@ void App::publishRecord(const Fix &fix, uint32_t nowMs)
 
     // Moving, the policy produces a record a second and the modem delivers
     // one every uplinkMinIntervalMs at best; handing it every record would
-    // only fill the queue and drop the oldest. Offer one per interval, so
-    // the queue backs up only while the link is down.
+    // only fill the queue and drop the oldest. Offer one per interval, and
+    // while the link is up skip the offer when the modem is already behind:
+    // a live map wants the newest point, not every point ten minutes late.
+    // The card has them all. With the link down the queue buffers the
+    // outage to its full depth.
     if (haveUplinkSample_ && nowMs - lastUplinkSampleMs_ < uplinkSampleIntervalMs_)
+    {
+        return;
+    }
+    if (uplink_->isConnected() && uxQueueMessagesWaiting(uplinkQueue_) >= Config::uplinkLiveBacklog)
     {
         return;
     }
