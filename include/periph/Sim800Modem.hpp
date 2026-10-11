@@ -19,6 +19,10 @@
 class Sim800Modem
 {
 public:
+    // +HTTPACTION statuses from 600 up are the modem's own error codes
+    // (600 not HTTP PDU, 601 network error, 602 no memory, 603 DNS error,
+    // 604 stack busy), not answers from a server.
+    static constexpr uint16_t firstLocalHttpStatus = 600;
     static constexpr size_t responseCapacity = 256;
 
     Sim800Modem(UartPort &uart, gpio_num_t powerKeyPin);
