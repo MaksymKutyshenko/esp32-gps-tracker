@@ -1,0 +1,15 @@
+# Named Cloudflare Tunnel in front of the app running on this machine.
+# Copy to ~/.cloudflared/config.yml after `cloudflared tunnel login` and
+# `cloudflared tunnel create tracker` (both need a Cloudflare account with a
+# domain). Then `cloudflared tunnel route dns tracker tracker.example.com`
+# and `cloudflared tunnel run tracker`.
+tunnel: tracker
+credentials-file: /Users/you/.cloudflared/<tunnel-id>.json
+
+ingress:
+  # Browser and device share one hostname; the device uses plain http:// on
+  # port 80 (Cloudflare only proxies 80/8080/8880/2052/2082/2086/2095 for
+  # HTTP, never 5055), the browser https://.
+  - hostname: tracker.example.com
+    service: http://localhost:5055
+  - service: http_status:404

@@ -74,6 +74,22 @@ the device, or give the device its own port that proxies to the app.
 `ALLOWED_DEVICE_IDS` limits which `id` values are accepted; leave it empty
 to accept any device, which is how Traccar behaves too.
 
+### Behind a Cloudflare Tunnel (no public IP)
+
+A *named* tunnel works from a machine at home: `cloudflared/config.yml.example`
+has the ingress. Three things matter for the SIM800C:
+
+- The device URL must be `http://tracker.example.com` with **no port**:
+  Cloudflare proxies HTTP only on 80, 8080, 8880, 2052, 2082, 2086 and 2095,
+  never on 5055. The browser uses `https://tracker.example.com`.
+- Leave the zone's *Always Use HTTPS* off, or add a Configuration Rule that
+  exempts this hostname, so the modem's plain GET is not redirected.
+- Keep Bot Fight Mode off for the hostname; the modem cannot answer a challenge.
+
+The account-less "quick tunnel" (`cloudflared tunnel --url`) is handy for a
+one-off test but its API endpoint (api.trycloudflare.com) is blocked on
+some networks, and it has no uptime guarantee.
+
 ## What the dashboard shows
 
 - **Header**: device, online / offline with the age of the last report,
