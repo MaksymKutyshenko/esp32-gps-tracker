@@ -202,6 +202,13 @@ it to GPIO16 if wanted.
   own wire: 3/3 radio restarts and 3/3 cold boots without a reset, nine
   minutes of uptime across three power cycles. The same two commands
   are the acceptance test for the SuperMini build.
+- Battery Shield V8 has no seamless power path: plugging or unplugging
+  the charger switches the boost converter between the input and the
+  cells, and the 5 V / 3 V outputs dip for tens of milliseconds. The
+  ESP32 browns out and restarts (`Boot: reset reason BROWNOUT`), the OLED
+  goes black for a moment, the modem rides through on its own capacitors.
+  Plug and unplug the charger with the tracker off, or hold the 5 V rail
+  up with a 1000 µF capacitor near the devkit.
 - SuperMini quirks: some units have the Wi-Fi antenna mis-mounted (not
   relevant, no Wi-Fi here); a crashed or deep-sleeping board can drop the
   USB port, so hold BOOT while plugging in to re-enter the bootloader.
