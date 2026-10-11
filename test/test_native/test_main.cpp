@@ -80,6 +80,7 @@ void health_url_too_long_returns_zero();
 void health_tokens_name_every_reset_cause_and_state();
 void scheduler_first_attempt_is_immediate_then_paced_by_min_interval();
 void scheduler_backs_off_exponentially_up_to_cap();
+void scheduler_rejection_backs_off_but_never_requests_reset();
 void scheduler_requests_reset_after_failure_run_and_success_clears_it();
 void button_short_and_long_press_by_duration();
 void button_bounce_edges_inside_debounce_window_are_ignored();
@@ -160,6 +161,7 @@ int main()
     RUN_TEST(health_tokens_name_every_reset_cause_and_state);
     RUN_TEST(scheduler_first_attempt_is_immediate_then_paced_by_min_interval);
     RUN_TEST(scheduler_backs_off_exponentially_up_to_cap);
+    RUN_TEST(scheduler_rejection_backs_off_but_never_requests_reset);
     RUN_TEST(scheduler_requests_reset_after_failure_run_and_success_clears_it);
     RUN_TEST(button_short_and_long_press_by_duration);
     RUN_TEST(button_bounce_edges_inside_debounce_window_are_ignored);

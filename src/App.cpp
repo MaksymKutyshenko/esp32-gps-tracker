@@ -722,9 +722,20 @@ void App::uplinkLoop()
         {
             ++failures;
             Diagnostics::increment(diagnostics_.uplinkFailures);
-            scheduler_.onFailure(nowMs());
-            ESP_LOGW(logTag, "Upload failed (%s, HTTP %u), next try in %" PRIu32 " ms",
-                     esp_err_to_name(err), status, scheduler_.currentWaitMs());
+            if (err == ESP_OK && status != 0)
+            {
+                // The server answered: the link is fine, the data was not
+                // wanted (Traccar says 400 for an unregistered id).
+                scheduler_.onRejected(nowMs());
+                ESP_LOGW(logTag, "Upload rejected (HTTP %u), next try in %" PRIu32 " ms",
+                         status, scheduler_.currentWaitMs());
+            }
+            else
+            {
+                scheduler_.onFailure(nowMs());
+                ESP_LOGW(logTag, "Upload failed (%s, HTTP %u), next try in %" PRIu32 " ms",
+                         esp_err_to_name(err), status, scheduler_.currentWaitMs());
+            }
             if (scheduler_.needsReset())
             {
                 Diagnostics::increment(diagnostics_.modemPowerCycles);

@@ -332,6 +332,24 @@ void scheduler_backs_off_exponentially_up_to_cap()
     TEST_ASSERT_FALSE(scheduler.needsReset()); // threshold 0 = never
 }
 
+void scheduler_rejection_backs_off_but_never_requests_reset()
+{
+    UplinkScheduler scheduler({10'000, 1000, 60'000, 3});
+    for (int i = 0; i < 10; ++i)
+    {
+        scheduler.onRejected(0);
+    }
+    TEST_ASSERT_FALSE(scheduler.needsReset());
+    TEST_ASSERT_EQUAL_UINT32(60'000, scheduler.currentWaitMs()); // capped back-off
+    TEST_ASSERT_FALSE(scheduler.canAttempt(59'999));
+    TEST_ASSERT_TRUE(scheduler.canAttempt(60'000));
+    // Rejections and link failures share one back-off; only the latter count.
+    scheduler.onFailure(60'000);
+    TEST_ASSERT_EQUAL_UINT8(1, scheduler.consecutiveFailures());
+    scheduler.onSuccess(200'000);
+    TEST_ASSERT_EQUAL_UINT32(10'000, scheduler.currentWaitMs());
+}
+
 void scheduler_requests_reset_after_failure_run_and_success_clears_it()
 {
     UplinkScheduler scheduler({10'000, 1000, 60'000, 3});
