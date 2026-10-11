@@ -164,6 +164,12 @@ some networks, and it has no uptime guarantee.
   backlog, rejected sentences, card/display/bus errors, free heap,
   uptime, lowest stack headroom. All over the selected range, one axis
   each, hover for the values.
+- **Uptime**: boot sessions derived from the uptime in the health reports.
+  Current run, total run time in range, number of reboots and the most
+  common reset reason, longest run, mean run before a reset, a bar per
+  boot (red when a watchdog, panic or brownout ended it) and a table of
+  every boot: when it started, what started it, how long it ran, what
+  ended it. The place to look when the board resets in the field.
 - **Positions / Health reports**: every row in range, newest first. A
   health row expands to every counter with its label and the short key the
   firmware sent.

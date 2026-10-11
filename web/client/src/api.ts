@@ -1,4 +1,4 @@
-import type { AccessKeyInfo, AppConfig, DeviceOverview, DeviceSummary, HealthReport, Me, Position } from '../../shared/types';
+import type { AccessKeyInfo, AppConfig, BootStats, DeviceOverview, DeviceSummary, HealthReport, Me, Position } from '../../shared/types';
 
 export class ApiError extends Error {
   constructor(readonly status: number, message: string) {
@@ -60,3 +60,5 @@ export const getPositions = (id: string, r: Range) =>
   api<Position[]>(`/api/devices/${encodeURIComponent(id)}/positions?${rangeQuery(r)}`);
 export const getHealth = (id: string, r: Range) =>
   api<HealthReport[]>(`/api/devices/${encodeURIComponent(id)}/health?${rangeQuery(r)}`);
+export const getBoots = (id: string, r: Range) =>
+  api<BootStats>(`/api/devices/${encodeURIComponent(id)}/boots?${rangeQuery(r)}`);

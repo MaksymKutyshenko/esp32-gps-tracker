@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import type { AppConfig, DeviceOverview, DeviceSummary, HealthReport, Me, Position, StreamEvent } from '../../../shared/types';
-import { getHealth, getOverview, getPositions, listDevices } from '../api';
+import type { AppConfig, BootStats, DeviceOverview, DeviceSummary, HealthReport, Me, Position, StreamEvent } from '../../../shared/types';
+import { getBoots, getHealth, getOverview, getPositions, listDevices } from '../api';
 import type { Theme } from '../hooks';
 import { useNow } from '../hooks';
 import { AccessKeyDialog } from './AccessKeyDialog';
@@ -12,6 +12,7 @@ import { HealthTable } from './HealthTable';
 import { MapView } from './MapView';
 import { ModulesPanel } from './ModulesPanel';
 import { PositionsTable } from './PositionsTable';
+import { UptimePanel } from './UptimePanel';
 
 export type RangeKey = '1h' | '6h' | '24h' | '7d' | '30d';
 const RANGE_MS: Record<RangeKey, number> = {
@@ -22,7 +23,7 @@ const RANGE_MS: Record<RangeKey, number> = {
   '30d': 30 * 86400_000,
 };
 
-type Tab = 'charts' | 'positions' | 'health';
+type Tab = 'charts' | 'uptime' | 'positions' | 'health';
 
 interface Props {
   me: Me;
@@ -38,6 +39,7 @@ export function Dashboard({ me, config, theme, onToggleTheme, onSignOut }: Props
   const [overview, setOverview] = useState<DeviceOverview | null>(null);
   const [positions, setPositions] = useState<Position[]>([]);
   const [health, setHealth] = useState<HealthReport[]>([]);
+  const [boots, setBoots] = useState<BootStats | null>(null);
   const [range, setRange] = useState<RangeKey>(() => (localStorage.getItem('range') as RangeKey) || '24h');
   const [tab, setTab] = useState<Tab>('charts');
   const [focus, setFocus] = useState<Position | null>(null);
@@ -74,12 +76,14 @@ export function Dashboard({ me, config, theme, onToggleTheme, onSignOut }: Props
     let cancelled = false;
     setFocus(null);
     const r = rangeWindow();
-    Promise.all([getOverview(deviceId), getPositions(deviceId, r), getHealth(deviceId, r)])
-      .then(([o, p, h]) => {
+    setBoots(null);
+    Promise.all([getOverview(deviceId), getPositions(deviceId, r), getHealth(deviceId, r), getBoots(deviceId, r)])
+      .then(([o, p, h, b]) => {
         if (cancelled) return;
         setOverview(o);
         setPositions(p);
         setHealth(h);
+        setBoots(b);
       })
       .catch(() => undefined);
     return () => {
@@ -91,6 +95,8 @@ export function Dashboard({ me, config, theme, onToggleTheme, onSignOut }: Props
   // nothing needs refetching; positions and health rows are appended.
   const deviceRef = useRef(deviceId);
   deviceRef.current = deviceId;
+  const rangeRef = useRef(rangeWindow);
+  rangeRef.current = rangeWindow;
   useEffect(() => {
     const source = new EventSource('/api/stream');
     const onEvent = (e: MessageEvent) => {
@@ -107,6 +113,10 @@ export function Dashboard({ me, config, theme, onToggleTheme, onSignOut }: Props
         setPositions((list) => (list.some((p) => p.id === event.position.id) ? list : [...list, event.position]));
       } else {
         setHealth((list) => (list.some((h) => h.id === event.health.id) ? list : [...list, event.health]));
+        // Boot statistics are cheap to recompute server-side; refresh them
+        // with every health report so a reboot shows up at once.
+        const id = event.deviceId;
+        getBoots(id, rangeRef.current()).then((b) => deviceRef.current === id && setBoots(b)).catch(() => undefined);
       }
     };
     source.addEventListener('position', onEvent);
@@ -213,6 +223,9 @@ export function Dashboard({ me, config, theme, onToggleTheme, onSignOut }: Props
             <button className={tab === 'charts' ? 'active' : ''} onClick={() => setTab('charts')}>
               Charts
             </button>
+            <button className={tab === 'uptime' ? 'active' : ''} onClick={() => setTab('uptime')}>
+              Uptime{boots ? ` (${boots.reboots} reboot${boots.reboots === 1 ? '' : 's'})` : ''}
+            </button>
             <button className={tab === 'positions' ? 'active' : ''} onClick={() => setTab('positions')}>
               Positions ({positionsInRange.length})
             </button>
@@ -221,6 +234,9 @@ export function Dashboard({ me, config, theme, onToggleTheme, onSignOut }: Props
             </button>
           </div>
           {tab === 'charts' && <Charts positions={positionsInRange} health={healthInRange} theme={theme} />}
+          {tab === 'uptime' && (
+            <UptimePanel stats={boots} lastHealth={liveOverview?.lastHealth ?? null} online={device.online} now={now} theme={theme} />
+          )}
           {tab === 'positions' && (
             <PositionsTable positions={positionsInRange} now={now} focus={focus} onFocus={setFocus} latest={lastPosition} />
           )}

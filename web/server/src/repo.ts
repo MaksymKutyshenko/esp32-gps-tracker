@@ -1,6 +1,7 @@
 // All SQL in one place. Rows come back as the shared types.
 
 import type { DeviceSummary, HealthReport, Position } from '../../shared/types.js';
+import type { UptimeRow } from './boots.js';
 import { pool } from './db.js';
 import type { HealthReportIn, PositionReport } from './ingest.js';
 import { isOnline } from './status.js';
@@ -179,4 +180,17 @@ export async function healthInRange(deviceId: string, r: RangeQuery): Promise<He
     [deviceId, r.from, r.to, r.limit],
   );
   return rows.map(toHealth);
+}
+
+// Just what the boot statistics need, so a month of reports stays cheap.
+export async function uptimeRows(deviceId: string, r: RangeQuery): Promise<UptimeRow[]> {
+  const { rows } = await pool.query<{ received_at: Date; uptime_s: number | null; reset_reason: string | null; firmware: string | null }>(
+    `SELECT received_at, uptime_s, reset_reason, firmware FROM (
+       SELECT received_at, uptime_s, reset_reason, firmware FROM health_reports
+       WHERE device_id = $1 AND received_at >= $2 AND received_at <= $3
+       ORDER BY received_at DESC LIMIT $4
+     ) newest ORDER BY received_at ASC`,
+    [deviceId, r.from, r.to, r.limit],
+  );
+  return rows.map((row) => ({ receivedAt: row.received_at, uptimeS: row.uptime_s, resetReason: row.reset_reason, firmware: row.firmware }));
 }

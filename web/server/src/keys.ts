@@ -66,8 +66,10 @@ export async function viewerFingerprint(): Promise<string | null> {
   return (await readViewer()).fingerprint;
 }
 
+// From the key itself, not from its salted hash: the hash is recomputed on
+// every start and would sign the owner out at each restart or deploy.
 export function adminFingerprint(): string | null {
-  return adminStored ? keyFingerprint(adminStored) : null;
+  return config.adminKey ? keyFingerprint(`admin:${config.adminKey}`) : null;
 }
 
 export type KeyMatch = 'admin' | 'viewer' | null;

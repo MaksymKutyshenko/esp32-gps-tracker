@@ -70,6 +70,29 @@ export interface DeviceOverview {
 
 export type Role = 'admin' | 'viewer';
 
+// One run of the firmware between two resets, derived from the uptime in
+// the health reports.
+export interface BootSession {
+  index: number;
+  bootAt: string;        // estimated instant of the reset
+  firstReportAt: string;
+  lastReportAt: string;
+  uptimeS: number;       // longest uptime reported in this run
+  resetReason: string | null; // why this run started
+  endedBy: string | null;     // the next run's reset reason; null while still running or unknown
+  reports: number;
+  firmware: string | null;
+}
+
+export interface BootStats {
+  sessions: BootSession[];
+  totalUptimeS: number;
+  longestS: number;
+  reboots: number;
+  byReason: Record<string, number>;
+  meanBetweenResetsS: number | null;
+}
+
 export interface Me {
   email: string;
   name: string | null;

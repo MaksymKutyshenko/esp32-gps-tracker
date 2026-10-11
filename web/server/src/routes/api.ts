@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 
 import type { AccessKeyInfo, AppConfig } from '../../../shared/types.js';
+import { bootSessions } from '../boots.js';
 import { AuthError, clearSession, currentUser, issueSession, verifyAccessKey, verifyGoogleCredential } from '../auth.js';
 import { config } from '../config.js';
 import { hub } from '../events.js';
@@ -119,6 +120,10 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
 
   app.get<{ Params: { id: string } }>('/api/devices/:id/health', async (request) =>
     repo.healthInRange(request.params.id, parseRange(request.query as Record<string, unknown>, 24, 5_000)),
+  );
+
+  app.get<{ Params: { id: string } }>('/api/devices/:id/boots', async (request) =>
+    bootSessions(await repo.uptimeRows(request.params.id, parseRange(request.query as Record<string, unknown>, 24, 200_000))),
   );
 
   app.get('/api/stream', async (_request, reply) => {
