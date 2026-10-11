@@ -130,14 +130,17 @@ export function Dashboard({ me, config, theme, onToggleTheme, onSignOut }: Props
     return { ...overview, device, modules };
   }, [overview, now]);
 
+  // Old points leave the window once a minute, not on every clock tick:
+  // every change here re-renders the map and the charts.
+  const minute = Math.floor(now / 60_000);
   const positionsInRange = useMemo(() => {
-    const from = now - RANGE_MS[range];
+    const from = minute * 60_000 - RANGE_MS[range];
     return positions.filter((p) => Date.parse(p.fixTime) >= from);
-  }, [positions, range, now]);
+  }, [positions, range, minute]);
   const healthInRange = useMemo(() => {
-    const from = now - RANGE_MS[range];
+    const from = minute * 60_000 - RANGE_MS[range];
     return health.filter((h) => Date.parse(h.receivedAt) >= from);
-  }, [health, range, now]);
+  }, [health, range, minute]);
 
   const header = (
     <Header
@@ -196,6 +199,7 @@ export function Dashboard({ me, config, theme, onToggleTheme, onSignOut }: Props
             focus={focus}
             theme={theme}
             now={now}
+            rangeKey={range}
           />
           <FixStrip device={device} health={liveOverview?.lastHealth ?? null} now={now} />
         </div>

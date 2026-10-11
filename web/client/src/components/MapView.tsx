@@ -1,6 +1,6 @@
 import L from 'leaflet';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CircleMarker, MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from 'react-leaflet';
+import { CircleMarker, MapContainer, Marker, Polyline, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 
 import type { DeviceSummary, Position } from '../../../shared/types';
 import { ago, fmtTime, knotsToKmh, num } from '../format';
@@ -25,35 +25,38 @@ function markerIcon(online: boolean): L.DivIcon {
   });
 }
 
-// Keeps the view on the data: fits the trail when the device or range
-// changes, follows the newest point while "Follow" is on, pans to a row
-// picked in the table.
+// Keeps the view on the data: fits the trail once per device + range (and
+// once more when the first points arrive), follows the newest point while
+// "Follow" is on, pans to a row picked in the table. A manual drag turns
+// Follow off so the map never fights the user.
 function ViewController({
   trail,
   latest,
   follow,
+  onUserDrag,
   focus,
   fitKey,
 }: {
   trail: [number, number][];
   latest: [number, number] | null;
   follow: boolean;
+  onUserDrag: () => void;
   focus: [number, number] | null;
   fitKey: string;
 }) {
   const map = useMap();
-  const lastFit = useRef<string>('');
+  const fitted = useRef<{ key: string; withData: boolean } | null>(null);
   const lastLatest = useRef<string>('');
 
+  useMapEvents({ dragstart: onUserDrag });
+
   useEffect(() => {
-    if (lastFit.current === fitKey) return;
-    if (trail.length > 1) {
-      map.fitBounds(L.latLngBounds(trail), { padding: [32, 32], maxZoom: 16 });
-      lastFit.current = fitKey;
-    } else if (latest) {
-      map.setView(latest, 15);
-      lastFit.current = fitKey;
-    }
+    const hasData = trail.length > 0 || latest !== null;
+    const done = fitted.current;
+    if (done && done.key === fitKey && (done.withData || !hasData)) return;
+    if (trail.length > 1) map.fitBounds(L.latLngBounds(trail), { padding: [32, 32], maxZoom: 16 });
+    else if (latest) map.setView(latest, 15);
+    fitted.current = { key: fitKey, withData: hasData };
   }, [map, trail, latest, fitKey]);
 
   useEffect(() => {
@@ -77,9 +80,11 @@ interface Props {
   focus: Position | null;
   theme: Theme;
   now: number;
+  // Changes when the user picks another time range: the trail is refitted.
+  rangeKey: string;
 }
 
-export function MapView({ device, positions, focus, theme, now }: Props) {
+export function MapView({ device, positions, focus, theme, now, rangeKey }: Props) {
   const [follow, setFollow] = useState(true);
   const last = device.lastPosition;
   const trail = useMemo(() => positions.map((p) => [p.lat, p.lon] as [number, number]), [positions]);
@@ -142,7 +147,14 @@ export function MapView({ device, positions, focus, theme, now }: Props) {
               </Popup>
             </Marker>
           )}
-          <ViewController trail={trail} latest={latest} follow={follow} focus={focus ? [focus.lat, focus.lon] : null} fitKey={`${device.id}:${positions[0]?.id ?? 'none'}`} />
+          <ViewController
+            trail={trail}
+            latest={latest}
+            follow={follow}
+            onUserDrag={() => setFollow(false)}
+            focus={focus ? [focus.lat, focus.lon] : null}
+            fitKey={`${device.id}:${rangeKey}`}
+          />
         </MapContainer>
       </div>
     </div>
