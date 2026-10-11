@@ -96,8 +96,10 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     const me = await currentUser(request);
     if (me?.role !== 'admin') return reply.code(403).send({ error: 'admin only' });
     const custom = request.body?.key;
-    if (custom !== undefined && (typeof custom !== 'string' || custom.length < 12 || custom.length > 256)) {
-      return reply.code(400).send({ error: 'a custom key needs 12 to 256 characters' });
+    // 8 is the floor so a memorable key is possible; the per-address attempt
+    // limiter is what keeps a short key from being guessed online.
+    if (custom !== undefined && (typeof custom !== 'string' || custom.length < 8 || custom.length > 256)) {
+      return reply.code(400).send({ error: 'a custom key needs 8 to 256 characters' });
     }
     const key = await setViewerKey(custom ?? null, me.email);
     app.log.info(`viewer access key rotated by ${me.email}`);

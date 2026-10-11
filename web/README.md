@@ -51,7 +51,8 @@ One login field, two keys:
 
 - **Admin key** (`ADMIN_KEY`, a server secret): the owner. Signing in with
   it adds an *Access key* button to the header, which generates (or sets)
-  a new shared viewer key and shows it once together with a share link.
+  a new shared viewer key (random, or your own of 8+ characters) and shows
+  it once together with a share link.
 - **Viewer key** (in the database): everyone else. Give it to whoever may
   watch, or hand them `https://your.host/#key=<the key>`, which signs
   them in and drops the key from the address bar (a URL fragment is never

@@ -114,13 +114,13 @@ export function AccessKeyDialog({ onClose }: { onClose: () => void }) {
                 }}
               >
                 <input
-                  placeholder="…or set your own (12+ characters)"
+                  placeholder="…or set your own (8+ characters)"
                   value={custom}
                   onChange={(e) => setCustom(e.target.value)}
                   disabled={busy}
-                  minLength={12}
+                  minLength={8}
                 />
-                <button className="btn" type="submit" disabled={busy || custom.trim().length < 12}>
+                <button className="btn" type="submit" disabled={busy || custom.trim().length < 8}>
                   Set
                 </button>
               </form>
