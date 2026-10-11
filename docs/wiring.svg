@@ -54,10 +54,10 @@
 <text x="485" y="172" class="t-title">ESP32-S3 DevKitC-1</text>
 <text x="485" y="188" class="t-sub">pins in logical order, not header order</text>
 <line x1="475" y1="215" x2="497" y2="215" stroke="var(--fg)" stroke-width="1.5"/>
-<text x="503" y="219" class="t-pin">GPIO4</text>
+<text x="503" y="219" class="t-pin">GPIO5</text>
 <circle cx="475" cy="215" r="2.5" fill="var(--fg)"/>
 <line x1="475" y1="245" x2="497" y2="245" stroke="var(--fg)" stroke-width="1.5"/>
-<text x="503" y="249" class="t-pin">GPIO5</text>
+<text x="503" y="249" class="t-pin">GPIO4</text>
 <circle cx="475" cy="245" r="2.5" fill="var(--fg)"/>
 <line x1="475" y1="300" x2="497" y2="300" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="503" y="304" class="t-pin">GPIO18</text>

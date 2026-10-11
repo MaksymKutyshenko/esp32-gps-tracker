@@ -47,8 +47,8 @@ namespace Config
     // Foxeer M10Q-250 defaults to 115200 baud; the Beitian BE-220 to 9600.
     // Set this to the module in use until autodetection exists.
     constexpr uart_port_t gpsUart = UART_NUM_1;
-    constexpr gpio_num_t gpsRxPin = GPIO_NUM_4; // <- GNSS TX
-    constexpr gpio_num_t gpsTxPin = GPIO_NUM_5; // -> GNSS RX
+    constexpr gpio_num_t gpsRxPin = GPIO_NUM_5; // <- GNSS TX
+    constexpr gpio_num_t gpsTxPin = GPIO_NUM_4; // -> GNSS RX
     // uart_config_t.baud_rate and uart_driver_install()'s buffer size are
     // bare ints in the IDF API; the UART wrapper casts at the call, the way
     // SpiBus does for clock_speed_hz, so the constants stay fixed-width.

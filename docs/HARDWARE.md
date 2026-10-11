@@ -86,8 +86,8 @@ and on the DevKitC). Only the GSM UART and the status LED differ.
 | --- | --- | --- | --- |
 | Battery voltage (ADC1_CH0) | GPIO1 | GPIO1 | Divider 100 k / 100 k from the shield's B+ (cell voltage, ≤ 4.2 V → ≤ 2.1 V). 12 dB attenuation |
 | Button (wake + UI) | GPIO2 | GPIO2 | To GND, internal pull-up, GPIO interrupt → queue; RTC GPIO so it can wake deep sleep |
-| GNSS UART1 RX | GPIO4 | GPIO4 | ← GNSS TX |
-| GNSS UART1 TX | GPIO5 | GPIO5 | → GNSS RX (only needed to send UBX/NMEA config) |
+| GNSS UART1 RX | GPIO5 | GPIO5 | ← GNSS TX |
+| GNSS UART1 TX | GPIO4 | GPIO4 | → GNSS RX (sends the UBX setup at boot) |
 | BMA400 INT1 | GPIO6 | GPIO6 | Motion interrupt; RTC GPIO for deep-sleep wake (EXT1) |
 | BIGGA BOOT (= PWRKEY) | GPIO7 | GPIO7 | Open-drain, held low ≥ 1 s to toggle the modem's power. The board has no auto power-on, so the firmware pulses it when the modem is silent |
 | I2C SDA | GPIO8 | GPIO8 | OLED 0x3C, BMA400 0x14 (0x15 if SDO high), GNSS compass 0x0D (QMC5883L) |

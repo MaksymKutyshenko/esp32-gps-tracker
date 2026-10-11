@@ -103,7 +103,7 @@ note(MX + MW + 10, 122, "Shield USB-A → devkit USB-C: alternative supply for t
 # ---------------------------------------------------------------- devkit
 DX, DY, DW, DH = 475, 150, 250, 510
 box(DX, DY, DW, DH, "ESP32-S3 DevKitC-1", "pins in logical order, not header order")
-left = [("GPIO4", 215), ("GPIO5", 245), ("GPIO18", 300), ("GPIO17", 330), ("GPIO7", 360),
+left = [("GPIO5", 215), ("GPIO4", 245), ("GPIO18", 300), ("GPIO17", 330), ("GPIO7", 360),
         ("GPIO2", 430), ("GPIO1", 470)]
 right = [("GPIO8 SDA", 215), ("GPIO9 SCL", 245), ("GPIO13 MISO", 300), ("GPIO12 MOSI", 330),
          ("GPIO11 SCK", 360), ("GPIO10 CS", 390), ("GPIO6 INT1", 470)]
@@ -138,8 +138,8 @@ def lwire(py, dev, color):
 box(MX, 222, MW, 150, "GNSS Foxeer M10Q-250", "UART1 · NMEA out · 115200 (BE-220: 9600)")
 pin(MX, 270, "VCC", "l"); to_lrail(MX, 270, "5V")
 pin(MX, 292, "GND", "l"); to_lrail(MX, 292, "GND")
-pin(MX + MW, 270, "TX", "r"); lwire(270, "GPIO4", COL["TX"])
-pin(MX + MW, 292, "RX", "r"); lwire(292, "GPIO5", COL["RX"])
+pin(MX + MW, 270, "TX", "r"); lwire(270, "GPIO5", COL["TX"])
+pin(MX + MW, 292, "RX", "r"); lwire(292, "GPIO4", COL["RX"])
 pin(MX + MW, 318, "SCL", "r"); pin(MX + MW, 340, "SDA", "r")
 note(MX + 10, 362, "SCL/SDA: compass (Foxeer only), optional")
 

@@ -228,7 +228,7 @@ u1 = Part(lib, WROOM, "U1", "ESP32-S3-WROOM-1 (DevKitC-1)", 200, 130,
           ref_offset=(-18, -40), value_offset=(-18, -37))
 u1.emit()
 gpio = {
-    "IO1": "BATT_SENSE", "IO2": "BTN", "IO4": "GNSS_TXD", "IO5": "GNSS_RXD",
+    "IO1": "BATT_SENSE", "IO2": "BTN", "IO4": "GNSS_RXD", "IO5": "GNSS_TXD",
     "IO6": "ACC_INT1", "IO7": "GSM_PWRKEY", "IO8": "SDA", "IO9": "SCL",
     "IO10": "SD_CS", "IO11": "SD_SCK", "IO12": "SD_MOSI", "IO13": "SD_MISO",
     "IO17": "GSM_RXD", "IO18": "GSM_TXD",
@@ -255,7 +255,7 @@ connect(j1, "3", "GNSS_TXD")
 connect(j1, "4", "GNSS_RXD")
 connect(j1, "5", "SCL")
 connect(j1, "6", "SDA")
-text("1 VCC 5V   2 GND   3 TX -> IO4   4 RX <- IO5\n5 SCL / 6 SDA: compass (Foxeer only, 0x0D). BE-220 has pins 1-4.",
+text("1 VCC 5V   2 GND   3 TX -> IO5   4 RX <- IO4\n5 SCL / 6 SDA: compass (Foxeer only, 0x0D). BE-220 has pins 1-4.",
      40, 62, 1.27)
 
 # --- BIGGA GSM (SIM800C) board, header per its schematic ----------------

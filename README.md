@@ -185,7 +185,7 @@ http://host:5055/?id=<device>&lat=..&lon=..&timestamp=<unix>&speed=<kn>&bearing=
 
 1. Board alone: flash, expect `Boot: reset reason power-on`, state `BOOT`
    on the LED, console `help` answers.
-2. GNSS on GPIO4/5: state goes `SEARCH` within seconds, `TRACK` with a sky
+2. GNSS on GPIO5/4 (TX→GPIO5, RX→GPIO4): state goes `SEARCH` within seconds, `TRACK` with a sky
    view; `show` the fix on the log. Wrong baud shows as `rej` growing in
    `diag`. The top-right `u/s sat` is satellites used / satellites with a
    measured signal; the system page adds `sky` (almanac count above the

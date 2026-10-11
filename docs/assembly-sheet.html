@@ -205,10 +205,10 @@ flowchart LR
 <text x="485" y="172" class="t-title">ESP32-S3 DevKitC-1</text>
 <text x="485" y="188" class="t-sub">pins in logical order, not header order</text>
 <line x1="475" y1="215" x2="497" y2="215" stroke="var(--fg)" stroke-width="1.5"/>
-<text x="503" y="219" class="t-pin">GPIO4</text>
+<text x="503" y="219" class="t-pin">GPIO5</text>
 <circle cx="475" cy="215" r="2.5" fill="var(--fg)"/>
 <line x1="475" y1="245" x2="497" y2="245" stroke="var(--fg)" stroke-width="1.5"/>
-<text x="503" y="249" class="t-pin">GPIO5</text>
+<text x="503" y="249" class="t-pin">GPIO4</text>
 <circle cx="475" cy="245" r="2.5" fill="var(--fg)"/>
 <line x1="475" y1="300" x2="497" y2="300" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="503" y="304" class="t-pin">GPIO18</text>
@@ -491,8 +491,8 @@ flowchart LR
           <tr><td class="esp">3V3</td><td class="arrow">out</td><td><span class="net v33">3V3_DEVKIT</span></td><td>Leave free. Do not tie to the shield rail.</td></tr>
           <tr><td class="esp">GPIO1</td><td class="arrow">←</td><td><span class="net batt">BATT_SENSE</span></td><td>Divider midpoint (R1/R2)</td></tr>
           <tr><td class="esp">GPIO2</td><td class="arrow">←</td><td><span class="net sig">BTN</span></td><td>Push button, other side to GND</td></tr>
-          <tr><td class="esp">GPIO4</td><td class="arrow">←</td><td><span class="net sig">GNSS_TXD</span></td><td>GNSS TX</td></tr>
-          <tr><td class="esp">GPIO5</td><td class="arrow">→</td><td><span class="net sig">GNSS_RXD</span></td><td>GNSS RX</td></tr>
+          <tr><td class="esp">GPIO5</td><td class="arrow">←</td><td><span class="net sig">GNSS_TXD</span></td><td>GNSS TX</td></tr>
+          <tr><td class="esp">GPIO4</td><td class="arrow">→</td><td><span class="net sig">GNSS_RXD</span></td><td>GNSS RX</td></tr>
           <tr><td class="esp">GPIO6</td><td class="arrow">←</td><td><span class="net sig">ACC_INT1</span></td><td>BMA400 INT1 (when fitted)</td></tr>
           <tr><td class="esp">GPIO7</td><td class="arrow">→</td><td><span class="net sig">GSM_PWRKEY</span></td><td>BIGGA BOOT pin (= PWRKEY), open drain</td></tr>
           <tr><td class="esp">GPIO8</td><td class="arrow">↔</td><td><span class="net sig">SDA</span></td><td>OLED SDA, BMA400 SDA, GNSS compass SDA</td></tr>
@@ -537,8 +537,8 @@ flowchart LR
         <tbody>
           <tr><td class="pin">VCC / 5V</td><td class="arrow">←</td><td><span class="net v5">+5V</span></td><td>Shield 5V</td></tr>
           <tr><td class="pin">GND</td><td class="arrow">—</td><td><span class="net gnd">GND</span></td><td>Shield GND</td></tr>
-          <tr><td class="pin">TX</td><td class="arrow">→</td><td><span class="net sig">GNSS_TXD</span></td><td class="esp">Devkit GPIO4</td></tr>
-          <tr><td class="pin">RX</td><td class="arrow">←</td><td><span class="net sig">GNSS_RXD</span></td><td class="esp">Devkit GPIO5</td></tr>
+          <tr><td class="pin">TX</td><td class="arrow">→</td><td><span class="net sig">GNSS_TXD</span></td><td class="esp">Devkit GPIO5</td></tr>
+          <tr><td class="pin">RX</td><td class="arrow">←</td><td><span class="net sig">GNSS_RXD</span></td><td class="esp">Devkit GPIO4</td></tr>
           <tr><td class="pin">SCL (Foxeer compass)</td><td class="arrow">←</td><td><span class="net sig">SCL</span></td><td class="esp">Devkit GPIO9 (optional)</td></tr>
           <tr><td class="pin">SDA (Foxeer compass)</td><td class="arrow">↔</td><td><span class="net sig">SDA</span></td><td class="esp">Devkit GPIO8 (optional)</td></tr>
         </tbody>
@@ -657,7 +657,7 @@ flowchart LR
 I (..) console: Commands on UART0; type 'help'
 LED white, then amber once the GNSS is added</span></div></li>
     <li><input type="checkbox" id="s3"><div><label for="s3">Button on GPIO2 and the battery divider on GPIO1.</label><span class="expect">type <kbd>diag</kbd> → battery error counter stays 0; the system page shows the cell voltage</span></div></li>
-    <li><input type="checkbox" id="s4"><div><label for="s4">GNSS: 5V, GND, TX→GPIO4, RX→GPIO5. Put the antenna by a window or outside.</label><span class="expect">I (..) tracker: State BOOTING -> ACQUIRING
+    <li><input type="checkbox" id="s4"><div><label for="s4">GNSS: 5V, GND, TX→GPIO5, RX→GPIO4. Put the antenna by a window or outside.</label><span class="expect">I (..) tracker: State BOOTING -> ACQUIRING
 I (..) tracker: State ACQUIRING -> TRACKING   (sky view, 30–90 s cold)
 Wrong baud: 'rej' grows in diag → set gnss 1 / save</span></div></li>
     <li><input type="checkbox" id="s5"><div><label for="s5">OLED: GND, VCC, SCL→GPIO9, SDA→GPIO8.</label><span class="expect">I (..) ssd1306: Display ready at address 0x3C
