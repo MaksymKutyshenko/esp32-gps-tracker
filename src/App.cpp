@@ -181,6 +181,7 @@ void App::applyLiveSettings(const Settings::Values &values)
     modemTransport_.setApn(values.apn);
     policy_.setParams({values.movingIntervalMs, values.stationaryIntervalMs, values.minDistanceM,
                        Config::Defaults::minSatellites, Config::Defaults::maxHdopCenti});
+    uplinkSampleIntervalMs_ = values.uplinkMinIntervalMs;
     speedMotion_.setParams({values.motionStartCmPerS, values.motionStopCmPerS, values.motionStopDelayMs});
     scheduler_.setParams({values.uplinkMinIntervalMs, Config::uplinkBackoffInitialMs,
                           Config::uplinkBackoffMaxMs, Config::gsmFailuresBeforePowerCycle});
@@ -276,6 +277,7 @@ void App::gpsLoop()
         {
             policy_.setParams({updated.movingIntervalMs, updated.stationaryIntervalMs, updated.minDistanceM,
                                Config::Defaults::minSatellites, Config::Defaults::maxHdopCenti});
+            uplinkSampleIntervalMs_ = updated.uplinkMinIntervalMs;
             speedMotion_.setParams({updated.motionStartCmPerS, updated.motionStopCmPerS,
                                     updated.motionStopDelayMs});
             ESP_LOGI(logTag, "gps task applied new settings");
@@ -328,7 +330,7 @@ void App::onEpoch(const Fix &fix, uint32_t nowMs)
     if (policy_.shouldLog(fix, nowMs, motion_->isMoving()))
     {
         policy_.markLogged(fix, nowMs);
-        publishRecord(fix);
+        publishRecord(fix, nowMs);
     }
 
     publishFix(fix);
@@ -344,10 +346,21 @@ void App::applyFsmEvent(TrackerEvent event)
     }
 }
 
-void App::publishRecord(const Fix &fix)
+void App::publishRecord(const Fix &fix, uint32_t nowMs)
 {
     const TrackRecord record = TrackRecord::from(fix, lastBatteryMv());
     enqueueDroppingOldest(logQueue_, record, diagnostics_.recordsDroppedLogQueue);
+
+    // Moving, the policy produces a record a second and the modem delivers
+    // one every uplinkMinIntervalMs at best; handing it every record would
+    // only fill the queue and drop the oldest. Offer one per interval, so
+    // the queue backs up only while the link is down.
+    if (haveUplinkSample_ && nowMs - lastUplinkSampleMs_ < uplinkSampleIntervalMs_)
+    {
+        return;
+    }
+    haveUplinkSample_ = true;
+    lastUplinkSampleMs_ = nowMs;
     enqueueDroppingOldest(uplinkQueue_, record, diagnostics_.recordsDroppedUplinkQueue);
 }
 

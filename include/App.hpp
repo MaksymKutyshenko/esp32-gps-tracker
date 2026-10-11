@@ -100,7 +100,10 @@ private:
     // gps task helpers
     void onEpoch(const Fix &fix, uint32_t nowMs);
     void applyFsmEvent(TrackerEvent event);
-    void publishRecord(const Fix &fix);
+    // Every record goes to the card; the uplink gets one per upload
+    // interval, so its queue buffers outages instead of overflowing on
+    // every drive (gps task only).
+    void publishRecord(const Fix &fix, uint32_t nowMs);
     void publishFix(const Fix &fix);
     void showStateOnLed(TrackerState state);
 
@@ -145,6 +148,9 @@ private:
     SpeedMotionDetector speedMotion_;
     IMotionDetector *motion_;
     LogPolicy policy_;
+    uint32_t uplinkSampleIntervalMs_ = 0;
+    uint32_t lastUplinkSampleMs_ = 0;
+    bool haveUplinkSample_ = false;
     EmaFilter<int32_t, 1, 4> displaySpeed_;
     EmaFilter<int32_t, 1, 4> displayAltitude_;
     ButtonDecoder buttonDecoder_;

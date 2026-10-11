@@ -234,8 +234,10 @@ duration._
   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)).
 - SIM800C is 2G only.
 - FAT without long file names: track files use 8.3 names.
-- The uplink sends one request per record; a long offline backlog drains
-  at one record per `uplink_min_ms`.
+- The uplink gets one record per `uplink_min_ms` while the card gets
+  every one; its queue of 64 therefore buffers about five minutes of
+  outage, after which the oldest records are dropped (counted, and shown
+  on the dashboard) while the card keeps them all.
 
 ## What I would improve next
 
