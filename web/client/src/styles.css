@@ -225,6 +225,8 @@ tbody tr.clickable { cursor: pointer; }
 .overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); display: grid; place-items: center; z-index: 100; padding: 16px; }
 .dialog { width: min(560px, 100%); }
 .dialog .actions { display: flex; flex-direction: column; gap: 10px; }
+.confirm { border: 1px solid var(--warn); border-radius: 8px; padding: 8px 12px; }
+.confirm p { margin: 0 0 8px; }
 .fresh .label { font-size: 11px; color: var(--muted); margin: 10px 0 4px; }
 .keyrow { display: flex; gap: 8px; align-items: center; }
 .keyrow code { flex: 1; padding: 8px 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; overflow-wrap: anywhere; user-select: all; }

@@ -18,8 +18,9 @@ export function AccessKeyDialog({ onClose }: { onClose: () => void }) {
     getAccessKeyInfo().then(setInfo).catch((e: Error) => setError(e.message));
   }, []);
 
+  // Two clicks to rotate: the second one is the confirmation.
+  const [pending, setPending] = useState<{ key?: string } | null>(null);
   const rotate = async (key?: string) => {
-    if (!confirm('Replace the shared access key? Everyone signed in with the current key will be signed out.')) return;
     setBusy(true);
     setError(null);
     try {
@@ -85,14 +86,31 @@ export function AccessKeyDialog({ onClose }: { onClose: () => void }) {
             </div>
           ) : (
             <div className="actions">
-              <button className="btn primary" onClick={() => rotate()} disabled={busy}>
+              {pending ? (
+                <div className="confirm">
+                  <p className="small">
+                    Replace the shared key{pending.key ? ' with your own' : ''}? Everyone signed in with the current key is
+                    signed out and needs the new one.
+                  </p>
+                  <div className="keyrow">
+                    <button className="btn primary" onClick={() => { const k = pending.key; setPending(null); void rotate(k); }} disabled={busy}>
+                      Yes, replace it
+                    </button>
+                    <button className="btn" onClick={() => setPending(null)} disabled={busy}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+              <button className="btn primary" onClick={() => setPending({})} disabled={busy}>
                 Generate a new key
               </button>
+              )}
               <form
                 className="keyform"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  void rotate(custom.trim());
+                  setPending({ key: custom.trim() });
                 }}
               >
                 <input
