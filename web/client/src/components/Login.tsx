@@ -98,10 +98,15 @@ export function Login({ config, onSignedIn }: { config: AppConfig; onSignedIn: (
   );
   useEffect(() => {
     if (!config.accessKeyEnabled) return;
-    const match = /[#&]key=([^&]+)/.exec(location.hash);
-    if (!match) return;
-    history.replaceState(null, '', location.pathname + location.search);
-    void submitKey(decodeURIComponent(match[1]));
+    const fromHash = () => {
+      const match = /[#&]key=([^&]+)/.exec(location.hash);
+      if (!match) return;
+      history.replaceState(null, '', location.pathname + location.search);
+      void submitKey(decodeURIComponent(match[1]));
+    };
+    fromHash();
+    window.addEventListener('hashchange', fromHash);
+    return () => window.removeEventListener('hashchange', fromHash);
   }, [config.accessKeyEnabled, submitKey]);
   const onKeySubmit = (e: FormEvent) => {
     e.preventDefault();

@@ -13,7 +13,8 @@ export function setUnauthorizedHandler(handler: () => void): void {
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, { credentials: 'same-origin', ...init });
-  if (response.status === 401) {
+  // A 401 anywhere but on a sign-in call means the session is gone.
+  if (response.status === 401 && !path.startsWith('/api/auth/')) {
     onUnauthorized?.();
     throw new ApiError(401, 'sign in required');
   }
