@@ -185,7 +185,16 @@ it to GPIO16 if wanted.
   shield GND pin. The modem's 2 A transmit pulses through a shared rail
   bounce the common ground by ~200 mV and corrupt every bus at once
   (seen on the bench: UART bytes, I2C timeouts, lost tick interrupt,
-  watchdog resets 20 s after the first upload).
+  watchdog resets). Bisected on 2026-10-11: the resets follow a modem
+  power-on, i.e. the registration burst, when the modem transmits at
+  full power until the network backs it off; steady traffic afterwards
+  is survived. The firmware therefore power-cycles the modem only after
+  unanswered requests, never after a server rejection. The wiring test
+  is the console command `at AT+CFUN=1,1`, which forces a fresh
+  registration: three in a row without a reset means the supply and
+  ground are good enough. If it resets, the next steps in order are the
+  antenna on the SMA, 1000 µF + 100 nF at the modem's VSS/GND pins, and
+  distance between the modem and the devkit.
 - SuperMini quirks: some units have the Wi-Fi antenna mis-mounted (not
   relevant, no Wi-Fi here); a crashed or deep-sleeping board can drop the
   USB port, so hold BOOT while plugging in to re-enter the bootloader.
