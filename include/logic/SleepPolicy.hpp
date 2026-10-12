@@ -39,8 +39,16 @@ public:
 
     bool due(uint32_t nowMs, bool uplinkIdle) const
     {
-        return params_.afterStationaryMs > 0 && parked_ && uplinkIdle &&
-               nowMs - parkedSinceMs_ >= params_.afterStationaryMs;
+        if (params_.afterStationaryMs == 0 || !parked_ || !uplinkIdle)
+        {
+            return false;
+        }
+        // The epoch's timestamp can be a few ms older than the one the
+        // transition was stamped with (it is taken before the FSM runs), so
+        // an unsigned difference would wrap to "parked for 49 days". A
+        // signed difference reads that as "not yet".
+        const int32_t parkedForMs = static_cast<int32_t>(nowMs - parkedSinceMs_);
+        return parkedForMs >= static_cast<int32_t>(params_.afterStationaryMs);
     }
 
 private:

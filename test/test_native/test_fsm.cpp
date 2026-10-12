@@ -229,3 +229,15 @@ void sleeppolicy_motion_restarts_the_parked_period_and_zero_disables()
     policy.setParams({0});
     TEST_ASSERT_FALSE(policy.due(10'000'000, true));
 }
+
+void sleeppolicy_is_not_fooled_by_an_epoch_stamped_before_the_transition()
+{
+    // The gps task stamps the epoch, then runs the FSM, which stamps the
+    // transition a few ms later; asking with the older epoch time must
+    // not read as "parked for ages".
+    SleepPolicy policy({600'000});
+    policy.onState(TrackerState::Stationary, 1051);
+    TEST_ASSERT_FALSE(policy.due(1000, true));
+    TEST_ASSERT_FALSE(policy.due(601'050, true));
+    TEST_ASSERT_TRUE(policy.due(601'051, true));
+}
