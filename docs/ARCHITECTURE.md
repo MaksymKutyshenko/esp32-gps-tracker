@@ -13,8 +13,8 @@ The four layers the course grades on, and what lives in each:
 
 | Layer | Responsibility | Classes |
 | --- | --- | --- |
-| Periph | Talk to hardware, nothing else | `UartPort`, `GnssReceiver` + `GnssProfile`, `I2cBus`, `Ssd1306`, `SdCard`, `Sim800Modem` + `AtCommand`, `BatteryMonitor`, `Button`, `StatusLed` (later: `Bma400`) |
-| Logic | Pure decisions, no ESP-IDF includes, host-tested | `Fix`, `NmeaLineAssembler`, `NmeaParser`, `DecimalParser`, `TrackerFsm`, `IMotionDetector` (`SpeedMotionDetector`, `NullMotionDetector`), `EmaFilter`, `Geodesy`, `LogPolicy`, `TrackRecord`, `ButtonDecoder` |
+| Periph | Talk to hardware, nothing else | `UartPort`, `GnssReceiver` + `GnssProfile`, `I2cBus`, `Ssd1306`, `SdCard`, `Sim800Modem` + `AtCommand`, `BatteryMonitor`, `Button`, `StatusLed`, `Bma400` |
+| Logic | Pure decisions, no ESP-IDF includes, host-tested | `Fix`, `NmeaLineAssembler`, `NmeaParser`, `DecimalParser`, `TrackerFsm`, `IMotionDetector` (`AccelMotionDetector`, `SpeedMotionDetector`, `NullMotionDetector`), `EmaFilter`, `Geodesy`, `LogPolicy`, `TrackRecord`, `ButtonDecoder` |
 | Transport / Output | Move data out of the device | `IStorage` → `SdStorage`, `TrackLogger`; `IUplinkTransport` → `ModemTransport` / `NullUplinkTransport`, `OsmAndProtocol`, `HealthReport`, `UplinkScheduler`; `StatusView`, `DisplayMessage` |
 | Reliability | Keep the system alive and honest | `WatchdogSubscription`, `BusLock` (RAII mutex guard), `Settings` (NVS), `Diagnostics`, `EventLog` (console log mirrored to the card); the reset reason is logged at boot and carried in every health report |
 
@@ -98,32 +98,35 @@ fakes behind the interfaces (`FakeStorage`, `FakeFixSource`). Periph
 classes are verified on hardware with their own `begin()` self-checks (chip
 ID reads, a test frame, a `AT` round-trip).
 
-## 7. Adding the BMA400 (motion sensor, not yet delivered)
+## 7. The BMA400 motion source, and deep sleep (next)
 
-The accelerometer slots into three places that already exist; nothing
-else changes.
+The accelerometer fits the three places that were reserved for it.
 
 1. **Driver** — `periph/Bma400.hpp/.cpp`, a class taking `I2cBus &` like
-   `Ssd1306`. `begin()` reads the chip ID (0x90), configures the generic
-   interrupt 1 for activity on INT1 (GPIO6, `Config::accelInterruptPin`),
-   and installs a GPIO ISR that sends to a queue the same way `Button`
-   does. Every I2C access goes through `BusLock` on `i2cMutex_`.
-2. **Motion source** — `logic/MotionDetector.hpp` already defines
-   `IMotionDetector`. Add `Bma400MotionDetector` that turns the interrupt
-   events into `MotionChange::Started` / `Stopped` (with the same stop
-   delay as the speed detector), and in `App::loadSettings` point
-   `motion_` at it when the chip answered at boot; otherwise it stays on
-   `SpeedMotionDetector`. The FSM and `LogPolicy` are untouched.
-3. **Sleep** — the FSM already has `Stationary --SleepRequested--> Sleeping
-   --WakeUp--> Acquiring`. The ui task raises `SleepRequested` after
-   `Config::sleepAfterStationaryMs`; `App` then persists the odometer and
-   last fix to NVS, configures EXT1 wake on INT1 and the button
-   (`esp_sleep_enable_ext1_wakeup`), and calls `esp_deep_sleep_start()`.
-   On boot, `esp_reset_reason() == ESP_RST_DEEPSLEEP` logs the wake source
-   and the FSM starts as usual.
-
-Measure idle, tracking and sleeping current before and after, and put the
-numbers in the README; the checklist does not credit the claim otherwise.
+   `Ssd1306`. `begin()` probes 0x14 and 0x15 for the chip id (0x90),
+   soft-resets, and configures generic interrupt 1 for *activity*: a
+   change between consecutive samples above `Config::accelActivityThresholdMg`
+   on any axis, sustained for `accelActivityDurationSamples` at 100 Hz,
+   pulsed on INT1 (GPIO6, push-pull, not latched). The ISR only counts
+   pulses in an atomic; there is no I2C traffic after `begin()`, so the
+   bus is the display's alone at run time. A silent chip is logged and the
+   tracker falls back to GNSS speed.
+2. **Motion source** — `AccelMotionDetector` in `logic/MotionDetector.hpp`
+   implements `IMotionDetector` from an `IActivitySource` (the driver on
+   the target, a fake in the host tests): moving on the first pulse,
+   stopped after `motion_stop_delay_ms` without one. `App::begin` points
+   `motion_` at it when the chip answered. The FSM, `LogPolicy` and the
+   display are untouched, and the diagnostics line names the source in
+   use (`motion bma400 pulses N`).
+3. **Sleep (not built yet)** — the FSM already has `Stationary
+   --SleepRequested--> Sleeping --WakeUp--> Acquiring`. The ui task raises
+   `SleepRequested` after `Config::sleepAfterStationaryMs`; `App` then
+   parks the modem, blanks the display, configures EXT1 wake on INT1 and
+   the button (`esp_sleep_enable_ext1_wakeup`), and calls
+   `esp_deep_sleep_start()`. On boot, `esp_reset_reason() ==
+   ESP_RST_DEEPSLEEP` logs the wake source and the FSM starts as usual.
+   Measure tracking and sleeping current before and after; the checklist
+   does not credit the claim otherwise.
 
 ## 8. Reading order for a reviewer
 

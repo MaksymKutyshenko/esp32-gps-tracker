@@ -46,6 +46,8 @@ void motion_speed_detector_starts_above_threshold();
 void motion_speed_detector_stops_only_after_delay_below_lower_threshold();
 void motion_speed_detector_brief_stop_does_not_count();
 void motion_speed_detector_ignores_invalid_fixes();
+void motion_accel_detector_starts_on_first_pulse_and_stops_after_delay();
+void motion_accel_detector_ignores_the_fix_entirely();
 void motion_null_detector_always_moving();
 
 // test_filters.cpp
@@ -132,6 +134,8 @@ int main()
     RUN_TEST(motion_speed_detector_stops_only_after_delay_below_lower_threshold);
     RUN_TEST(motion_speed_detector_brief_stop_does_not_count);
     RUN_TEST(motion_speed_detector_ignores_invalid_fixes);
+    RUN_TEST(motion_accel_detector_starts_on_first_pulse_and_stops_after_delay);
+    RUN_TEST(motion_accel_detector_ignores_the_fix_entirely);
     RUN_TEST(motion_null_detector_always_moving);
 
     RUN_TEST(ema_first_sample_seeds_without_transient);

@@ -138,6 +138,59 @@ void motion_speed_detector_ignores_invalid_fixes()
     TEST_ASSERT_TRUE(detector.isMoving());
 }
 
+namespace
+{
+    // Host stand-in for the BMA400's pulse counter.
+    class FakeActivity final : public IActivitySource
+    {
+    public:
+        uint32_t pending = 0;
+        uint32_t takeActivityCount() override
+        {
+            const uint32_t n = pending;
+            pending = 0;
+            return n;
+        }
+    };
+}
+
+void motion_accel_detector_starts_on_first_pulse_and_stops_after_delay()
+{
+    FakeActivity source;
+    AccelMotionDetector detector(source, {30'000});
+    const Fix any = fixWithSpeed(0);
+
+    TEST_ASSERT_EQUAL(MotionChange::None, detector.update(any, 0));
+    TEST_ASSERT_FALSE(detector.isMoving());
+
+    source.pending = 3;
+    TEST_ASSERT_EQUAL(MotionChange::Started, detector.update(any, 1000));
+    TEST_ASSERT_TRUE(detector.isMoving());
+    TEST_ASSERT_EQUAL_UINT32(3, detector.totalPulses());
+
+    // Quiet for less than the delay: still moving.
+    TEST_ASSERT_EQUAL(MotionChange::None, detector.update(any, 20'000));
+    TEST_ASSERT_TRUE(detector.isMoving());
+    // A pulse inside the delay restarts it.
+    source.pending = 1;
+    TEST_ASSERT_EQUAL(MotionChange::None, detector.update(any, 25'000));
+    TEST_ASSERT_EQUAL(MotionChange::None, detector.update(any, 54'000));
+    TEST_ASSERT_EQUAL(MotionChange::Stopped, detector.update(any, 55'000));
+    TEST_ASSERT_FALSE(detector.isMoving());
+}
+
+void motion_accel_detector_ignores_the_fix_entirely()
+{
+    FakeActivity source;
+    AccelMotionDetector detector(source, {1000});
+    Fix invalid = fixWithSpeed(500);
+    invalid.valid = false;
+    source.pending = 1;
+    TEST_ASSERT_EQUAL(MotionChange::Started, detector.update(invalid, 0)); // no fix needed
+    TEST_ASSERT_EQUAL(MotionChange::None, detector.update(fixWithSpeed(500), 500)); // speed irrelevant
+    TEST_ASSERT_EQUAL(MotionChange::Stopped, detector.update(fixWithSpeed(500), 1000));
+}
+
 void motion_null_detector_always_moving()
 {
     NullMotionDetector detector;

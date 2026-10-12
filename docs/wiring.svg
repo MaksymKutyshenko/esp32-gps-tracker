@@ -276,33 +276,33 @@
 <text x="918" y="466" class="t-pin">CS</text>
 <circle cx="890" cy="462" r="2.5" fill="var(--fg)"/>
 <polyline points="890,462 781,462 781,390 725,390" fill="none" stroke="#7c8696" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
-<rect x="890" y="500" width="200" height="160" rx="6" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5" stroke-dasharray="6 4"/>
-<text x="900" y="522" class="t-title">BMA400 (later)</text>
-<text x="900" y="538" class="t-sub">I2C0 · address 0x14 · INT1 interrupt · not fitted</text>
+<rect x="890" y="500" width="200" height="160" rx="6" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="900" y="522" class="t-title">BMA400 (CJMCU-400)</text>
+<text x="900" y="538" class="t-sub">I2C0 · address 0x14 · INT1 activity interrupt · 3.3 V only</text>
 <line x1="1068" y1="550" x2="1090" y2="550" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="1062" y="554" class="t-pin" text-anchor="end">VCC</text>
 <circle cx="1090" cy="550" r="2.5" fill="var(--fg)"/>
-<polyline points="1090,550 1146,550" fill="none" stroke="#f29a1f" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+<polyline points="1090,550 1146,550" fill="none" stroke="#f29a1f" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="1146" cy="550" r="3.2" fill="#f29a1f"/>
 <line x1="1068" y1="572" x2="1090" y2="572" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="1062" y="576" class="t-pin" text-anchor="end">GND</text>
 <circle cx="1090" cy="572" r="2.5" fill="var(--fg)"/>
-<polyline points="1090,572 1160,572" fill="none" stroke="var(--rail-gnd)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+<polyline points="1090,572 1160,572" fill="none" stroke="var(--rail-gnd)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="1160" cy="572" r="3.2" fill="var(--rail-gnd)"/>
 <line x1="890" y1="594" x2="912" y2="594" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="918" y="598" class="t-pin">SDA</text>
 <circle cx="890" cy="594" r="2.5" fill="var(--fg)"/>
-<polyline points="890,594 837,594 837,215" fill="none" stroke="#3b8de0" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+<polyline points="890,594 837,594 837,215" fill="none" stroke="#3b8de0" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="837" cy="215" r="3.2" fill="#3b8de0"/>
 <line x1="890" y1="616" x2="912" y2="616" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="918" y="620" class="t-pin">SCL</text>
 <circle cx="890" cy="616" r="2.5" fill="var(--fg)"/>
-<polyline points="890,616 851,616 851,245" fill="none" stroke="#9aa3b2" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+<polyline points="890,616 851,616 851,245" fill="none" stroke="#9aa3b2" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="851" cy="245" r="3.2" fill="#9aa3b2"/>
 <line x1="890" y1="638" x2="912" y2="638" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="918" y="642" class="t-pin">INT1</text>
 <circle cx="890" cy="638" r="2.5" fill="var(--fg)"/>
-<polyline points="890,638 767,638 767,470 725,470" fill="none" stroke="#b0733b" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+<polyline points="890,638 767,638 767,470 725,470" fill="none" stroke="#b0733b" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
 <polyline points="475,735 495,735" fill="none" stroke="#e03a4e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
 <text x="499" y="739" class="t-note" text-anchor="start">+5V</text>
 <polyline points="539,735 559,735" fill="none" stroke="#f29a1f" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>

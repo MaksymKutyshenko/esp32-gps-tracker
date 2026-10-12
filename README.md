@@ -26,7 +26,7 @@ machine, and every piece of pure logic unit-tested on the host.
 | Storage | MicroSD over SPI (DMA), FAT, one CSV per UTC day |
 | Uplink | SIM800C GPRS, HTTP GET: OsmAnd position report plus a health report once a minute |
 | Power | 2×18650 through a Battery Shield V8, cell voltage on ADC |
-| Motion | GNSS speed today; BMA400 accelerometer prepared (see below) |
+| Motion | BMA400 accelerometer activity interrupt (hardware threshold, no fix needed); GNSS speed as fallback |
 
 ## Quick start
 
@@ -164,7 +164,7 @@ failure are logged once a minute (`diag` prints them on demand).
 | --- | --- | --- |
 | UART1 | GNSS receiver | NMEA 0183 in; 115200 (Foxeer) or 9600 (BE-220), `set gnss` |
 | UART2 | SIM800C | AT commands, 115200 fixed with `AT+IPR`; PWRKEY on a GPIO |
-| I2C0 | SSD1306 (0x3C), BMA400 (0x14) later | 100 kHz, one mutex |
+| I2C0 | SSD1306 (0x3C), BMA400 (0x14) | 100 kHz, one mutex; the BMA400 is only configured at boot |
 | SPI2 | MicroSD adapter (5 V type) | sdspi host with DMA, FAT, 8.3 names |
 | ADC1 | Battery divider | eFuse-calibrated, ×2 divider |
 | GPIO | Button, BMA400 INT1 | interrupts → queues; RTC-capable for wake |
@@ -251,8 +251,8 @@ an outdoor track and a multi-hour soak on battery._
 
 ## Known issues and limitations
 
-- The BMA400 is not fitted yet; motion comes from GNSS speed, so the
-  tracker cannot sleep (see "Adding the BMA400" in
+- Deep sleep is not built yet: the BMA400 decides moving/parked, but a
+  parked tracker stays awake (see section 7 of
   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)).
 - SIM800C is 2G only.
 - FAT without long file names: track files use 8.3 names.
@@ -268,7 +268,7 @@ an outdoor track and a multi-hour soak on battery._
 - Operator menu on the screen: a table of known APNs (Kyivstar, Vodafone UA,
   lifecell) selected with the button and saved to NVS, so a SIM swap needs no
   console. The uplink task already re-opens the bearer on an APN change.
-- Fit the BMA400 and add deep sleep with EXT1 wake, with measured currents.
+- Deep sleep while parked with EXT1 wake from the BMA400, with measured currents.
 - Batch uploads (one request, many points) now that the server is ours;
   the modem's socket commands make one TCP session per batch possible.
 - GPX export alongside CSV.

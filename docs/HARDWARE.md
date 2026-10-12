@@ -20,7 +20,7 @@ when a pin changes.
 | Beitian BE-220 | Alternative GNSS (u-blox M8030 class per most listings; some say M10050). Default 9600 baud, NMEA | UART | 3.0–5.5 V in, 3.3 V logic |
 | BIGGA GSM (SIM800C, Ukrainian board, schematic at arduino.ua) | GPRS uplink for live position upload (2G only) | UART (AT commands) + BOOT (= PWRKEY) | 5 V on VCC → MIC29302 → 3.64 V modem rail; 2 A bursts; ~600–900 µF onboard |
 | GSM SMA antenna | Antenna for the SIM800C | SMA / IPEX pigtail | — |
-| BMA400 (CJMCU-400) | Motion detection: wakes the tracker from deep sleep and drives the adaptive logging rate. Not delivered yet, so the firmware treats it as optional | I2C, INT1 → GPIO | 3.3 V |
+| BMA400 (CJMCU-400) | Motion detection in hardware: its activity interrupt drives the moving/parked state (no fix needed, immune to GNSS noise) and will wake the tracker from deep sleep. Optional: without it motion comes from GNSS speed | I2C 0x14/0x15, INT1 → GPIO6 | 3.3 V only |
 | SSD1306 0.96" OLED | Status display: fix state, satellites, speed, coordinates, battery, upload state | I2C 0x3C | 3.3 V |
 | MicroSD adapter (6-pin, 4.5–5.5 V) + card | Track log (CSV) and upload backlog while offline | SPI (with DMA) | 5 V on VCC; onboard regulator and level shifter give 3.3 V signals |
 | Battery Shield V8 + 2×18650 HG2 | Power: cells in parallel (≈6000 mAh), 5 V boost output (≈2.2 A continuous, 3 A peak), 3 V/3.3 V 1 A rail, charging at 0.6–0.8 A | — | — |
@@ -173,8 +173,17 @@ it to GPIO16 if wanted.
 - The GNSS modules' default baud rates differ (Foxeer 115200, BE-220 9600).
   `Config::gpsBaudRate` must match the module in use; the firmware can later
   autodetect by trying both.
-- The BMA400 is optional until it arrives: without it the firmware derives
-  motion from GNSS speed and never deep-sleeps.
+- CJMCU-400 wiring: VCC to a **3.3 V** rail (never 5 V), GND, SDA to
+  GPIO8, SCL to GPIO9, INT1 to GPIO6. CS must be high for I2C; the board
+  pulls it up, tie it to 3.3 V if the chip stays silent. SDO selects the
+  address (low 0x14, high 0x15) and the firmware probes both, so it can be
+  left as the board sets it. INT2 unused. The boot log reports
+  `BMA400 at 0x14: activity > 96 mg for 10 samples` or `No BMA400 ...;
+  motion from GNSS speed`; the diagnostics line shows `motion bma400
+  pulses N`, and `pulses` should stay flat while the tracker lies still
+  and climb when it is picked up.
+- Without the BMA400 the firmware derives motion from GNSS speed and
+  never deep-sleeps.
 - 5 V pins differ between the two boards. The devkit's `5VIN` sits behind
   a diode: input only, reads ~1.7 V of leakage on a meter, cannot feed a
   module. The SuperMini's `5V` is the USB VBUS line itself: a real 5 V

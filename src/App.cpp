@@ -97,10 +97,12 @@ App::App()
               Config::sdCsPin, Config::sdSpiHz, Config::sdMountPoint),
       battery_(Config::batteryAdcUnit, Config::batteryAdcChannel,
                Config::batteryAdcAttenuation, Config::batteryDividerRatio),
+      accel_(i2c_, Config::accelInterruptPin),
       button_(Config::buttonPin),
       led_(Config::statusLedPin),
       speedMotion_({Config::Defaults::motionStartCmPerS, Config::Defaults::motionStopCmPerS,
                     Config::Defaults::motionStopDelayMs}),
+      accelMotion_(accel_, {Config::Defaults::motionStopDelayMs}),
       motion_(&speedMotion_),
       policy_({Config::Defaults::movingIntervalMs, Config::Defaults::stationaryIntervalMs,
                Config::Defaults::minDistanceM, Config::Defaults::minSatellites,
@@ -135,6 +137,12 @@ void App::begin()
 
     i2c_.begin();
     display_.begin(); // a missing or glitched display is reported, not fatal
+    // The accelerometer is the better motion source (no fix needed, no
+    // position noise); without it motion comes from GNSS speed.
+    if (accel_.begin() == ESP_OK)
+    {
+        motion_ = &accelMotion_;
+    }
 
     gpsUart_.begin();
     gnss_.begin(GnssProfiles::byIndex(values_.gnssProfile));
@@ -183,6 +191,7 @@ void App::applyLiveSettings(const Settings::Values &values)
                        Config::Defaults::minSatellites, Config::Defaults::maxHdopCenti});
     uplinkSampleIntervalMs_ = values.uplinkMinIntervalMs;
     speedMotion_.setParams({values.motionStartCmPerS, values.motionStopCmPerS, values.motionStopDelayMs});
+    accelMotion_.setParams({values.motionStopDelayMs});
     scheduler_.setParams({values.uplinkMinIntervalMs, Config::uplinkBackoffInitialMs,
                           Config::uplinkBackoffMaxMs, Config::gsmFailuresBeforePowerCycle});
 }
@@ -280,6 +289,7 @@ void App::gpsLoop()
             uplinkSampleIntervalMs_ = updated.uplinkMinIntervalMs;
             speedMotion_.setParams({updated.motionStartCmPerS, updated.motionStopCmPerS,
                                     updated.motionStopDelayMs});
+            accelMotion_.setParams({updated.motionStopDelayMs});
             ESP_LOGI(logTag, "gps task applied new settings");
         }
 
@@ -1020,7 +1030,7 @@ void App::logDiagnostics()
              "log ok %" PRIu32 " drop %" PRIu32 " err %" PRIu32 " | "
              "up ok %" PRIu32 " drop %" PRIu32 " fail %" PRIu32 " cycles %" PRIu32 " | "
              "disp err %" PRIu32 " bus to %" PRIu32 " batt err %" PRIu32 " btn drop %" PRIu32
-             " evt drop %" PRIu32,
+             " evt drop %" PRIu32 " | motion %s pulses %" PRIu32,
              d.sentencesReceived.load(), d.sentencesRejected.load(),
              parser_.checksumFailures(), parser_.fieldFailures(), d.gnssSilences.load(),
              parser_.fix().satellitesInView, parser_.fix().satellitesTracked, parser_.fix().maxSnrDbHz,
@@ -1028,7 +1038,8 @@ void App::logDiagnostics()
              d.recordsUploaded.load(), d.recordsDroppedUplinkQueue.load(),
              d.uplinkFailures.load(), d.modemPowerCycles.load(),
              d.displayErrors.load(), d.busTimeouts.load(), d.batteryReadErrors.load(),
-             button_.droppedEdges(), eventLog_.dropped());
+             button_.droppedEdges(), eventLog_.dropped(),
+             motion_ == &accelMotion_ ? "bma400" : "gnss", accelMotion_.totalPulses());
 
     // Stack headroom in bytes (ESP-IDF reports words of one byte); the
     // sizes in Config are trimmed against these numbers.

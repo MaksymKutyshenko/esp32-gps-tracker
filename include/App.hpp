@@ -19,6 +19,7 @@
 #include "logic/TrackRecord.hpp"
 #include "logic/TrackerFsm.hpp"
 #include "periph/BatteryMonitor.hpp"
+#include "periph/Bma400.hpp"
 #include "periph/Button.hpp"
 #include "periph/ConsoleInput.hpp"
 #include "periph/GnssReceiver.hpp"
@@ -138,6 +139,7 @@ private:
     Ssd1306 display_;
     SdCard sdCard_;
     BatteryMonitor battery_;
+    Bma400 accel_;
     Button button_;
     StatusLed led_;
     ConsoleInput console_;
@@ -146,6 +148,7 @@ private:
     NmeaParser parser_;
     TrackerFsm fsm_;
     SpeedMotionDetector speedMotion_;
+    AccelMotionDetector accelMotion_;
     IMotionDetector *motion_;
     LogPolicy policy_;
     uint32_t uplinkSampleIntervalMs_ = 0;

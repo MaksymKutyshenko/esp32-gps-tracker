@@ -67,9 +67,15 @@ namespace Config
     // The receiver answers a configuration frame within milliseconds.
     constexpr uint32_t gpsAckTimeoutMs = 300;
 
-    // ---- Accelerometer (BMA400, optional until delivered) --------------
+    // ---- Accelerometer (BMA400 on the CJMCU-400 breakout) --------------
     constexpr gpio_num_t accelInterruptPin = GPIO_NUM_6; // INT1, RTC GPIO
-    constexpr uint8_t accelAddress = 0x14;               // 0x15 if SDO high
+    constexpr uint8_t accelAddress = 0x14;               // 0x15 if SDO high; both are probed
+    // Activity = a change between consecutive samples above this on any
+    // axis, sustained for this many samples at 100 Hz. 96 mg / 100 ms is
+    // well above road vibration at rest and well below a car pulling away
+    // or a person picking the tracker up.
+    constexpr uint16_t accelActivityThresholdMg = 96;    // 8 mg steps
+    constexpr uint16_t accelActivityDurationSamples = 10;
 
     // ---- GSM modem (SIM800C, UART2) -------------------------------------
     // PWRKEY ("BOOT" on the BIGGA GSM silkscreen): open-drain, held low

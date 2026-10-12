@@ -313,8 +313,8 @@ connect(j4, "6", "SD_CS")
 text("1 GND  2 VCC 5V (adapter has its own 3.3 V regulator and level shifter)\n"
      "3 MISO -> IO13  4 MOSI <- IO12  5 SCK <- IO11  6 CS <- IO10", 300, 107, 1.27)
 
-# --- BMA400 (not fitted yet) ----------------------------------------------
-j6 = Part(lib, C6, "J6", "BMA400 CJMCU-400 (not fitted yet)", 320, 135, ref_offset=(-4, -10), value_offset=(-4, -8))
+# --- BMA400 ---------------------------------------------------------------
+j6 = Part(lib, C6, "J6", "BMA400 CJMCU-400", 320, 135, ref_offset=(-4, -10), value_offset=(-4, -8))
 j6.emit()
 connect(j6, "1", "+3V3")
 connect(j6, "2", "GND")

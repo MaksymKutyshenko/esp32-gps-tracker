@@ -214,12 +214,12 @@ pin(RX_ + RW, 374, "VCC", "r"); to_rrail(RX_ + RW, 374, "5V")
 for lab, dev, y in [("MISO", "GPIO13", 396), ("MOSI", "GPIO12", 418), ("SCK", "GPIO11", 440), ("CS", "GPIO10", 462)]:
     pin(RX_, y, lab, "l"); rwire(y, dev, COL["SPI"])
 
-box(RX_, 500, RW, 160, "BMA400 (later)", "I2C0 · address 0x14 · INT1 interrupt · not fitted", dashed=True)
-pin(RX_ + RW, 550, "VCC", "r"); to_rrail(RX_ + RW, 550, "3V3", dashed=True)
-pin(RX_ + RW, 572, "GND", "r"); to_rrail(RX_ + RW, 572, "GND", dashed=True)
-pin(RX_, 594, "SDA", "l"); wire([(RX_, 594), (x_sda, 594), (x_sda, RP["GPIO8"][1])], COL["SDA"], dashed=True); dot(x_sda, RP["GPIO8"][1], COL["SDA"])
-pin(RX_, 616, "SCL", "l"); wire([(RX_, 616), (x_scl, 616), (x_scl, RP["GPIO9"][1])], COL["SCL"], dashed=True); dot(x_scl, RP["GPIO9"][1], COL["SCL"])
-pin(RX_, 638, "INT1", "l"); rwire(638, "GPIO6", COL["CTRL"], dashed=True)
+box(RX_, 500, RW, 160, "BMA400 (CJMCU-400)", "I2C0 · address 0x14 · INT1 activity interrupt · 3.3 V only")
+pin(RX_ + RW, 550, "VCC", "r"); to_rrail(RX_ + RW, 550, "3V3")
+pin(RX_ + RW, 572, "GND", "r"); to_rrail(RX_ + RW, 572, "GND")
+pin(RX_, 594, "SDA", "l"); wire([(RX_, 594), (x_sda, 594), (x_sda, RP["GPIO8"][1])], COL["SDA"]); dot(x_sda, RP["GPIO8"][1], COL["SDA"])
+pin(RX_, 616, "SCL", "l"); wire([(RX_, 616), (x_scl, 616), (x_scl, RP["GPIO9"][1])], COL["SCL"]); dot(x_scl, RP["GPIO9"][1], COL["SCL"])
+pin(RX_, 638, "INT1", "l"); rwire(638, "GPIO6", COL["CTRL"])
 
 # ---------------------------------------------------------------- legend
 LX, LY = 475, 735
