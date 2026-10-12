@@ -157,16 +157,21 @@ namespace
 void motion_accel_detector_starts_on_first_pulse_and_stops_after_delay()
 {
     FakeActivity source;
-    AccelMotionDetector detector(source, {30'000});
+    AccelMotionDetector detector(source, {30'000, 3});
     const Fix any = fixWithSpeed(0);
 
     TEST_ASSERT_EQUAL(MotionChange::None, detector.update(any, 0));
     TEST_ASSERT_FALSE(detector.isMoving());
 
+    // A bump of two pulses is below the start threshold of three.
+    source.pending = 2;
+    TEST_ASSERT_EQUAL(MotionChange::None, detector.update(any, 500));
+    TEST_ASSERT_FALSE(detector.isMoving());
+
     source.pending = 3;
     TEST_ASSERT_EQUAL(MotionChange::Started, detector.update(any, 1000));
     TEST_ASSERT_TRUE(detector.isMoving());
-    TEST_ASSERT_EQUAL_UINT32(3, detector.totalPulses());
+    TEST_ASSERT_EQUAL_UINT32(5, detector.totalPulses());
 
     // Quiet for less than the delay: still moving.
     TEST_ASSERT_EQUAL(MotionChange::None, detector.update(any, 20'000));
@@ -182,7 +187,7 @@ void motion_accel_detector_starts_on_first_pulse_and_stops_after_delay()
 void motion_accel_detector_ignores_the_fix_entirely()
 {
     FakeActivity source;
-    AccelMotionDetector detector(source, {1000});
+    AccelMotionDetector detector(source, {1000, 1});
     Fix invalid = fixWithSpeed(500);
     invalid.valid = false;
     source.pending = 1;

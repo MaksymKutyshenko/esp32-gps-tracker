@@ -45,16 +45,19 @@ public:
     virtual uint32_t takeActivityCount() = 0;
 };
 
-// Moving on the first activity pulse; stopped once stopDelayMs have passed
-// without one. The accelerometer already applies a threshold and a minimum
-// duration in hardware, so a single pulse is a real movement, not noise;
-// the delay only decides how long a pause counts as "parked".
+// Moving once an epoch brings at least startPulses activity pulses; from
+// then on any pulse keeps it moving, and stopDelayMs without one means
+// parked. The two thresholds are the hysteresis: a desk bump or someone
+// typing next to the tracker gives one or two pulses in a second, a car
+// pulling away gives dozens, and once moving the sparse pulses of a slow
+// roll are enough to stay moving.
 class AccelMotionDetector final : public IMotionDetector
 {
 public:
     struct Params
     {
         uint32_t stopDelayMs;
+        uint32_t startPulses; // per epoch (one second)
     };
 
     AccelMotionDetector(IActivitySource &source, const Params &params)
@@ -68,14 +71,19 @@ public:
     {
         const uint32_t pulses = source_.takeActivityCount();
         totalPulses_ += pulses;
+        if (!moving_)
+        {
+            if (pulses >= params_.startPulses && pulses > 0)
+            {
+                moving_ = true;
+                lastActivityMs_ = nowMs;
+                return MotionChange::Started;
+            }
+            return MotionChange::None;
+        }
         if (pulses > 0)
         {
             lastActivityMs_ = nowMs;
-            if (!moving_)
-            {
-                moving_ = true;
-                return MotionChange::Started;
-            }
             return MotionChange::None;
         }
         if (moving_ && nowMs - lastActivityMs_ >= params_.stopDelayMs)

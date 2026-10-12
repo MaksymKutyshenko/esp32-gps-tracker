@@ -78,6 +78,10 @@ namespace Config
     // (a few mg) and the 24 mg hysteresis keep a parked tracker silent.
     constexpr uint16_t accelActivityThresholdMg = 40;    // 8 mg steps
     constexpr uint16_t accelActivityDurationSamples = 2;
+    // Pulses within one second needed to leave "parked": a desk bump or
+    // typing nearby gives 1-2 (seen on the bench), lifting the tracker or
+    // a car pulling away gives dozens. Once moving, any pulse keeps it so.
+    constexpr uint32_t accelStartPulses = 5;
 
     // ---- GSM modem (SIM800C, UART2) -------------------------------------
     // PWRKEY ("BOOT" on the BIGGA GSM silkscreen): open-drain, held low

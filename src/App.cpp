@@ -102,7 +102,7 @@ App::App()
       led_(Config::statusLedPin),
       speedMotion_({Config::Defaults::motionStartCmPerS, Config::Defaults::motionStopCmPerS,
                     Config::Defaults::motionStopDelayMs}),
-      accelMotion_(accel_, {Config::Defaults::motionStopDelayMs}),
+      accelMotion_(accel_, {Config::Defaults::motionStopDelayMs, Config::accelStartPulses}),
       motion_(&speedMotion_),
       policy_({Config::Defaults::movingIntervalMs, Config::Defaults::stationaryIntervalMs,
                Config::Defaults::minDistanceM, Config::Defaults::minSatellites,
@@ -191,7 +191,7 @@ void App::applyLiveSettings(const Settings::Values &values)
                        Config::Defaults::minSatellites, Config::Defaults::maxHdopCenti});
     uplinkSampleIntervalMs_ = values.uplinkMinIntervalMs;
     speedMotion_.setParams({values.motionStartCmPerS, values.motionStopCmPerS, values.motionStopDelayMs});
-    accelMotion_.setParams({values.motionStopDelayMs});
+    accelMotion_.setParams({values.motionStopDelayMs, Config::accelStartPulses});
     scheduler_.setParams({values.uplinkMinIntervalMs, Config::uplinkBackoffInitialMs,
                           Config::uplinkBackoffMaxMs, Config::gsmFailuresBeforePowerCycle});
 }
@@ -289,7 +289,7 @@ void App::gpsLoop()
             uplinkSampleIntervalMs_ = updated.uplinkMinIntervalMs;
             speedMotion_.setParams({updated.motionStartCmPerS, updated.motionStopCmPerS,
                                     updated.motionStopDelayMs});
-            accelMotion_.setParams({updated.motionStopDelayMs});
+            accelMotion_.setParams({updated.motionStopDelayMs, Config::accelStartPulses});
             ESP_LOGI(logTag, "gps task applied new settings");
         }
 
