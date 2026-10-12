@@ -216,8 +216,7 @@ namespace Config
         // or the button is pressed. 0 disables sleep. The battery shield's
         // own converter still draws a few mA, so the gain is days of
         // standby, not the ESP32's microamps alone.
-        // Bench value while the sleep cycle is being verified; 10 min for use.
-        constexpr uint32_t sleepAfterStationaryMs = 1 * 60'000;
+        constexpr uint32_t sleepAfterStationaryMs = 10 * 60'000;
         // Health report (counters, sky view, card, modem, battery, heap)
         // once a minute, fix or no fix: this is how the web app knows the
         // device is alive and which module is in trouble.

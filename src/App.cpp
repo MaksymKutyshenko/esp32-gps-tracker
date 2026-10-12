@@ -912,6 +912,7 @@ void App::consoleLoop()
             break;
         case CommandParser::Command::Diag:
             logDiagnostics();
+            logCpuLoad();
             break;
         case CommandParser::Command::Defaults:
             draft = Settings::defaults();
@@ -1074,6 +1075,16 @@ void App::logDiagnostics()
              static_cast<unsigned>(uxTaskGetStackHighWaterMark(tasks_[TaskLogger])),
              static_cast<unsigned>(uxTaskGetStackHighWaterMark(tasks_[TaskUplink])),
              static_cast<unsigned>(uxTaskGetStackHighWaterMark(tasks_[TaskUi])));
+}
+
+// FreeRTOS run-time statistics: CPU time per task since boot, as a
+// percentage of the total (both cores). The idle tasks' share is the
+// headroom; the checklist asks for the application to stay under 70 %.
+void App::logCpuLoad()
+{
+    static char table[1024]; // console task; printed, not kept
+    vTaskGetRunTimeStats(table);
+    ESP_LOGI(logTag, "CPU time per task (abs ticks, %% of total):\n%s", table);
 }
 
 void App::publishHealth()

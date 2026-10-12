@@ -122,6 +122,7 @@ private:
     void publishStorageHealth();
     uint16_t lastBatteryMv() const;
     void logDiagnostics();
+    void logCpuLoad();
     // Fills a HealthSnapshot from the counters and overwrites healthQueue_.
     void publishHealth();
     HealthSnapshot buildHealthSnapshot();
