@@ -147,6 +147,8 @@ blue parked.
   so receiver noise does not toggle the state.
 - **EmaFilter** smooths speed and altitude for the display only; records
   carry raw values.
+- **TimeZone** shifts the clock on the screen to local time (Kyiv, with
+  the European summer-time rule); the card and the server keep UTC.
 
 ### Reliability
 

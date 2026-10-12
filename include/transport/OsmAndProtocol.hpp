@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "logic/Calendar.hpp"
 #include "logic/Fix.hpp"
 #include "logic/TrackRecord.hpp"
 
@@ -18,24 +19,7 @@
 // Pure logic, no ESP-IDF dependency; unit-tested on the host.
 namespace OsmAndProtocol
 {
-    // Days since 1970-01-01 for a proleptic Gregorian date (Howard
-    // Hinnant's days_from_civil), valid for the years the receiver reports.
-    inline int64_t daysFromCivil(int32_t year, uint32_t month, uint32_t day)
-    {
-        year -= month <= 2;
-        const int32_t era = (year >= 0 ? year : year - 399) / 400;
-        const uint32_t yearOfEra = static_cast<uint32_t>(year - era * 400);
-        const uint32_t dayOfYear = (153 * (month + (month > 2 ? -3 : 9)) + 2) / 5 + day - 1;
-        const uint32_t dayOfEra = yearOfEra * 365 + yearOfEra / 4 - yearOfEra / 100 + dayOfYear;
-        return static_cast<int64_t>(era) * 146097 + static_cast<int64_t>(dayOfEra) - 719468;
-    }
-
-    inline int64_t unixTime(const UtcTime &utc)
-    {
-        return daysFromCivil(utc.year, utc.month, utc.day) * 86400 +
-               static_cast<int64_t>(utc.hour) * 3600 +
-               static_cast<int64_t>(utc.minute) * 60 + utc.second;
-    }
+    inline int64_t unixTime(const UtcTime &utc) { return Calendar::unixTime(utc); }
 
     // Li-ion cell: 3.3 V empty, 4.2 V full, linear in between. Good enough
     // for a status figure; the display shows the voltage itself.

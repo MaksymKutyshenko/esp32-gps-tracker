@@ -67,6 +67,8 @@ void logpolicy_moving_uses_short_interval();
 void logpolicy_stationary_uses_long_interval();
 void logpolicy_distance_triggers_early_while_moving();
 void logpolicy_handles_tick_wraparound();
+void calendar_round_trips_unix_time();
+void timezone_kyiv_switches_on_the_european_dates_and_rolls_the_day();
 void record_formats_fixed_point_with_sign_and_padding();
 void record_csv_line_matches_expected_layout();
 void record_csv_line_reports_overflow_as_zero();
@@ -156,6 +158,8 @@ int main()
     RUN_TEST(logpolicy_stationary_uses_long_interval);
     RUN_TEST(logpolicy_distance_triggers_early_while_moving);
     RUN_TEST(logpolicy_handles_tick_wraparound);
+    RUN_TEST(calendar_round_trips_unix_time);
+    RUN_TEST(timezone_kyiv_switches_on_the_european_dates_and_rolls_the_day);
     RUN_TEST(record_formats_fixed_point_with_sign_and_padding);
     RUN_TEST(record_csv_line_matches_expected_layout);
     RUN_TEST(record_csv_line_reports_overflow_as_zero);

@@ -3,6 +3,7 @@
 
 #include <unity.h>
 
+#include "logic/Calendar.hpp"
 #include "logic/EmaFilter.hpp"
 #include "logic/Geodesy.hpp"
 #include "logic/LogPolicy.hpp"
@@ -189,4 +190,41 @@ void record_csv_line_reports_overflow_as_zero()
     TrackRecord record = TrackRecord::from(Fix{}, 0);
     char line[20];
     TEST_ASSERT_EQUAL_size_t(0, TrackRecordFormat::csvLine(record, line, sizeof line));
+}
+
+// --- Calendar / TimeZone ----------------------------------------------------
+
+void calendar_round_trips_unix_time()
+{
+    const UtcTime t = {2026, 10, 9, 10, 30, 45};
+    const int64_t seconds = Calendar::unixTime(t);
+    TEST_ASSERT_EQUAL_INT64(1791541845, seconds);
+    const UtcTime back = Calendar::fromUnixTime(seconds);
+    TEST_ASSERT_EQUAL_UINT16(2026, back.year);
+    TEST_ASSERT_EQUAL_UINT8(10, back.month);
+    TEST_ASSERT_EQUAL_UINT8(9, back.day);
+    TEST_ASSERT_EQUAL_UINT8(10, back.hour);
+    TEST_ASSERT_EQUAL_UINT8(30, back.minute);
+    TEST_ASSERT_EQUAL_UINT8(45, back.second);
+    TEST_ASSERT_EQUAL_UINT8(29, Calendar::lastSunday(2026, 3));  // 2026-03-29
+    TEST_ASSERT_EQUAL_UINT8(25, Calendar::lastSunday(2026, 10)); // 2026-10-25
+}
+
+void timezone_kyiv_switches_on_the_european_dates_and_rolls_the_day()
+{
+    TimeZone kyiv({120, true});
+    TEST_ASSERT_EQUAL_INT32(180, kyiv.offsetMinutes({2026, 10, 12, 10, 0, 0})); // summer
+    TEST_ASSERT_EQUAL_INT32(120, kyiv.offsetMinutes({2026, 1, 15, 10, 0, 0}));  // winter
+    TEST_ASSERT_EQUAL_INT32(120, kyiv.offsetMinutes({2026, 3, 29, 0, 59, 59})); // minute before the switch
+    TEST_ASSERT_EQUAL_INT32(180, kyiv.offsetMinutes({2026, 3, 29, 1, 0, 0}));
+    TEST_ASSERT_EQUAL_INT32(180, kyiv.offsetMinutes({2026, 10, 25, 0, 59, 59}));
+    TEST_ASSERT_EQUAL_INT32(120, kyiv.offsetMinutes({2026, 10, 25, 1, 0, 0}));
+
+    const UtcTime local = kyiv.toLocal({2026, 10, 12, 22, 30, 0}); // 22:30Z -> 01:30 next day
+    TEST_ASSERT_EQUAL_UINT8(13, local.day);
+    TEST_ASSERT_EQUAL_UINT8(1, local.hour);
+    TEST_ASSERT_EQUAL_UINT8(30, local.minute);
+
+    TimeZone fixed({120, false});
+    TEST_ASSERT_EQUAL_INT32(120, fixed.offsetMinutes({2026, 7, 1, 12, 0, 0}));
 }

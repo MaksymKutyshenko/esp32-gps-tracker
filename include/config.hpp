@@ -233,6 +233,11 @@ namespace Config
     }
 
     // ---- UI ------------------------------------------------------------
+    // Clock on the screen only; the card and the server keep UTC. Kyiv is
+    // UTC+2 with European summer time (UTC+3 from the last Sunday of March
+    // to the last Sunday of October).
+    constexpr int32_t timeZoneStandardOffsetMinutes = 120;
+    constexpr bool timeZoneEuropeanSummerTime = true;
     constexpr int64_t buttonLongPressUs = 1'000'000;
     constexpr uint32_t batteryReadPeriodMs = 10'000;
     constexpr uint32_t diagnosticsPeriodMs = 60'000;

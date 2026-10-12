@@ -23,7 +23,8 @@ namespace
     }
 }
 
-StatusView::StatusView(Ssd1306 &display) : display_(display)
+StatusView::StatusView(Ssd1306 &display, const TimeZone &timeZone)
+    : display_(display), timeZone_(timeZone)
 {
 }
 
@@ -53,11 +54,11 @@ void StatusView::drawTrackingPage(const StatusSnapshot &snapshot)
     snprintf(text, sizeof text, "%u/%u sat", snapshot.fix.satellites, snapshot.fix.satellitesTracked);
     display_.drawText(Ssd1306::width - Ssd1306::textWidth(text, 1), 4, text, 1);
 
-    // Line 2: time (UTC) and speed.
+    // Line 2: local time and speed. Records and uploads keep UTC.
     if (snapshot.haveFix || snapshot.fix.utc.year != 0)
     {
-        snprintf(text, sizeof text, "%02u:%02u:%02uZ", snapshot.fix.utc.hour,
-                 snapshot.fix.utc.minute, snapshot.fix.utc.second);
+        const UtcTime local = timeZone_.toLocal(snapshot.fix.utc);
+        snprintf(text, sizeof text, "%02u:%02u:%02u", local.hour, local.minute, local.second);
         display_.drawText(0, 20, text, 1);
     }
     char speed[12];

@@ -12,6 +12,7 @@
 #include "esp_system.h"
 
 #include "logic/ButtonDecoder.hpp"
+#include "logic/Calendar.hpp"
 #include "logic/EmaFilter.hpp"
 #include "logic/LogPolicy.hpp"
 #include "logic/MotionDetector.hpp"
@@ -165,6 +166,7 @@ private:
     IMotionDetector *motion_;
     LogPolicy policy_;
     SleepPolicy sleepPolicy_;
+    TimeZone timeZone_;
     uint32_t uplinkSampleIntervalMs_ = 0;
     uint32_t lastUplinkSampleMs_ = 0;
     bool haveUplinkSample_ = false;

@@ -6,6 +6,7 @@
 
 #include "logic/Fix.hpp"
 #include "logic/TrackerFsm.hpp"
+#include "logic/Calendar.hpp"
 #include "periph/Ssd1306.hpp"
 
 // Everything the screen can show, merged by the display task from
@@ -33,7 +34,7 @@ class StatusView
 public:
     static constexpr uint8_t pageCount = 2;
 
-    explicit StatusView(Ssd1306 &display);
+    StatusView(Ssd1306 &display, const TimeZone &timeZone);
 
     esp_err_t render(const StatusSnapshot &snapshot, uint8_t page);
 
@@ -42,4 +43,5 @@ private:
     void drawSystemPage(const StatusSnapshot &snapshot);
 
     Ssd1306 &display_;
+    const TimeZone &timeZone_;
 };
