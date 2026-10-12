@@ -347,6 +347,14 @@ void App::onEpoch(const Fix &fix, uint32_t nowMs)
     case MotionChange::Stopped: applyFsmEvent(TrackerEvent::MotionStopped); break;
     case MotionChange::None: break;
     }
+    // The motion source reports changes and starts out "not moving", so a
+    // tracker switched on while already parked would otherwise stay in
+    // TRACKING, logging at the moving rate, until it had moved once and
+    // stopped. Keep the FSM in step with what the source says now.
+    if (fsm_.state() == TrackerState::Tracking && !motion_->isMoving())
+    {
+        applyFsmEvent(TrackerEvent::MotionStopped);
+    }
 
     if (policy_.shouldLog(fix, nowMs, motion_->isMoving()))
     {
