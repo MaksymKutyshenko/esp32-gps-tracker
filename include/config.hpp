@@ -70,12 +70,14 @@ namespace Config
     // ---- Accelerometer (BMA400 on the CJMCU-400 breakout) --------------
     constexpr gpio_num_t accelInterruptPin = GPIO_NUM_6; // INT1, RTC GPIO
     constexpr uint8_t accelAddress = 0x14;               // 0x15 if SDO high; both are probed
-    // Activity = a change between consecutive samples above this on any
-    // axis, sustained for this many samples at 100 Hz. 96 mg / 100 ms is
-    // well above road vibration at rest and well below a car pulling away
-    // or a person picking the tracker up.
-    constexpr uint16_t accelActivityThresholdMg = 96;    // 8 mg steps
-    constexpr uint16_t accelActivityDurationSamples = 10;
+    // Activity = a change between consecutive 100 Hz samples above this
+    // on any axis, for this many samples in a row. Consecutive samples are
+    // 10 ms apart, so even a hand lifting the tracker changes by only a
+    // few tens of mg per sample: 40 mg over 2 samples (Bosch's reference
+    // setting) catches that and a car pulling away, while sensor noise
+    // (a few mg) and the 24 mg hysteresis keep a parked tracker silent.
+    constexpr uint16_t accelActivityThresholdMg = 40;    // 8 mg steps
+    constexpr uint16_t accelActivityDurationSamples = 2;
 
     // ---- GSM modem (SIM800C, UART2) -------------------------------------
     // PWRKEY ("BOOT" on the BIGGA GSM silkscreen): open-drain, held low

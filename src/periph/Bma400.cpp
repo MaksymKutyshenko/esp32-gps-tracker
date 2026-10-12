@@ -33,10 +33,10 @@ namespace
     constexpr uint8_t int1ActiveHighPushPull = 0x02;
     constexpr uint8_t gen1Enable = 0x04;
     constexpr uint8_t gen1ToInt1 = 0x04;
-    // All three axes, acc_filt1 as data source, reference updated with
-    // every sample (so "activity" means a change since the last sample,
-    // whatever the orientation), 24 mg hysteresis.
-    constexpr uint8_t gen1AllAxesEveryTime = 0xE0 | 0x08 | 0x01;
+    // All three axes, acc_filt2 (fixed 100 Hz) as data source, reference
+    // updated with every sample (so "activity" means a change since the
+    // last sample, whatever the orientation), 24 mg hysteresis.
+    constexpr uint8_t gen1AllAxesEveryTime = 0xE0 | 0x10 | 0x08 | 0x01;
     constexpr uint8_t gen1ActivityAnyAxis = 0x02;
 
     constexpr uint32_t i2cTimeoutMs = Config::i2cTimeoutMs;
