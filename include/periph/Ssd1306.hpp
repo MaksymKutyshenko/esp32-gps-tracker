@@ -35,6 +35,8 @@ public:
     static int32_t textWidth(const char *text, uint8_t scale);
 
     esp_err_t flush();
+    // Panel and charge pump off (~10 uA); begin()/reinit() bring it back.
+    esp_err_t sleep();
 
 private:
     static constexpr size_t pageCount = height / 8;

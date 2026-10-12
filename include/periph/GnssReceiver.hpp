@@ -27,6 +27,10 @@ public:
     // NUL-terminated sentence and stays valid until the next call.
     bool readSentence(const char *&line, uint32_t timeoutMs);
 
+    // Software backup mode (~20 uA, orbit data kept for a warm start);
+    // the next byte on its UART wakes it, which begin() sends.
+    esp_err_t sleep();
+
     uint32_t overflows() const { return assembler_.overflows(); }
 
 private:

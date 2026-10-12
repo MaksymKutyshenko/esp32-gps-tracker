@@ -56,6 +56,10 @@ public:
     // waited for, since AT+SAPBR=1,1 answers ERROR while it exists.
     esp_err_t openBearer(const char *apn);
     esp_err_t closeBearer();
+    // Minimum functionality: radio off, SIM kept, ~2 mA. openBearer()
+    // sends CFUN=1 first, so the next connect wakes it without a power
+    // cycle and without the cold-boot registration burst.
+    esp_err_t sleep();
 
     // +SAPBR: 1,<status>: 0 connecting, 1 connected, 2 closing, 3 closed.
     esp_err_t bearerStatus(uint8_t &status);

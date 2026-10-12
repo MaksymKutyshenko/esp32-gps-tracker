@@ -2,6 +2,7 @@
 #include <unity.h>
 
 #include "logic/MotionDetector.hpp"
+#include "logic/SleepPolicy.hpp"
 #include "logic/TrackerFsm.hpp"
 
 void fsm_starts_booting_and_acquires_on_first_sentence()
@@ -201,4 +202,30 @@ void motion_null_detector_always_moving()
     NullMotionDetector detector;
     TEST_ASSERT_TRUE(detector.isMoving());
     TEST_ASSERT_EQUAL(MotionChange::None, detector.update(fixWithSpeed(0), 0));
+}
+
+// --- SleepPolicy -----------------------------------------------------------
+
+void sleeppolicy_due_after_parked_long_enough_with_idle_uplink()
+{
+    SleepPolicy policy({600'000});
+    policy.onState(TrackerState::Tracking, 0);
+    TEST_ASSERT_FALSE(policy.due(10'000'000, true)); // never parked
+    policy.onState(TrackerState::Stationary, 1000);
+    TEST_ASSERT_FALSE(policy.due(600'999, true));
+    TEST_ASSERT_TRUE(policy.due(601'000, true));
+    TEST_ASSERT_FALSE(policy.due(601'000, false)); // uploads still waiting
+}
+
+void sleeppolicy_motion_restarts_the_parked_period_and_zero_disables()
+{
+    SleepPolicy policy({600'000});
+    policy.onState(TrackerState::Stationary, 0);
+    policy.onState(TrackerState::Tracking, 300'000);
+    policy.onState(TrackerState::Stationary, 400'000);
+    TEST_ASSERT_FALSE(policy.due(900'000, true));
+    TEST_ASSERT_TRUE(policy.due(1'000'000, true));
+
+    policy.setParams({0});
+    TEST_ASSERT_FALSE(policy.due(10'000'000, true));
 }

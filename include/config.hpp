@@ -66,6 +66,7 @@ namespace Config
     constexpr uint32_t gpsSilenceTimeoutMs = 5000;
     // The receiver answers a configuration frame within milliseconds.
     constexpr uint32_t gpsAckTimeoutMs = 300;
+    constexpr uint32_t gpsWakeDelayMs = 100; // after the wake byte, before the setup frames
 
     // ---- Accelerometer (BMA400 on the CJMCU-400 breakout) --------------
     constexpr gpio_num_t accelInterruptPin = GPIO_NUM_6; // INT1, RTC GPIO
@@ -209,6 +210,13 @@ namespace Config
         // over 2G and takes 2-5 s, so this is close to what the modem can
         // sustain; the card keeps every point, the map one in five.
         constexpr uint32_t uplinkMinIntervalMs = 5000;
+        // Deep sleep after this long parked (Stationary with nothing left
+        // to upload): modem to minimum functionality, GNSS to backup mode,
+        // display off, ESP32 in deep sleep until the BMA400 reports motion
+        // or the button is pressed. 0 disables sleep. The battery shield's
+        // own converter still draws a few mA, so the gain is days of
+        // standby, not the ESP32's microamps alone.
+        constexpr uint32_t sleepAfterStationaryMs = 10 * 60'000;
         // Health report (counters, sky view, card, modem, battery, heap)
         // once a minute, fix or no fix: this is how the web app knows the
         // device is alive and which module is in trouble.
@@ -256,6 +264,10 @@ namespace Config
     // A modem transaction (connect attempt, HTTP request) can take tens of
     // seconds; the uplink task waits this long for the console to release it.
     constexpr uint32_t modemLockTimeoutMs = 15'000;
+    // Before sleeping: how long to wait for the display or the card's owner
+    // to finish its current transfer (a card write with fsync can take a
+    // few hundred ms).
+    constexpr uint32_t sleepLockWaitMs = 5000;
 
     // ---- Task layout ---------------------------------------------------
     // One task per blocking peripheral; priorities put the receiver first
@@ -264,7 +276,7 @@ namespace Config
     // Stack sizes are in bytes (ESP-IDF); the ui task logs every task's
     // high-water mark once a minute so these can be trimmed from a
     // measurement. Periods stay multiples of 10 ms (100 Hz tick).
-    constexpr uint32_t gpsTaskStackBytes = 4096;
+    constexpr uint32_t gpsTaskStackBytes = 6144; // the sleep sequence (health URL, AT) runs here
     constexpr UBaseType_t gpsTaskPriority = 5;
     constexpr uint32_t gpsReadTimeoutMs = 1000;
 

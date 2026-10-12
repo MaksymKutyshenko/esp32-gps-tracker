@@ -67,6 +67,12 @@ esp_err_t Ssd1306::reinit()
     return flush();
 }
 
+esp_err_t Ssd1306::sleep()
+{
+    const uint8_t off[] = {controlCommands, 0xAE};
+    return i2c_master_transmit(device_, off, sizeof off, static_cast<int>(Config::i2cTimeoutMs));
+}
+
 void Ssd1306::clear()
 {
     memset(frame_ + 1, 0, frameBytes);

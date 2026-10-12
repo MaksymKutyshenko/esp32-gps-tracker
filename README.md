@@ -26,7 +26,7 @@ machine, and every piece of pure logic unit-tested on the host.
 | Storage | MicroSD over SPI (DMA), FAT, one CSV per UTC day |
 | Uplink | SIM800C GPRS, HTTP GET: OsmAnd position report plus a health report once a minute |
 | Power | 2×18650 through a Battery Shield V8, cell voltage on ADC |
-| Motion | BMA400 accelerometer activity interrupt (hardware threshold, no fix needed); GNSS speed as fallback |
+| Motion | BMA400 accelerometer activity interrupt (hardware threshold, no fix needed); GNSS speed as fallback. Parked 10 min: deep sleep, wake on motion or the button |
 
 ## Quick start
 
@@ -251,9 +251,11 @@ an outdoor track and a multi-hour soak on battery._
 
 ## Known issues and limitations
 
-- Deep sleep is not built yet: the BMA400 decides moving/parked, but a
-  parked tracker stays awake (see section 7 of
-  [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)).
+- Deep sleep keeps every module powered and puts each into its own
+  low-power state, so the standby current is set by the battery shield's
+  converter (a few mA), not by the ESP32's microamps. Some 18650 shields
+  switch their output off below a few tens of mA; check yours before
+  relying on sleep (see docs/HARDWARE.md).
 - SIM800C is 2G only.
 - FAT without long file names: track files use 8.3 names.
 - The uplink gets one record per `uplink_min_ms` while the card gets
@@ -268,7 +270,7 @@ an outdoor track and a multi-hour soak on battery._
 - Operator menu on the screen: a table of known APNs (Kyivstar, Vodafone UA,
   lifecell) selected with the button and saved to NVS, so a SIM swap needs no
   console. The uplink task already re-opens the bearer on an APN change.
-- Deep sleep while parked with EXT1 wake from the BMA400, with measured currents.
+- Measured currents awake, tracking, uploading and asleep.
 - Batch uploads (one request, many points) now that the server is ours;
   the modem's socket commands make one TCP session per batch possible.
 - GPX export alongside CSV.

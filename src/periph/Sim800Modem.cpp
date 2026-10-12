@@ -266,6 +266,13 @@ esp_err_t Sim800Modem::isRegistered(bool &registered)
     return ESP_OK;
 }
 
+esp_err_t Sim800Modem::sleep()
+{
+    closeBearer();
+    const AtCommand minimumFunctionality = {"AT+CFUN=0", "OK", 10'000};
+    return execute(minimumFunctionality);
+}
+
 esp_err_t Sim800Modem::openBearer(const char *apn)
 {
     const AtCommand fullFunction = {"AT+CFUN=1", "OK", 2000};

@@ -4,6 +4,9 @@
 #include "esp_timer.h"
 
 #include "logic/UbxAck.hpp"
+#include "logic/UbxFrame.hpp"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 namespace
 {
@@ -17,6 +20,12 @@ GnssReceiver::GnssReceiver(UartPort &uart) : uart_(uart)
 void GnssReceiver::begin(const GnssProfile &profile)
 {
     ESP_ERROR_CHECK(uart_.setBaudRate(profile.baudRate));
+
+    // A receiver left in backup mode by sleep() wakes on the first byte
+    // and needs a moment before it listens; harmless when already awake.
+    static const uint8_t wakeByte = 0xFF;
+    uart_.write(&wakeByte, 1);
+    vTaskDelay(pdMS_TO_TICKS(Config::gpsWakeDelayMs));
 
     // Rate, sentence selection, static hold and accuracy mask for this
     // module. Each frame is answered with UBX-ACK-ACK or -NAK inside the
@@ -47,6 +56,19 @@ void GnssReceiver::begin(const GnssProfile &profile)
     ESP_LOGI(logTag, "Receiver profile: %s at %" PRIu32 " baud, %u/%u setup frames acknowledged",
              profile.name, profile.baudRate, static_cast<unsigned>(acknowledged),
              static_cast<unsigned>(profile.setupCount));
+}
+
+esp_err_t GnssReceiver::sleep()
+{
+    // UBX-RXM-PMREQ: version 0, infinite duration, flags = backup,
+    // wake-up source = UART RX.
+    static constexpr UbxFrame<16> backup(0x02, 0x41, {
+        0x00, 0x00, 0x00, 0x00,  // version, reserved
+        0x00, 0x00, 0x00, 0x00,  // duration 0 = until woken
+        0x02, 0x00, 0x00, 0x00,  // flags: backup
+        0x08, 0x00, 0x00, 0x00,  // wakeupSources: uartrx
+    });
+    return uart_.write(backup.data(), backup.length());
 }
 
 UbxAckScanner::Result GnssReceiver::awaitAck(uint8_t messageClass, uint8_t messageId)

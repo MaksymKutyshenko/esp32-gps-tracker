@@ -118,15 +118,20 @@ The accelerometer fits the three places that were reserved for it.
    `motion_` at it when the chip answered. The FSM, `LogPolicy` and the
    display are untouched, and the diagnostics line names the source in
    use (`motion bma400 pulses N`).
-3. **Sleep (not built yet)** — the FSM already has `Stationary
-   --SleepRequested--> Sleeping --WakeUp--> Acquiring`. The ui task raises
-   `SleepRequested` after `Config::sleepAfterStationaryMs`; `App` then
-   parks the modem, blanks the display, configures EXT1 wake on INT1 and
-   the button (`esp_sleep_enable_ext1_wakeup`), and calls
-   `esp_deep_sleep_start()`. On boot, `esp_reset_reason() ==
-   ESP_RST_DEEPSLEEP` logs the wake source and the FSM starts as usual.
-   Measure tracking and sleeping current before and after; the checklist
-   does not credit the claim otherwise.
+3. **Sleep** — `SleepPolicy` (logic, host-tested) says when: parked
+   (`Stationary`) for `Config::Defaults::sleepAfterStationaryMs` with
+   nothing left in the uplink queue; 0 disables it. The gps task, which
+   owns the FSM, then runs `App::enterSleep`: `SleepRequested` to the FSM
+   (LED off), a last health report with state `sleeping` so the dashboard
+   knows it was deliberate, modem to minimum functionality (`AT+CFUN=0`,
+   ~2 mA, no cold-boot burst on wake), GNSS to software backup mode
+   (orbit data kept, wakes on the first UART byte), display off, event log
+   flushed and the card unmounted, then EXT1 wake on INT1 (activity,
+   high) and EXT0 wake on the button (low) and `esp_deep_sleep_start()`.
+   Nothing returns: the next boot logs `Woke from deep sleep: motion` or
+   `button` and initialises everything from the top. The modules keep
+   their supply; the floor is the battery shield's own converter at a few
+   mA. Measured currents belong in the README results.
 
 ## 8. Reading order for a reviewer
 

@@ -6,7 +6,10 @@
 #include "esp_log.h"
 #include "esp_system.h"
 #include "esp_task_wdt.h"
+#include "esp_sleep.h"
 #include "esp_timer.h"
+
+#include "driver/rtc_io.h"
 
 #include "config.hpp"
 #include "logic/CommandParser.hpp"
@@ -107,6 +110,7 @@ App::App()
       policy_({Config::Defaults::movingIntervalMs, Config::Defaults::stationaryIntervalMs,
                Config::Defaults::minDistanceM, Config::Defaults::minSatellites,
                Config::Defaults::maxHdopCenti}),
+      sleepPolicy_({Config::Defaults::sleepAfterStationaryMs}),
       buttonDecoder_(Config::buttonDebounceUs, Config::buttonLongPressUs),
       view_(display_),
       storage_(sdCard_, Config::trackDirectory),
@@ -127,6 +131,12 @@ void App::begin()
     const esp_reset_reason_t reason = esp_reset_reason();
     ESP_LOGI(logTag, "Boot: reset reason %s (%d)", resetReasonName(reason), static_cast<int>(reason));
     resetCause_ = resetCauseOf(reason);
+    if (reason == ESP_RST_DEEPSLEEP)
+    {
+        const esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
+        ESP_LOGI(logTag, "Woke from deep sleep: %s",
+                 cause == ESP_SLEEP_WAKEUP_EXT1 ? "motion" : cause == ESP_SLEEP_WAKEUP_EXT0 ? "button" : "other");
+    }
 
     settings_.begin();
     loadSettings();
@@ -344,6 +354,11 @@ void App::onEpoch(const Fix &fix, uint32_t nowMs)
     }
 
     publishFix(fix);
+
+    if (sleepPolicy_.due(nowMs, uxQueueMessagesWaiting(uplinkQueue_) == 0))
+    {
+        enterSleep();
+    }
 }
 
 void App::applyFsmEvent(TrackerEvent event)
@@ -353,6 +368,7 @@ void App::applyFsmEvent(TrackerEvent event)
     {
         ESP_LOGI(logTag, "State %s -> %s", TrackerFsm::name(before), TrackerFsm::name(fsm_.state()));
         showStateOnLed(fsm_.state());
+        sleepPolicy_.onState(fsm_.state(), nowMs());
     }
 }
 
@@ -1053,6 +1069,12 @@ void App::logDiagnostics()
 
 void App::publishHealth()
 {
+    const HealthSnapshot s = buildHealthSnapshot();
+    xQueueOverwrite(healthQueue_, &s);
+}
+
+HealthSnapshot App::buildHealthSnapshot()
+{
     const Diagnostics &d = diagnostics_;
     const Fix &fix = parser_.fix();
     HealthSnapshot s = {};
@@ -1101,5 +1123,123 @@ void App::publishHealth()
                                   ? static_cast<uint32_t>(uxTaskGetStackHighWaterMark(tasks_[reported[i]]))
                                   : 0;
     }
-    xQueueOverwrite(healthQueue_, &s);
+    return s;
+}
+
+// ---------------------------------------------------------------------------
+// Deep sleep. Runs on the gps task, which owns the FSM and so knows when
+// the tracker has been parked long enough. Each module is put into its own
+// low-power state (its supply stays on), the wake sources are armed and the
+// chip sleeps; the BMA400 stays awake as the alarm clock. Nothing returns
+// from here: the next boot re-initialises everything from the top.
+
+void App::enterSleep()
+{
+    applyFsmEvent(TrackerEvent::SleepRequested); // LED off, state logged
+    ESP_LOGI(logTag, "Parked for %" PRIu32 " min: sleeping until motion or the button",
+             Config::Defaults::sleepAfterStationaryMs / 60'000);
+
+    parkModem();
+    parkReceiver();
+    parkDisplay();
+    parkStorage();
+    armWakeSources();
+    esp_deep_sleep_start();
+}
+
+// The uplink task may be in the middle of a request (up to one HTTP
+// timeout); wait for it in slices, feeding the watchdog.
+bool App::takeModemForSleep()
+{
+    for (uint8_t i = 0; i < 60; ++i)
+    {
+        esp_task_wdt_reset();
+        if (xSemaphoreTake(modemMutex_, pdMS_TO_TICKS(1000)) == pdTRUE)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Last health report with state "sleeping", so the dashboard shows a
+// device that chose to go quiet rather than one that died.
+void App::sendSleepReport()
+{
+    if (!uplink_->isConnected())
+    {
+        return;
+    }
+    HealthSnapshot snapshot = buildHealthSnapshot();
+    snapshot.state = TrackerState::Sleeping;
+    snapshot.signalQuality = uplink_->signalQuality();
+    snapshot.uplinkBacklog = 0;
+
+    static char url[Config::gsmUrlBytes]; // static: the gps task's stack is small, and we never return
+    if (HealthReport::buildUrl(values_.serverUrl, values_.deviceId, Config::firmwareVersion, snapshot,
+                               url, sizeof url) == 0)
+    {
+        return;
+    }
+    uint16_t status = 0;
+    const esp_err_t err = uplink_->httpGet(url, status);
+    ESP_LOGI(logTag, "Sleep report: %s, HTTP %u", esp_err_to_name(err), status);
+}
+
+void App::parkModem()
+{
+    if (!takeModemForSleep())
+    {
+        ESP_LOGW(logTag, "Modem busy; sleeping without a final report");
+        return;
+    }
+    sendSleepReport();
+    const esp_err_t err = modem_.sleep();
+    ESP_LOGI(logTag, "Modem to minimum functionality: %s", esp_err_to_name(err));
+    // The mutex is kept: nothing else may touch the modem before sleep.
+}
+
+void App::parkReceiver()
+{
+    const esp_err_t err = gnss_.sleep();
+    ESP_LOGI(logTag, "Receiver to backup mode: %s", esp_err_to_name(err));
+}
+
+void App::parkDisplay()
+{
+    BusLock lock(i2cMutex_, Config::sleepLockWaitMs);
+    if (!lock.locked())
+    {
+        return;
+    }
+    const esp_err_t err = display_.sleep();
+    ESP_LOGI(logTag, "Display off: %s", esp_err_to_name(err));
+}
+
+// Everything logged so far goes to the card, then the volume is unmounted
+// so the FAT is consistent whatever happens while asleep.
+void App::parkStorage()
+{
+    BusLock lock(sdMutex_, Config::sleepLockWaitMs);
+    if (!lock.locked())
+    {
+        return;
+    }
+    ESP_LOGI(logTag, "Card unmounted for sleep");
+    eventLog_.flush(storage_, Config::eventLogFile);
+    sdCard_.unmount();
+}
+
+// INT1 pulses high on activity: EXT1 wake on a high level, with the RTC
+// pull-down holding the line low meanwhile. The button pulls GPIO2 low:
+// EXT0 wake on a low level, with the RTC pull-up holding it high.
+void App::armWakeSources()
+{
+    rtc_gpio_pullup_dis(Config::accelInterruptPin);
+    rtc_gpio_pulldown_en(Config::accelInterruptPin);
+    ESP_ERROR_CHECK(esp_sleep_enable_ext1_wakeup(1ULL << Config::accelInterruptPin, ESP_EXT1_WAKEUP_ANY_HIGH));
+
+    rtc_gpio_pulldown_dis(Config::buttonPin);
+    rtc_gpio_pullup_en(Config::buttonPin);
+    ESP_ERROR_CHECK(esp_sleep_enable_ext0_wakeup(Config::buttonPin, 0));
 }

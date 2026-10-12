@@ -16,6 +16,7 @@
 #include "logic/LogPolicy.hpp"
 #include "logic/MotionDetector.hpp"
 #include "logic/NmeaParser.hpp"
+#include "logic/SleepPolicy.hpp"
 #include "logic/TrackRecord.hpp"
 #include "logic/TrackerFsm.hpp"
 #include "periph/BatteryMonitor.hpp"
@@ -122,6 +123,18 @@ private:
     void logDiagnostics();
     // Fills a HealthSnapshot from the counters and overwrites healthQueue_.
     void publishHealth();
+    HealthSnapshot buildHealthSnapshot();
+
+    // Deep sleep (gps task): parks every module, arms the wake sources and
+    // never returns; the next boot starts from the top.
+    [[noreturn]] void enterSleep();
+    bool takeModemForSleep();
+    void sendSleepReport();
+    void parkModem();
+    void parkReceiver();
+    void parkDisplay();
+    void parkStorage();
+    void armWakeSources();
     static uint32_t nowMs();
     static void feedWatchdogFromModem();
 
@@ -151,6 +164,7 @@ private:
     AccelMotionDetector accelMotion_;
     IMotionDetector *motion_;
     LogPolicy policy_;
+    SleepPolicy sleepPolicy_;
     uint32_t uplinkSampleIntervalMs_ = 0;
     uint32_t lastUplinkSampleMs_ = 0;
     bool haveUplinkSample_ = false;
