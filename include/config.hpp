@@ -268,11 +268,15 @@ namespace Config
     constexpr uint32_t busLockTimeoutMs = 200;
     // A modem transaction (connect attempt, HTTP request) can take tens of
     // seconds; the uplink task waits this long for the console to release it.
-    constexpr uint32_t modemLockTimeoutMs = 15'000;
-    // Before sleeping: how long to wait for the display or the card's owner
-    // to finish its current transfer (a card write with fsync can take a
-    // few hundred ms).
-    constexpr uint32_t sleepLockWaitMs = 5000;
+    // A modem transaction (one AT command) is the longest anyone else
+    // holds the modem; a waiter must give up before its 5 s task watchdog
+    // bites, so this is well under it. The uplink task treats a timeout
+    // as one failed attempt and backs off.
+    constexpr uint32_t modemLockTimeoutMs = 4000;
+    // Before sleeping: how long to wait for each bus's owner to finish its
+    // current transfer (an HTTP request can take 30 s; a card write with
+    // fsync a few hundred ms). Waited in 1 s slices with the watchdog fed.
+    constexpr uint32_t sleepLockWaitMs = 60'000;
 
     // ---- Task layout ---------------------------------------------------
     // One task per blocking peripheral; priorities put the receiver first

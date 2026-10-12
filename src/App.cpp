@@ -1159,6 +1159,15 @@ void App::enterSleep()
     ESP_LOGI(logTag, "Parked for %" PRIu32 " min: sleeping until motion or the button",
              Config::Defaults::sleepAfterStationaryMs / 60'000);
 
+    // Wait for every bus to be free, then stop the other tasks: from here
+    // on this task alone touches the hardware, and nothing is left waiting
+    // on a mutex it would never get.
+    takeForSleep(modemMutex_);
+    takeForSleep(i2cMutex_);
+    takeForSleep(sdMutex_);
+    quiesceTasks();
+
+    sendSleepReport();
     parkModem();
     parkReceiver();
     parkDisplay();
@@ -1167,19 +1176,38 @@ void App::enterSleep()
     esp_deep_sleep_start();
 }
 
-// The uplink task may be in the middle of a request (up to one HTTP
-// timeout); wait for it in slices, feeding the watchdog.
-bool App::takeModemForSleep()
+// The owner may be mid-transfer (an HTTP request takes up to 30 s): wait
+// in slices, feeding the watchdog. Nothing is released again; the chip
+// sleeps with the locks held.
+bool App::takeForSleep(SemaphoreHandle_t mutex)
 {
-    for (uint8_t i = 0; i < 60; ++i)
+    for (uint32_t waited = 0; waited < Config::sleepLockWaitMs; waited += 1000)
     {
         esp_task_wdt_reset();
-        if (xSemaphoreTake(modemMutex_, pdMS_TO_TICKS(1000)) == pdTRUE)
+        if (xSemaphoreTake(mutex, pdMS_TO_TICKS(1000)) == pdTRUE)
         {
             return true;
         }
     }
+    ESP_LOGW(logTag, "A bus stayed busy for %" PRIu32 " s; sleeping anyway", Config::sleepLockWaitMs / 1000);
     return false;
+}
+
+// Suspend the other application tasks and take them off the watchdog, so
+// a task blocked on a bus we now hold cannot trip it while we park the
+// hardware. Deep sleep ends them all anyway.
+void App::quiesceTasks()
+{
+    const TaskIndex others[] = {TaskDisplay, TaskLogger, TaskUplink, TaskUi, TaskConsole};
+    for (TaskIndex index : others)
+    {
+        if (tasks_[index] == nullptr)
+        {
+            continue;
+        }
+        esp_task_wdt_delete(tasks_[index]);
+        vTaskSuspend(tasks_[index]);
+    }
 }
 
 // Last health report with state "sleeping", so the dashboard shows a
@@ -1208,15 +1236,8 @@ void App::sendSleepReport()
 
 void App::parkModem()
 {
-    if (!takeModemForSleep())
-    {
-        ESP_LOGW(logTag, "Modem busy; sleeping without a final report");
-        return;
-    }
-    sendSleepReport();
     const esp_err_t err = modem_.sleep();
     ESP_LOGI(logTag, "Modem to minimum functionality: %s", esp_err_to_name(err));
-    // The mutex is kept: nothing else may touch the modem before sleep.
 }
 
 void App::parkReceiver()
@@ -1227,11 +1248,6 @@ void App::parkReceiver()
 
 void App::parkDisplay()
 {
-    BusLock lock(i2cMutex_, Config::sleepLockWaitMs);
-    if (!lock.locked())
-    {
-        return;
-    }
     const esp_err_t err = display_.sleep();
     ESP_LOGI(logTag, "Display off: %s", esp_err_to_name(err));
 }
@@ -1240,11 +1256,6 @@ void App::parkDisplay()
 // so the FAT is consistent whatever happens while asleep.
 void App::parkStorage()
 {
-    BusLock lock(sdMutex_, Config::sleepLockWaitMs);
-    if (!lock.locked())
-    {
-        return;
-    }
     ESP_LOGI(logTag, "Card unmounted for sleep");
     eventLog_.flush(storage_, Config::eventLogFile);
     sdCard_.unmount();

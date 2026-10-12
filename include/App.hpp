@@ -130,7 +130,8 @@ private:
     // Deep sleep (gps task): parks every module, arms the wake sources and
     // never returns; the next boot starts from the top.
     [[noreturn]] void enterSleep();
-    bool takeModemForSleep();
+    bool takeForSleep(SemaphoreHandle_t mutex);
+    void quiesceTasks();
     void sendSleepReport();
     void parkModem();
     void parkReceiver();
