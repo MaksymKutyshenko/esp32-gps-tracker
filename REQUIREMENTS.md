@@ -288,37 +288,45 @@ Hardware details, power tree and the GPIO map are in
 | 6.2 DMA | SD card over SPI uses DMA; UART DMA optional |
 | 9.2 edge cases to demo | Block the sky (no fix), pull the SD card mid-log, unplug the GSM antenna (upload backlog then catch-up) |
 
-### Status after the firmware was written (2026-10-09)
+### Status (2026-10-12, firmware at `0d4cd84`)
 
 | Items | Status | Evidence |
 | --- | --- | --- |
-| 1.1, 1.2, 1.3, 1.5 | done | `App.cpp` tasks; no `delay()`; `logic/TrackerFsm.hpp`; one class per file |
-| 1.4, 8.2 | done | Mermaid block diagram and FSM in README |
-| 2.1 | done | `periph/BatteryMonitor` (ADC1) |
-| 2.2 | done | UART1/UART2, I2C, SPI |
-| 2.3 | done | `periph/Button` GPIO ISR → queue; UART driver interrupts |
-| 2.4 | done | queues between all tasks, UART ring buffers |
-| 2.5 | done | `esp_timer` deadlines, RMT, watchdog timer; GPTimer/PPS optional |
-| 3.1–3.4 | done | six tasks, five queues, `BusLock` mutexes, values-only exchange |
-| 4.1, 4.2 | done | `LogPolicy`, `SpeedMotionDetector`, `UplinkScheduler`, `EmaFilter` |
-| 4.3 | done | `Settings` in NVS + serial console `set`/`save` |
-| 4.4 | done | NMEA range checks, queue overflow policy, clamp in `Settings::validate`, fixed-point overflow guards |
-| 5.1 | done | `WatchdogSubscription` in every task, reset reason logged |
-| 5.2, 5.3, 5.4 | done in code, demo on hardware | silence timeout, card remount, modem power cycle, checksum/field validation |
-| 6.1, 6.4 | partly | stack high-water marks logged; CPU load needs `vTaskGetRunTimeStats` output in README |
-| 6.2, 6.3 | done | SD over SPI with DMA; parse in place, no copies of the NMEA buffer |
-| 7.1 | done | `docs/kicad/gps_tracker.kicad_sch`, ERC clean; 7.2–7.7 (layout, manufacturing) optional |
-| 8.1, 8.3, 8.4, 8.5 | done | README sections |
-| 9.1–9.4 | hardware | soak test, edge-case demo, see `docs/PRESENTATION.md` |
+| 1.1, 1.2, 1.3, 1.5 | done | six FreeRTOS tasks in `src/App.cpp`; no `delay()` outside bounded waits; `logic/TrackerFsm.hpp` table-driven FSM; one class per file |
+| 1.4, 8.2 | done | Mermaid block diagram and FSM diagram in README |
+| 2.1 | done | `periph/BatteryMonitor` (ADC1, calibrated) |
+| 2.2 | done | UART1 GNSS, UART2 modem, I2C OLED + BMA400, SPI SD |
+| 2.3 | done | `periph/Button` and `periph/Bma400` GPIO ISRs; UART driver interrupts |
+| 2.4 | done | queues between every pair of tasks; UART ring buffers; SD DMA |
+| 2.5 | done | `esp_timer` deadlines, RMT for the LED, task watchdog timer |
+| 3.1–3.4 | done | six tasks, seven queues, three `BusLock` mutexes, values-only exchange (`docs/ARCHITECTURE.md` §3) |
+| 4.1, 4.2 | done | `LogPolicy` (measured motion → interval), `AccelMotionDetector` / `SpeedMotionDetector` hysteresis, `UplinkScheduler` back-off, `EmaFilter` |
+| 4.3 | done | `Settings` in NVS, console `set`/`save`, design values in `config.hpp` |
+| 4.4 | done | NMEA range checks, quality gate (satellites, HDOP), queue overflow policy, `Settings::validate` clamps, fixed-point guards, URL-length checks |
+| 5.1 | done | `WatchdogSubscription` in every task; reset reason logged and reported upstream |
+| 5.2 | done, shown on the bench | GNSS silence timeout, card remount (seen after a rail dip), display re-init (seen), modem bearer re-open and power cycle (seen) |
+| 5.3 | done | checksum, field, status, satellite/HDOP and accuracy-mask checks; 15 parser tests |
+| 5.4 | done, shown on the bench | charger pulled: card, display, modem all recovered without a reboot; `at AT+CPOWD=1` ×3 |
+| 6.1 | partly | stack high-water marks per task in the minute line; no per-section timing yet |
+| 6.2, 6.3 | done | SD over SPI with DMA; NMEA parsed in place |
+| 6.4 | tool in place | `diag` prints `vTaskGetRunTimeStats`; the number goes into README results after a run |
+| 7.1 | done | `docs/kicad/gps_tracker.kicad_sch`, ERC 0/0; 7.2–7.7 optional (layout, manufacturing) |
+| 8.1, 8.3, 8.4, 8.5 | done | README sections; `docs/ARCHITECTURE.md`, `docs/HARDWARE.md` |
+| 9.1 | done on the bench | hours of uptime through modem bursts, charger changes and sleep cycles |
+| 9.2 | done on the bench | SD pulled, display glitched, modem powered down, no-fix, deep sleep and wake |
+| 9.3, 9.4 | at the defence | `docs/PRESENTATION.md`, schematic walk-through |
 
-Counting done items: 32 of 42 without any hardware measurement or PCB
-layout. The demo items (9.1–9.3) bring it to 35, above the 34 needed.
+33 items done or demonstrated, 35 with the two defence items: above the
+34 needed. 6.1 (per-section timing) and 7.2–7.7 (PCB) are the ones left
+out on purpose.
 
-Still open:
+Still open before the defence:
 
-- [ ] Exact SIM800C breakout (PWRKEY pin, level shifter, input range).
-- [ ] SD module type (bare 3.3 V vs 5 V level-shifter).
-- [ ] Upload target: Traccar (OsmAnd protocol) vs own Cloudflare Worker endpoint.
-- [ ] Measure the battery shield's 3 V rail and the three current figures.
-- [ ] Teacher approval of the custom topic.
-- [ ] 2G coverage check for the SIM's operator.
+- [ ] Current measurements: tracking, uploading, asleep (multimeter in series with a cell).
+- [ ] Outdoor track for the README results and the demo.
+- [ ] CPU-load line from `diag` into README results.
+- [ ] Slides from `docs/PRESENTATION.md` in the academy template.
+- [ ] Repository on GitHub, release tag v1.0.0.
+- [ ] Decide whether the web app (branch `tracker-web`) joins `main` or is presented as a second repository.
+- [ ] Cleanup pass over the repository files.
+- [ ] Rehearse the demo and the edge case twice.
