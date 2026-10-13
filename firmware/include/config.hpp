@@ -54,8 +54,12 @@ namespace Config
     constexpr uint32_t buttonStableMs = 50;
     constexpr uint32_t buttonSettleMaxMs = 300;
     // A press seen for at least this long inside the sampling window is a
-    // tap, even if it was released before the level could settle.
-    constexpr uint32_t buttonTapMinMs = 10;
+    // tap, even if it was released before the level could settle; shorter
+    // dips are bounce.
+    constexpr uint32_t buttonTapMinMs = 30;
+    // After a decoded press the contacts get this long to stop bouncing;
+    // edges from that time are discarded so one press never counts twice.
+    constexpr uint32_t buttonLockoutMs = 150;
     // A page switch waits this long for room in the display queue rather
     // than being dropped like a measurement would; the ui task can afford
     // it, and the display task frees a slot every frame.

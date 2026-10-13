@@ -864,74 +864,29 @@ void App::uiLoop()
     {
         watchdog.feed();
 
-        ButtonEdge edge = {};
-        if (xQueueReceive(buttonEdgeQueue_, &edge, pdMS_TO_TICKS(Config::uiTickMs)) == pdTRUE)
+        switch (readButton())
         {
-            // The edge only says "something moved". The level the ISR saw
-            // is whatever the bouncing contact showed at that instant, and
-            // this switch bounces for tens of milliseconds (16 edges per
-            // press on the bench), so no fixed delay is safe. Sample the
-            // pin until it has held one level for buttonStableMs, drop the
-            // edges the bounce produced meanwhile, and feed that level.
-            bool level = button_.isPressed();
-            uint32_t stableMs = 0;
-            uint32_t pressedSeenMs = level ? Config::buttonSampleMs : 0;
-            for (uint32_t waited = 0; stableMs < Config::buttonStableMs && waited < Config::buttonSettleMaxMs;
-                 waited += Config::buttonSampleMs)
+        case ButtonPress::Short:
+        {
+            ESP_LOGI(logTag, "Button: short press, next page");
+            // A press is not a measurement: it must not be dropped when the
+            // display queue is busy with fixes and counters, and it should
+            // take effect before them. Front of the queue, with a short
+            // wait instead of the best-effort post.
+            DisplayMessage message = {};
+            message.kind = DisplayMessage::Kind::NextPage;
+            if (xQueueSendToFront(displayQueue_, &message, pdMS_TO_TICKS(Config::buttonPostWaitMs)) != pdTRUE)
             {
-                vTaskDelay(pdMS_TO_TICKS(Config::buttonSampleMs));
-                const bool now = button_.isPressed();
-                if (now)
-                {
-                    pressedSeenMs += Config::buttonSampleMs;
-                }
-                if (now == level)
-                {
-                    stableMs += Config::buttonSampleMs;
-                }
-                else
-                {
-                    level = now;
-                    stableMs = 0;
-                }
+                ESP_LOGW(logTag, "Page switch lost: display queue full");
             }
-            while (xQueueReceive(buttonEdgeQueue_, &edge, 0) == pdTRUE)
-            {
-            }
-            // A tap shorter than the stability window ends before "pressed"
-            // ever held for buttonStableMs: the settled level is "released"
-            // and the decoder sees no change. The samples still saw the
-            // press, so a complete tap inside the window counts as one.
-            const bool wasPressed = buttonDecoder_.isPressed();
-            ButtonPress press = buttonDecoder_.feed(level, esp_timer_get_time());
-            if (press == ButtonPress::None && !wasPressed && !level && pressedSeenMs >= Config::buttonTapMinMs)
-            {
-                press = ButtonPress::Short;
-            }
-            switch (press)
-            {
-            case ButtonPress::Short:
-            {
-                ESP_LOGI(logTag, "Button: short press, next page");
-                // A press is not a measurement: it must not be dropped when
-                // the display queue is busy with fixes and counters, and it
-                // should take effect before them. Front of the queue, with
-                // a short wait instead of the best-effort post.
-                DisplayMessage message = {};
-                message.kind = DisplayMessage::Kind::NextPage;
-                if (xQueueSendToFront(displayQueue_, &message, pdMS_TO_TICKS(Config::buttonPostWaitMs)) != pdTRUE)
-                {
-                    ESP_LOGW(logTag, "Page switch lost: display queue full");
-                }
-                break;
-            }
-            case ButtonPress::Long:
-                ESP_LOGI(logTag, "Button: long press");
-                logDiagnostics();
-                break;
-            case ButtonPress::None:
-                break;
-            }
+            break;
+        }
+        case ButtonPress::Long:
+            ESP_LOGI(logTag, "Button: long press");
+            logDiagnostics();
+            break;
+        case ButtonPress::None:
+            break;
         }
 
         const uint32_t now = nowMs();
@@ -966,6 +921,64 @@ void App::uiLoop()
             logDiagnostics();
         }
     }
+}
+
+// Waits up to a ui tick for the button to move, then turns what the
+// contacts did into one press at most. The ISR only says "something
+// moved": the level it saw is whatever the bouncing contact showed at
+// that instant, and this switch bounces for tens of milliseconds (16
+// edges per press on the bench), so no fixed delay is safe. The pin is
+// sampled until it has held one level for buttonStableMs; that level goes
+// to the decoder. A tap released before the level could settle is still
+// a press if the samples saw it pressed for buttonTapMinMs. After a press
+// the contacts get buttonLockoutMs to finish bouncing, and the edges they
+// produce meanwhile are discarded, so one press never counts twice.
+ButtonPress App::readButton()
+{
+    ButtonEdge edge = {};
+    if (xQueueReceive(buttonEdgeQueue_, &edge, pdMS_TO_TICKS(Config::uiTickMs)) != pdTRUE)
+    {
+        return ButtonPress::None;
+    }
+
+    bool level = button_.isPressed();
+    uint32_t stableMs = 0;
+    uint32_t pressedSeenMs = level ? Config::buttonSampleMs : 0;
+    for (uint32_t waited = 0; stableMs < Config::buttonStableMs && waited < Config::buttonSettleMaxMs;
+         waited += Config::buttonSampleMs)
+    {
+        vTaskDelay(pdMS_TO_TICKS(Config::buttonSampleMs));
+        const bool now = button_.isPressed();
+        if (now)
+        {
+            pressedSeenMs += Config::buttonSampleMs;
+        }
+        if (now == level)
+        {
+            stableMs += Config::buttonSampleMs;
+        }
+        else
+        {
+            level = now;
+            stableMs = 0;
+        }
+    }
+
+    const bool wasPressed = buttonDecoder_.isPressed();
+    ButtonPress press = buttonDecoder_.feed(level, esp_timer_get_time());
+    if (press == ButtonPress::None && !wasPressed && !level && pressedSeenMs >= Config::buttonTapMinMs)
+    {
+        press = ButtonPress::Short;
+    }
+
+    if (press != ButtonPress::None)
+    {
+        vTaskDelay(pdMS_TO_TICKS(Config::buttonLockoutMs));
+    }
+    while (xQueueReceive(buttonEdgeQueue_, &edge, 0) == pdTRUE)
+    {
+    }
+    return press;
 }
 
 // ---------------------------------------------------------------------------

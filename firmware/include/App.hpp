@@ -91,6 +91,7 @@ private:
     [[noreturn]] void loggerLoop();
     [[noreturn]] void uplinkLoop();
     [[noreturn]] void uiLoop();
+    ButtonPress readButton();
     [[noreturn]] void consoleLoop();
 
     static void gpsTaskEntry(void *self);
