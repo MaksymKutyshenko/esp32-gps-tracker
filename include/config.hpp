@@ -218,7 +218,8 @@ namespace Config
         // or the button is pressed. 0 disables sleep. The battery shield's
         // own converter still draws a few mA, so the gain is days of
         // standby, not the ESP32's microamps alone.
-        constexpr uint32_t sleepAfterStationaryMs = 10 * 60'000;
+        // Bench value while the sleep/wake cycle is being verified; 10 min for use.
+        constexpr uint32_t sleepAfterStationaryMs = 1 * 60'000;
         // Asleep, wake on a timer as well: a health report every hour is
         // the sign of life the dashboard needs, and no stuck wake source
         // can leave the tracker asleep for good. Without motion it sleeps
