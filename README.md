@@ -247,6 +247,14 @@ line and the web dashboard):
   display re-initialised, the modem answered after PWRKEY, and the chip
   then took a power-on reset from the rail dip. Charger plugged in: no
   reset.
+- Battery alone, before the 1000 µF at the modem: a reset every 30 s
+  during the first upload. With it: 648 s to the scheduled sleep, then
+  three park / sleep / motion-wake cycles in a row (server rows with
+  `rst=deepsleep`, fix back within seconds, records and uploads
+  continuing), no resets.
+- Deep sleep: the shield keeps its output up at the sleeping load; the
+  BMA400's CS pin must be tied to 3.3 V, or it starts in SPI mode on
+  about one power-up in three and cannot wake the tracker.
 
 _Still to measure: current draw (idle / tracking / uploading), CPU load,
 an outdoor track and a multi-hour soak on battery._

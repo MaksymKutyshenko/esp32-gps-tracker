@@ -193,9 +193,9 @@ it to GPIO16 if wanted.
   the detached modem, 20 µA for the GNSS in backup mode and 10 µA each for
   the ESP32, OLED and BMA400. Many 18650 shields cut their 5 V output
   when the load falls below a few tens of mA, power-bank style, and a
-  sleeping tracker would then lose power and never wake. Test before
-  relying on sleep: load the shield with ~10 mA (an LED and a 330 Ω
-  resistor) and see whether the output stays up for a minute. Wake
+  sleeping tracker would then lose power and never wake. This shield
+  keeps its output up at the sleeping load (checked 2026-10-13: still
+  powered after an hour asleep). Wake
   sources are INT1 (GPIO6, high) and the button (GPIO2, low); both are
   RTC-capable pins, which is why they were chosen.
 - 5 V pins differ between the two boards. The devkit's `5VIN` sits behind
@@ -224,7 +224,13 @@ it to GPIO16 if wanted.
   SMA, modem VSS/GND on their own shield pins and the devkit GND on its
   own wire: 3/3 radio restarts and 3/3 cold boots without a reset, nine
   minutes of uptime across three power cycles. The same two commands
-  are the acceptance test for the SuperMini build.
+  are the acceptance test for the SuperMini build. That passed with the
+  laptop attached; on battery alone the devkit hangs off the shield's
+  converter together with the modem and the resets came back (one boot
+  every 30 s, during the first upload). The **1000 µF electrolytic across
+  the modem's VSS and GND pins** ended them: the next run went 648 s to
+  its scheduled sleep and the sleep / wake cycles after it had no resets
+  at all. It is part of the design, not a bench aid.
 - Battery Shield V8 has no seamless power path: plugging or unplugging
   the charger switches the boost converter between the input and the
   cells, and the 5 V / 3 V outputs dip for tens of milliseconds. The
