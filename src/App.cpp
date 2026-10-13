@@ -136,7 +136,10 @@ void App::begin()
     {
         const esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
         ESP_LOGI(logTag, "Woke from deep sleep: %s",
-                 cause == ESP_SLEEP_WAKEUP_EXT1 ? "motion" : cause == ESP_SLEEP_WAKEUP_EXT0 ? "button" : "other");
+                 cause == ESP_SLEEP_WAKEUP_EXT1    ? "motion"
+                 : cause == ESP_SLEEP_WAKEUP_EXT0  ? "button"
+                 : cause == ESP_SLEEP_WAKEUP_TIMER ? "hourly timer"
+                                                   : "other");
     }
 
     settings_.begin();
@@ -1265,9 +1268,12 @@ void App::parkStorage()
     sdCard_.unmount();
 }
 
-// INT1 pulses high on activity: EXT1 wake on a high level, with the RTC
-// pull-down holding the line low meanwhile. The button pulls GPIO2 low:
-// EXT0 wake on a low level, with the RTC pull-up holding it high.
+// Three wake sources. INT1 pulses high on activity: EXT1 wake on a high
+// level, with the RTC pull-down holding the line low meanwhile. The
+// button pulls GPIO2 low: EXT0 wake on a low level, with the RTC pull-up
+// holding it high. A timer wakes the tracker once an hour regardless.
+// The internal pulls only work in deep sleep while the RTC peripheral
+// domain stays powered, so it is kept on (tens of microamps).
 void App::armWakeSources()
 {
     rtc_gpio_pullup_dis(Config::accelInterruptPin);
@@ -1277,4 +1283,7 @@ void App::armWakeSources()
     rtc_gpio_pulldown_dis(Config::buttonPin);
     rtc_gpio_pullup_en(Config::buttonPin);
     ESP_ERROR_CHECK(esp_sleep_enable_ext0_wakeup(Config::buttonPin, 0));
+    ESP_ERROR_CHECK(esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON));
+
+    ESP_ERROR_CHECK(esp_sleep_enable_timer_wakeup(Config::Defaults::sleepHeartbeatUs));
 }

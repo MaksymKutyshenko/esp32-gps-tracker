@@ -217,6 +217,11 @@ namespace Config
         // own converter still draws a few mA, so the gain is days of
         // standby, not the ESP32's microamps alone.
         constexpr uint32_t sleepAfterStationaryMs = 10 * 60'000;
+        // Asleep, wake on a timer as well: a health report every hour is
+        // the sign of life the dashboard needs, and no stuck wake source
+        // can leave the tracker asleep for good. Without motion it sleeps
+        // again after sleepAfterStationaryMs.
+        constexpr uint64_t sleepHeartbeatUs = 60ULL * 60 * 1'000'000;
         // Health report (counters, sky view, card, modem, battery, heap)
         // once a minute, fix or no fix: this is how the web app knows the
         // device is alive and which module is in trouble.
