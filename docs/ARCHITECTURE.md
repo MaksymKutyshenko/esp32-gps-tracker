@@ -121,13 +121,14 @@ sequenceDiagram
     participant P as OLED, SD card
     G->>G: FSM in Stationary; SleepPolicy counts sleepAfterStationaryMs
     G->>G: due: uplink queue empty, or the grace period for it is over
-    G->>T: take the modem, I2C and SD mutexes (1 s slices, watchdog fed)
-    G->>T: suspend the tasks, unsubscribe them from the watchdog
+    G->>T: take the I2C and SD mutexes (1 s slices, watchdog fed); suspend display, logger, ui, console
+    G->>P: display off
+    G->>T: take the modem mutex (60 s if an upload is in flight, 10 s if never connected); suspend uplink
     G->>M: health report with state=sleeping (HTTP GET)
     G->>M: AT+CFUN=0 (minimum functionality, ~2 mA)
     G->>R: UBX-RXM-PMREQ: backup mode, orbits kept
-    G->>P: display off; EVENTS.LOG flushed; card unmounted
-    G->>G: arm wake: INT1 high (EXT1), button low (EXT0), timer 1 h; RTC domain stays on
+    G->>P: EVENTS.LOG flushed; card unmounted
+    G->>G: arm wake: INT1 high (EXT1), button (EXT0) unless its line reads as pressed, timer 1 h; RTC domain stays on
     G->>G: esp_deep_sleep_start()
     A-->>G: activity pulse: the chip boots from scratch
     G->>G: Boot: reset reason deep-sleep wake (motion); clock kept; fix back in seconds

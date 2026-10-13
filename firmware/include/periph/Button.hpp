@@ -24,7 +24,10 @@ struct ButtonEdge
 class Button
 {
 public:
-    explicit Button(gpio_num_t pin);
+    // pressedHigh: the line idles low and a press pulls it to 3.3 V (a
+    // module with its own pull-down); otherwise a switch to GND with the
+    // chip's pull-up.
+    Button(gpio_num_t pin, bool pressedHigh);
 
     void begin(QueueHandle_t edgeQueue);
 
@@ -41,6 +44,7 @@ private:
     static void isrEntry(void *self);
 
     gpio_num_t pin_;
+    int pressedLevel_;
     QueueHandle_t queue_ = nullptr;
     std::atomic<uint32_t> edges_{0};
     std::atomic<uint32_t> droppedEdges_{0};

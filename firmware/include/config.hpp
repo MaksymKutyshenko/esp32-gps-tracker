@@ -42,9 +42,16 @@ namespace Config
     constexpr uint32_t batteryDividerRatio = 2;
 
     // ---- Button --------------------------------------------------------
-    // To GND, internal pull-up. GPIO interrupt feeds the UI queue; RTC GPIO
-    // so it can also wake the chip from deep sleep.
+    // RTC GPIO so it can also wake the chip from deep sleep. The GPIO
+    // interrupt feeds the UI queue.
     constexpr gpio_num_t buttonPin = GPIO_NUM_2;
+    // How the button is wired. false: a bare switch from the pin to GND,
+    // the chip's pull-up holds the line high, a press reads low. true: a
+    // button module with its own pull-down resistor, the line idles low and
+    // a press connects it to 3.3 V. With the wrong setting the line reads
+    // as "pressed" at rest, and deep sleep ends the moment it starts
+    // ('Wake lines: button LOW (reads as pressed)' in the log).
+    constexpr bool buttonPressedHigh = false;
     // The interrupt only wakes the ui task; from then on the pin is sampled
     // every buttonSampleMs and a level counts once it has held for
     // buttonStableUs (the module 2.6 debounce: 50 ms, 5 ms polling). The
@@ -309,6 +316,9 @@ namespace Config
     // current transfer (an HTTP request can take 30 s; a card write with
     // fsync a few hundred ms). Waited in 1 s slices with the watchdog fed.
     constexpr uint32_t sleepLockWaitMs = 60'000;
+    // The same wait when the uplink never connected: nothing is in flight
+    // worth a minute, the uplink task is only retrying the modem's power-on.
+    constexpr uint32_t sleepLockWaitDisconnectedMs = 10'000;
     // After the wake pads are handed to the RTC controller with their
     // pulls, how long the lines get to settle before the wake levels are
     // armed and read back into the log.

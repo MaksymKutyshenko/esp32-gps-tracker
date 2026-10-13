@@ -87,7 +87,7 @@ and on the DevKitC). Only the GSM UART and the status LED differ.
 | Function | SuperMini | DevKitC-1 | Notes |
 | --- | --- | --- | --- |
 | Battery voltage (ADC1_CH0) | GPIO1 | GPIO1 | Divider 100 k / 100 k from the shield's B+ (cell voltage, ≤ 4.2 V → ≤ 2.1 V). 12 dB attenuation |
-| Button (wake + UI) | GPIO2 | GPIO2 | To GND, internal pull-up, GPIO interrupt → queue; RTC GPIO so it can wake deep sleep |
+| Button (wake + UI) | GPIO2 | GPIO2 | A bare switch to GND with the internal pull-up (`buttonPressedHigh = false`), or a button module with its own pull-down and a press to 3.3 V (`true`). GPIO interrupt → queue; RTC GPIO so it can wake deep sleep. The log line `Wake lines: button …` before each sleep says whether the line rests at the idle level |
 | GNSS UART1 RX | GPIO5 | GPIO5 | ← GNSS TX |
 | GNSS UART1 TX | GPIO4 | GPIO4 | → GNSS RX (sends the UBX setup at boot) |
 | BMA400 INT1 | GPIO6 | GPIO6 | Motion interrupt; RTC GPIO for deep-sleep wake (EXT1) |

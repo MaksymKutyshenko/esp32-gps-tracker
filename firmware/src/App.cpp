@@ -102,7 +102,7 @@ App::App()
       battery_(Config::batteryAdcUnit, Config::batteryAdcChannel,
                Config::batteryAdcAttenuation, Config::batteryDividerRatio),
       accel_(i2c_, Config::accelInterruptPin),
-      button_(Config::buttonPin),
+      button_(Config::buttonPin, Config::buttonPressedHigh),
       led_(Config::statusLedPin),
       speedMotion_({Config::Defaults::motionStartCmPerS, Config::Defaults::motionStopCmPerS,
                     Config::Defaults::motionStopDelayMs}),
@@ -1235,18 +1235,23 @@ void App::enterSleep()
                  static_cast<unsigned>(unsent), Config::Defaults::sleepUplinkGraceMs / 60'000);
     }
 
-    // Wait for every bus to be free, then stop the other tasks: from here
-    // on this task alone touches the hardware, and nothing is left waiting
-    // on a mutex it would never get.
-    takeForSleep(modemMutex_);
-    takeForSleep(i2cMutex_);
-    takeForSleep(sdMutex_);
-    quiesceTasks();
+    // Screen off first: the visible sign that sleep is under way, within a
+    // second of the decision. Each bus is taken from its owner, then the
+    // owner stopped: from here on this task alone touches the hardware,
+    // and nothing is left waiting on a mutex it would never get.
+    takeForSleep(i2cMutex_, Config::sleepLockWaitMs);
+    takeForSleep(sdMutex_, Config::sleepLockWaitMs);
+    quiesceTasks({TaskDisplay, TaskLogger, TaskUi, TaskConsole});
+    parkDisplay();
 
+    // The modem: an HTTP request in flight gets its full time; a modem that
+    // never attached is not worth a minute, the uplink task is only
+    // retrying its power-on.
+    takeForSleep(modemMutex_, uplink_->isConnected() ? Config::sleepLockWaitMs : Config::sleepLockWaitDisconnectedMs);
+    quiesceTasks({TaskUplink});
     sendSleepReport();
     parkModem();
     parkReceiver();
-    parkDisplay();
     parkStorage();
     armWakeSources();
     esp_deep_sleep_start();
@@ -1255,9 +1260,9 @@ void App::enterSleep()
 // The owner may be mid-transfer (an HTTP request takes up to 30 s): wait
 // in slices, feeding the watchdog. Nothing is released again; the chip
 // sleeps with the locks held.
-bool App::takeForSleep(SemaphoreHandle_t mutex)
+bool App::takeForSleep(SemaphoreHandle_t mutex, uint32_t waitMs)
 {
-    for (uint32_t waited = 0; waited < Config::sleepLockWaitMs; waited += 1000)
+    for (uint32_t waited = 0; waited < waitMs; waited += 1000)
     {
         esp_task_wdt_reset();
         if (xSemaphoreTake(mutex, pdMS_TO_TICKS(1000)) == pdTRUE)
@@ -1265,17 +1270,16 @@ bool App::takeForSleep(SemaphoreHandle_t mutex)
             return true;
         }
     }
-    ESP_LOGW(logTag, "A bus stayed busy for %" PRIu32 " s; sleeping anyway", Config::sleepLockWaitMs / 1000);
+    ESP_LOGW(logTag, "A bus stayed busy for %" PRIu32 " s; sleeping anyway", waitMs / 1000);
     return false;
 }
 
 // Suspend the other application tasks and take them off the watchdog, so
 // a task blocked on a bus we now hold cannot trip it while we park the
 // hardware. Deep sleep ends them all anyway.
-void App::quiesceTasks()
+void App::quiesceTasks(std::initializer_list<TaskIndex> which)
 {
-    const TaskIndex others[] = {TaskDisplay, TaskLogger, TaskUplink, TaskUi, TaskConsole};
-    for (TaskIndex index : others)
+    for (TaskIndex index : which)
     {
         if (tasks_[index] == nullptr)
         {
@@ -1355,17 +1359,35 @@ void App::armWakeSources()
 
     ESP_ERROR_CHECK(rtc_gpio_init(Config::buttonPin));
     ESP_ERROR_CHECK(rtc_gpio_set_direction(Config::buttonPin, RTC_GPIO_MODE_INPUT_ONLY));
-    rtc_gpio_pulldown_dis(Config::buttonPin);
-    rtc_gpio_pullup_en(Config::buttonPin);
+    const int pressedLevel = Config::buttonPressedHigh ? 1 : 0;
+    if (Config::buttonPressedHigh)
+    {
+        rtc_gpio_pullup_dis(Config::buttonPin);
+        rtc_gpio_pulldown_en(Config::buttonPin);
+    }
+    else
+    {
+        rtc_gpio_pulldown_dis(Config::buttonPin);
+        rtc_gpio_pullup_en(Config::buttonPin);
+    }
 
     vTaskDelay(pdMS_TO_TICKS(Config::wakeLineSettleMs));
-    const uint32_t button = rtc_gpio_get_level(Config::buttonPin);
+    const bool buttonIdle = rtc_gpio_get_level(Config::buttonPin) != static_cast<uint32_t>(pressedLevel);
     const uint32_t motion = rtc_gpio_get_level(Config::accelInterruptPin);
-    ESP_LOGI(logTag, "Wake lines: button %s, INT1 %s", button ? "high (idle)" : "LOW (reads as pressed)",
+    ESP_LOGI(logTag, "Wake lines: button %s, INT1 %s", buttonIdle ? "idle" : "reads as PRESSED",
              motion ? "HIGH (reads as motion)" : "low (idle)");
 
     ESP_ERROR_CHECK(esp_sleep_enable_ext1_wakeup(1ULL << Config::accelInterruptPin, ESP_EXT1_WAKEUP_ANY_HIGH));
-    ESP_ERROR_CHECK(esp_sleep_enable_ext0_wakeup(Config::buttonPin, 0));
+    if (buttonIdle)
+    {
+        ESP_ERROR_CHECK(esp_sleep_enable_ext0_wakeup(Config::buttonPin, pressedLevel));
+    }
+    else
+    {
+        // Held, stuck, or wired the other way round (Config::buttonPressedHigh):
+        // armed, it would end the sleep at once. Motion and the timer still wake.
+        ESP_LOGW(logTag, "Button line reads as pressed at rest: the button will not wake this sleep");
+    }
     ESP_ERROR_CHECK(esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON));
 
     ESP_ERROR_CHECK(esp_sleep_enable_timer_wakeup(Config::Defaults::sleepHeartbeatUs));

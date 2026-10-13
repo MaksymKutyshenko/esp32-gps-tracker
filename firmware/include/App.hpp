@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include <atomic>
+#include <initializer_list>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
@@ -133,8 +134,8 @@ private:
     // Deep sleep (gps task): parks every module, arms the wake sources and
     // never returns; the next boot starts from the top.
     [[noreturn]] void enterSleep();
-    bool takeForSleep(SemaphoreHandle_t mutex);
-    void quiesceTasks();
+    bool takeForSleep(SemaphoreHandle_t mutex, uint32_t waitMs);
+    void quiesceTasks(std::initializer_list<TaskIndex> which);
     void sendSleepReport();
     void parkModem();
     void parkReceiver();
