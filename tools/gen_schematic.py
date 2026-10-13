@@ -213,6 +213,7 @@ lib = Library()
 WROOM = lib.use("RF_Module", "ESP32-S3-WROOM-1")
 C4 = lib.use("Connector_Generic", "Conn_01x04")
 C6 = lib.use("Connector_Generic", "Conn_01x06")
+C8 = lib.use("Connector_Generic", "Conn_01x08")
 C12 = lib.use("Connector_Generic", "Conn_01x12")
 R = lib.use("Device", "R")
 LED = lib.use("Device", "LED")
@@ -322,16 +323,22 @@ text("1 GND  2 VCC 5V (adapter has its own 3.3 V regulator and level shifter)\n"
      "3 MISO -> IO13  4 MOSI <- IO12  5 SCK <- IO11  6 CS <- IO10", 300, 107, 1.27)
 
 # --- BMA400 ---------------------------------------------------------------
-j6 = Part(lib, C6, "J6", "BMA400 CJMCU-400", 320, 135, ref_offset=(-4, -10), value_offset=(-4, -8))
+j6 = Part(lib, C8, "J6", "BMA400 CJMCU-400", 320, 135, ref_offset=(-4, -12), value_offset=(-4, -10))
 j6.emit()
 connect(j6, "1", "+3V3")
 connect(j6, "2", "GND")
 connect(j6, "3", "SDA")
 connect(j6, "4", "SCL")
 connect(j6, "5", "ACC_INT1")
-finish_unused(j6)  # INT2 unused
-text("1 VCC 3V3  2 GND  3 SDA  4 SCL  5 INT1 -> IO6 (RTC GPIO, deep-sleep wake)  6 INT2 n/c\nI2C 0x14 (0x15 with SDO high).",
-     300, 157, 1.27)
+# CS high at power-up selects I2C; the board's own pull-up was not enough
+# (SPI mode on one boot in three). SDO low fixes the address at 0x14.
+connect(j6, "7", "+3V3")
+connect(j6, "8", "GND")
+finish_unused(j6)  # 6 INT2 unused
+text("1 VCC 3V3  2 GND  3 SDA  4 SCL  5 INT1 -> IO6 (RTC GPIO, deep-sleep wake)  6 INT2 n/c\n"
+     "7 CS -> 3V3: I2C mode at power-up (floating, the chip started in SPI mode on 1 boot in 3)\n"
+     "8 SDO -> GND: address 0x14 (0x15 with SDO high; the firmware probes both).",
+     300, 162, 1.27)
 
 # --- Battery shield --------------------------------------------------------
 j5 = Part(lib, C4, "J5", "Battery Shield V8, 2x18650", 60, 160, ref_offset=(-4, -8), value_offset=(-4, -6))

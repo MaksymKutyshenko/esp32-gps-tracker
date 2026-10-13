@@ -19,7 +19,7 @@ import sys
 
 STANDALONE = "--standalone" in sys.argv
 
-W, H = 1200, 775
+W, H = 1320, 840
 
 COL = {
     "5V": "#e03a4e", "3V3": "#f29a1f", "GND": "var(--rail-gnd)", "BATT": "#9b6ff0",
@@ -35,8 +35,11 @@ def box(x, y, w, h, title, sub=None, dashed=False):
     dash = ' stroke-dasharray="6 4"' if dashed else ""
     add(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="6" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"{dash}/>')
     add(f'<text x="{x+10}" y="{y+22}" class="t-title">{title}</text>')
-    if sub:
-        add(f'<text x="{x+10}" y="{y+38}" class="t-sub">{sub}</text>')
+    # A subtitle may span lines ("\n"); the caller leaves room for them
+    # before the first pin.
+    for i, line in enumerate((sub or "").split("\n")):
+        if line:
+            add(f'<text x="{x+10}" y="{y+38+14*i}" class="t-sub">{line}</text>')
 
 def pin(x, y, label, side):
     """Pin stub leaving a box edge at (x, y): 'r' exits right, 'l' exits left."""
@@ -82,8 +85,8 @@ def note(x, y, text, anchor="start"):
 # ---------------------------------------------------------------- rails
 TOP = {"5V": 36, "3V3": 54, "GND": 72, "BATT": 90}
 LRAIL = {"5V": 26, "3V3": 40, "GND": 54, "BATT": 68}       # vertical, left side
-RRAIL = {"3V3": 1146, "GND": 1160, "5V": 1174}             # vertical, right side
-RAIL_BOTTOM = 735
+RRAIL = {"3V3": W - 54, "GND": W - 40, "5V": W - 26}        # vertical, right side
+RAIL_BOTTOM = H - 40
 
 # top buses bridge the two sides; the devkit taps them
 for name, y in TOP.items():
@@ -102,14 +105,14 @@ def to_rrail(px, py, rail, dashed=False):
     wire([(px, py), (RRAIL[rail], py)], COL[rail], dashed=dashed); dot(RRAIL[rail], py, COL[rail])
 
 # ---------------------------------------------------------------- shield (feeds the left rails)
-MX, MW = 110, 200                 # left module column
+MX, MW = 110, 250                 # left module column
 box(MX, 104, MW, 108, "Battery Shield V8", "2×18650 · switch ON · GND = star point")
 for name, lab, y in [("5V", "5V ×4", 150), ("3V3", "3V ×4", 166), ("GND", "GND", 182), ("BATT", "B+ tab", 198 - 2)]:
     pin(MX, y, lab, "l"); to_lrail(MX, y, name)
-note(MX + MW + 10, 122, "Shield USB-A → devkit USB-C: alternative supply for the devkit only")
+note(MX + MW + 10, 122, "Shield USB-A → devkit USB-C: alternative supply for the devkit")
 
 # ---------------------------------------------------------------- devkit
-DX, DY, DW, DH = 475, 150, 250, 510
+DX, DY, DW, DH = 500, 150, 250, 510
 box(DX, DY, DW, DH, "ESP32-S3 DevKitC-1", "pins in logical order, not header order")
 left = [("GPIO5", 215), ("GPIO4", 245), ("GPIO18", 300), ("GPIO17", 330), ("GPIO7", 360),
         ("GPIO2", 430), ("GPIO1", 470)]
@@ -120,11 +123,11 @@ for name, y in left:
     pin(DX, y, name, "l"); LP[name] = (DX, y)
 for name, y in right:
     pin(DX + DW, y, name, "r"); RP[name.split()[0]] = (DX + DW, y)
-for x, rail, lab in [(660, "5V", "5V pin"), (700, "GND", "GND")]:
+for x, rail, lab in [(DX + 185, "5V", "5V pin"), (DX + 225, "GND", "GND")]:
     wire([(x, DY), (x, TOP[rail])], COL[rail]); dot(x, TOP[rail], COL[rail])
     add(f'<text x="{x}" y="{DY-6}" class="t-pin" text-anchor="middle">{lab}</text>')
-for x, y, label in [(572, 230, "UART1"), (572, 330, "UART2"), (572, 430, "IRQ"), (572, 470, "ADC1"),
-                    (640, 230, "I2C0"), (640, 345, "SPI2"), (640, 446, "IRQ")]:
+for x, y, label in [(DX + 97, 230, "UART1"), (DX + 97, 330, "UART2"), (DX + 97, 430, "IRQ"), (DX + 97, 470, "ADC1"),
+                    (DX + 165, 230, "I2C0"), (DX + 165, 345, "SPI2"), (DX + 165, 446, "IRQ")]:
     tag(x, y, label)
 add(f'<text x="{DX+10}" y="{DY+DH-30}" class="t-sub">3V3 pin: leave free (devkit LDO output)</text>')
 add(f'<text x="{DX+10}" y="{DY+DH-14}" class="t-sub">USB "UART" port → laptop console</text>')
@@ -133,7 +136,7 @@ add(f'<text x="{DX+10}" y="{DY+DH-14}" class="t-sub">USB "UART" port → laptop 
 lch = {"n": 0}
 def lchan():
     lch["n"] += 1
-    return 350 + lch["n"] * 14
+    return MX + MW + 30 + lch["n"] * 14
 
 def lwire(py, dev, color):
     """From the left module's right edge at y to a devkit left pin."""
@@ -143,7 +146,7 @@ def lwire(py, dev, color):
     return xc
 
 # GNSS
-box(MX, 222, MW, 150, "GNSS Foxeer M10Q-250", "UART1 · NMEA out · 115200 (BE-220: 9600)")
+box(MX, 222, MW, 150, "GNSS Foxeer M10Q-250", "UART1 · NMEA · 115200 (BE-220: 9600)")
 pin(MX, 270, "VCC", "l"); to_lrail(MX, 270, "5V")
 pin(MX, 292, "GND", "l"); to_lrail(MX, 292, "GND")
 pin(MX + MW, 270, "TX", "r"); lwire(270, "GPIO5", COL["TX"])
@@ -153,11 +156,11 @@ note(MX + 10, 362, "SCL/SDA: compass (Foxeer only), optional")
 
 # BIGGA GSM
 BY = 392
-box(MX, BY, MW, 206, "BIGGA GSM (SIM800C)", "UART2 · AT commands · 115200 · VSS = 5 V supply")
+box(MX, BY, MW, 206, "BIGGA GSM (SIM800C)", "UART2 · AT commands · 115200 · VSS = 5 V in")
 g = {"GND": BY + 54, "VCC": BY + 76, "TX": BY + 118, "RX": BY + 140, "BOOT": BY + 162, "NET": BY + 188}
 pin(MX, g["GND"], "GND", "l"); to_lrail(MX, g["GND"], "GND")
 pin(MX, g["VCC"], "VSS=5V in", "l"); to_lrail(MX, g["VCC"], "5V")
-note(MX + 10, g["VCC"] + 18, "C1 1000 µF across VSS/GND at the board's pins (+ to VSS)")
+note(MX + 10, g["VCC"] + 18, "C1 1000 µF on VSS/GND at the pins, + to VSS")
 # C1 sits across the two supply wires, between the module and the rails.
 cx, y_gnd, y_vcc = MX - 34, g["GND"], g["VCC"]
 ym = (y_gnd + y_vcc) / 2
@@ -188,7 +191,7 @@ ax = MX + MW + 70
 add(f'<polygon points="{ax},{g["NET"]-7} {ax},{g["NET"]+7} {ax+14},{g["NET"]}" fill="#e03a4e" stroke="var(--fg)" stroke-width="1"/>')
 add(f'<line x1="{ax+14}" y1="{g["NET"]-7}" x2="{ax+14}" y2="{g["NET"]+7}" stroke="var(--fg)" stroke-width="1.5"/>')
 wire([(ax + 14, g["NET"]), (ax + 30, g["NET"])], COL["GND"]); ground(ax + 30, g["NET"])
-note(ax + 44, g["NET"] + 4, "LED1 blinks: 0.8 s searching · 3 s registered")
+note(MX + 10, g["NET"] - 10, "LED1: 0.8 s blink = searching · 3 s = registered")
 
 # Button and battery divider
 UY = 610
@@ -209,11 +212,11 @@ wire([(MX + 90, dy_), (MX + 90, dy_ - 22), (MX + MW, dy_ - 22)], COL["BATT"]); l
 note(MX + 10, dy_ + 18, "mid = ½ cell voltage → GPIO1")
 
 # ---------------------------------------------------------------- right modules
-RX_, RW = 890, 200
+RX_, RW = 960, 250
 rch = {"n": 0}
 def rchan():
     rch["n"] += 1
-    return 865 - rch["n"] * 14
+    return RX_ - 25 - rch["n"] * 14
 
 def rwire(py, dev, color, xc=None, dashed=False):
     dx, dy = RP[dev]
@@ -227,21 +230,28 @@ pin(RX_ + RW, 220, "VCC", "r"); to_rrail(RX_ + RW, 220, "3V3")
 pin(RX_, 242, "SCL", "l"); x_scl = rwire(242, "GPIO9", COL["SCL"])
 pin(RX_, 264, "SDA", "l"); x_sda = rwire(264, "GPIO8", COL["SDA"])
 
-box(RX_, 302, RW, 170, "MicroSD adapter", "SPI2 · 10 MHz · FAT32 · VCC 5 V (regulator + shifter on board)")
-pin(RX_ + RW, 352, "GND", "r"); to_rrail(RX_ + RW, 352, "GND")
-pin(RX_ + RW, 374, "VCC", "r"); to_rrail(RX_ + RW, 374, "5V")
-for lab, dev, y in [("MISO", "GPIO13", 396), ("MOSI", "GPIO12", 418), ("SCK", "GPIO11", 440), ("CS", "GPIO10", 462)]:
+box(RX_, 302, RW, 184, "MicroSD adapter", "SPI2 · 10 MHz · FAT32\n5 V type: regulator + level shifter on board")
+pin(RX_ + RW, 366, "GND", "r"); to_rrail(RX_ + RW, 366, "GND")
+pin(RX_ + RW, 388, "VCC", "r"); to_rrail(RX_ + RW, 388, "5V")
+for lab, dev, y in [("MISO", "GPIO13", 410), ("MOSI", "GPIO12", 432), ("SCK", "GPIO11", 454), ("CS", "GPIO10", 476)]:
     pin(RX_, y, lab, "l"); rwire(y, dev, COL["SPI"])
 
-box(RX_, 500, RW, 160, "BMA400 (CJMCU-400)", "I2C0 · address 0x14 · INT1 activity interrupt · 3.3 V only")
-pin(RX_ + RW, 550, "VCC", "r"); to_rrail(RX_ + RW, 550, "3V3")
-pin(RX_ + RW, 572, "GND", "r"); to_rrail(RX_ + RW, 572, "GND")
-pin(RX_, 594, "SDA", "l"); wire([(RX_, 594), (x_sda, 594), (x_sda, RP["GPIO8"][1])], COL["SDA"]); dot(x_sda, RP["GPIO8"][1], COL["SDA"])
-pin(RX_, 616, "SCL", "l"); wire([(RX_, 616), (x_scl, 616), (x_scl, RP["GPIO9"][1])], COL["SCL"]); dot(x_scl, RP["GPIO9"][1], COL["SCL"])
-pin(RX_, 638, "INT1", "l"); rwire(638, "GPIO6", COL["CTRL"])
+AY = 506
+box(RX_, AY, RW, 224, "BMA400 (CJMCU-400)", "I2C0 · address 0x14 (0x15 if SDO high)\nINT1 activity interrupt · 3.3 V only")
+a = {"VCC": AY + 64, "GND": AY + 86, "SDA": AY + 108, "SCL": AY + 130, "INT1": AY + 152, "CS": AY + 174, "SDO": AY + 196}
+pin(RX_ + RW, a["VCC"], "VCC", "r"); to_rrail(RX_ + RW, a["VCC"], "3V3")
+pin(RX_ + RW, a["GND"], "GND", "r"); to_rrail(RX_ + RW, a["GND"], "GND")
+pin(RX_, a["SDA"], "SDA", "l"); wire([(RX_, a["SDA"]), (x_sda, a["SDA"]), (x_sda, RP["GPIO8"][1])], COL["SDA"]); dot(x_sda, RP["GPIO8"][1], COL["SDA"])
+pin(RX_, a["SCL"], "SCL", "l"); wire([(RX_, a["SCL"]), (x_scl, a["SCL"]), (x_scl, RP["GPIO9"][1])], COL["SCL"]); dot(x_scl, RP["GPIO9"][1], COL["SCL"])
+pin(RX_, a["INT1"], "INT1", "l"); rwire(a["INT1"], "GPIO6", COL["CTRL"])
+# CS high selects I2C at power-up; left to the board's pull-up the chip
+# came up in SPI mode on one boot in three. SDO fixes the address.
+pin(RX_ + RW, a["CS"], "CS", "r"); to_rrail(RX_ + RW, a["CS"], "3V3")
+pin(RX_ + RW, a["SDO"], "SDO", "r"); to_rrail(RX_ + RW, a["SDO"], "GND", dashed=True)
+note(RX_ + 10, a["SDO"] + 18, "CS → 3V3 (I2C mode) · SDO → GND: address 0x14 (optional)")
 
 # ---------------------------------------------------------------- legend
-LX, LY = 475, 735
+LX, LY = DX, H - 40
 items = [("5V", "+5V"), ("3V3", "+3V3"), ("GND", "GND"), ("BATT", "B+"), ("TX", "TX"), ("RX", "RX"),
          ("SDA", "SDA"), ("SCL", "SCL"), ("SPI", "SPI"), ("CTRL", "control")]
 for i, (k, lab) in enumerate(items):

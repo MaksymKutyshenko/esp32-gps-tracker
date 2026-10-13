@@ -20,7 +20,7 @@ when a pin changes.
 | Beitian BE-220 | Alternative GNSS (u-blox M8030 class per most listings; some say M10050). Default 9600 baud, NMEA | UART | 3.0–5.5 V in, 3.3 V logic |
 | BIGGA GSM (SIM800C, Ukrainian board, schematic at arduino.ua) | GPRS uplink for live position upload (2G only) | UART (AT commands) + BOOT (= PWRKEY) | 5 V on VCC → MIC29302 → 3.64 V modem rail; 2 A bursts; ~600–900 µF onboard |
 | GSM SMA antenna | Antenna for the SIM800C | SMA / IPEX pigtail | — |
-| BMA400 (CJMCU-400) | Motion detection in hardware: its activity interrupt drives the moving/parked state (no fix needed, immune to GNSS noise) and will wake the tracker from deep sleep. Optional: without it motion comes from GNSS speed | I2C 0x14/0x15, INT1 → GPIO6 | 3.3 V only |
+| BMA400 (CJMCU-400) | Motion detection in hardware: its activity interrupt drives the moving/parked state (no fix needed, immune to GNSS noise) and will wake the tracker from deep sleep. Optional: without it motion comes from GNSS speed | I2C 0x14/0x15, INT1 → GPIO6, CS → 3.3 V, SDO → GND | 3.3 V only |
 | SSD1306 0.96" OLED | Status display: fix state, satellites, speed, coordinates, battery, upload state | I2C 0x3C | 3.3 V |
 | MicroSD adapter (6-pin, 4.5–5.5 V) + card | Track log (CSV) and upload backlog while offline | SPI (with DMA) | 5 V on VCC; onboard regulator and level shifter give 3.3 V signals |
 | Battery Shield V8 + 2×18650 HG2 | Power: cells in parallel (≈6000 mAh), 5 V boost output (≈2.2 A continuous, 3 A peak), 3 V/3.3 V 1 A rail, charging at 0.6–0.8 A | — | — |
