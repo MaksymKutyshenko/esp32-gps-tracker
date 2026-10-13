@@ -875,11 +875,16 @@ void App::uiLoop()
             // edges the bounce produced meanwhile, and feed that level.
             bool level = button_.isPressed();
             uint32_t stableMs = 0;
+            uint32_t pressedSeenMs = level ? Config::buttonSampleMs : 0;
             for (uint32_t waited = 0; stableMs < Config::buttonStableMs && waited < Config::buttonSettleMaxMs;
                  waited += Config::buttonSampleMs)
             {
                 vTaskDelay(pdMS_TO_TICKS(Config::buttonSampleMs));
                 const bool now = button_.isPressed();
+                if (now)
+                {
+                    pressedSeenMs += Config::buttonSampleMs;
+                }
                 if (now == level)
                 {
                     stableMs += Config::buttonSampleMs;
@@ -893,7 +898,17 @@ void App::uiLoop()
             while (xQueueReceive(buttonEdgeQueue_, &edge, 0) == pdTRUE)
             {
             }
-            switch (buttonDecoder_.feed(level, esp_timer_get_time()))
+            // A tap shorter than the stability window ends before "pressed"
+            // ever held for buttonStableMs: the settled level is "released"
+            // and the decoder sees no change. The samples still saw the
+            // press, so a complete tap inside the window counts as one.
+            const bool wasPressed = buttonDecoder_.isPressed();
+            ButtonPress press = buttonDecoder_.feed(level, esp_timer_get_time());
+            if (press == ButtonPress::None && !wasPressed && !level && pressedSeenMs >= Config::buttonTapMinMs)
+            {
+                press = ButtonPress::Short;
+            }
+            switch (press)
             {
             case ButtonPress::Short:
             {

@@ -53,6 +53,9 @@ namespace Config
     constexpr uint32_t buttonSampleMs = 5;
     constexpr uint32_t buttonStableMs = 50;
     constexpr uint32_t buttonSettleMaxMs = 300;
+    // A press seen for at least this long inside the sampling window is a
+    // tap, even if it was released before the level could settle.
+    constexpr uint32_t buttonTapMinMs = 10;
     // A page switch waits this long for room in the display queue rather
     // than being dropped like a measurement would; the ui task can afford
     // it, and the display task frees a slot every frame.
