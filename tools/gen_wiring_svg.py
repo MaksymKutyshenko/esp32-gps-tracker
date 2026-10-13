@@ -197,7 +197,7 @@ note(MX + 10, g["NET"] - 10, "LED1: 0.8 s blink = searching · 3 s = registered"
 UY = 610
 box(MX, UY, MW, 110, "Button · battery sense", "GPIO interrupt · ADC1 channel 0")
 sy = UY + 50
-add(f'<text x="{MX+10}" y="{sy-10}" class="t-pin">SW1</text>')
+add(f'<text x="{MX+34}" y="{sy+16}" class="t-pin">SW1</text>')
 add(f'<line x1="{MX+10}" y1="{sy}" x2="{MX+30}" y2="{sy}" stroke="var(--fg)" stroke-width="1.5"/>')
 add(f'<line x1="{MX+30}" y1="{sy}" x2="{MX+52}" y2="{sy-10}" stroke="var(--fg)" stroke-width="1.5"/>')
 add(f'<line x1="{MX+54}" y1="{sy}" x2="{MX+74}" y2="{sy}" stroke="var(--fg)" stroke-width="1.5"/>')
@@ -248,7 +248,7 @@ pin(RX_, a["INT1"], "INT1", "l"); rwire(a["INT1"], "GPIO6", COL["CTRL"])
 # came up in SPI mode on one boot in three. SDO fixes the address.
 pin(RX_ + RW, a["CS"], "CS", "r"); to_rrail(RX_ + RW, a["CS"], "3V3")
 pin(RX_ + RW, a["SDO"], "SDO", "r"); to_rrail(RX_ + RW, a["SDO"], "GND", dashed=True)
-note(RX_ + 10, a["SDO"] + 18, "CS → 3V3 (I2C mode) · SDO → GND: address 0x14 (optional)")
+note(RX_ + 10, a["SDO"] + 18, "CS→3V3: I2C mode · SDO→GND: 0x14 (optional)")
 
 # ---------------------------------------------------------------- legend
 LX, LY = DX, H - 40

@@ -211,7 +211,7 @@
 <rect x="110" y="610" width="250" height="110" rx="6" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="120" y="632" class="t-title">Button · battery sense</text>
 <text x="120" y="648" class="t-sub">GPIO interrupt · ADC1 channel 0</text>
-<text x="120" y="650" class="t-pin">SW1</text>
+<text x="144" y="676" class="t-pin">SW1</text>
 <line x1="120" y1="660" x2="140" y2="660" stroke="var(--fg)" stroke-width="1.5"/>
 <line x1="140" y1="660" x2="162" y2="650" stroke="var(--fg)" stroke-width="1.5"/>
 <line x1="164" y1="660" x2="184" y2="660" stroke="var(--fg)" stroke-width="1.5"/>
@@ -326,7 +326,7 @@
 <circle cx="1210" cy="702" r="2.5" fill="var(--fg)"/>
 <polyline points="1210,702 1280,702" fill="none" stroke="var(--rail-gnd)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
 <circle cx="1280" cy="702" r="3.2" fill="var(--rail-gnd)"/>
-<text x="970" y="720" class="t-note" text-anchor="start">CS → 3V3 (I2C mode) · SDO → GND: address 0x14 (optional)</text>
+<text x="970" y="720" class="t-note" text-anchor="start">CS→3V3: I2C mode · SDO→GND: 0x14 (optional)</text>
 <polyline points="500,800 520,800" fill="none" stroke="#e03a4e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
 <text x="524" y="804" class="t-note" text-anchor="start">+5V</text>
 <polyline points="564,800 584,800" fill="none" stroke="#f29a1f" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
