@@ -33,7 +33,7 @@ machine, and every piece of pure logic unit-tested on the host.
 | Display | SSD1306 128×64 OLED, I2C |
 | Storage | MicroSD over SPI (DMA), FAT, one CSV per UTC day |
 | Uplink | SIM800C GPRS, HTTP GET: OsmAnd position report plus a health report once a minute |
-| Power | 2×18650 through a Battery Shield V8, cell voltage on ADC |
+| Power | 2×18650 through a Battery Shield V8, cell voltage on ADC; 1000 µF at the modem's supply pins |
 | Motion | BMA400 accelerometer activity interrupt (hardware threshold, no fix needed); GNSS speed as fallback. Parked for `sleepAfterStationaryMs` (1 min in this build, for the demonstration; 10 min for service): deep sleep, wake on motion or the button |
 
 ## Quick start
@@ -141,6 +141,39 @@ stateDiagram-v2
     Stationary --> NoSignal : GnssSilent
     Stationary --> Sleeping : SleepRequested
     Sleeping --> Acquiring : WakeUp
+```
+
+How a fix becomes a record on the card and a point on the map (the other
+sequences, an upload failing and the sleep cycle, are in
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)):
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant R as GNSS receiver (UART1)
+    participant G as gps task
+    participant D as display task
+    participant L as logger task
+    participant U as uplink task
+    participant M as SIM800C (UART2)
+    participant S as server
+    R->>G: $GNRMC, $GNGGA, $GNGSV once a second
+    G->>G: NmeaParser: checksum, fields, status
+    G->>G: TrackerFsm (FixValid), MotionDetector, LogPolicy
+    G-)D: displayQueue: FixUpdate (newest wins)
+    alt record due: 1 s moving, 60 s parked, fix passes the quality gate
+        G-)L: logQueue: TrackRecord (every record)
+        G-)U: uplinkQueue: TrackRecord (one per 5 s, skipped while 3 wait)
+    end
+    L->>L: BusLock(sdMutex, 200 ms)
+    L->>L: TrackLogger: append CSV line, fsync
+    U->>U: xQueuePeek: the record stays queued
+    U->>U: BusLock(modemMutex)
+    U->>M: AT+HTTPINIT, HTTPPARA URL, HTTPACTION=0
+    M->>S: GET /?id=..&lat=..&lon=..&timestamp=..
+    S-->>M: HTTP 200
+    M-->>U: +HTTPACTION: 0,200
+    U->>U: xQueueReceive: popped only now
 ```
 
 Status LED: white booting, red no signal, amber acquiring, green tracking,

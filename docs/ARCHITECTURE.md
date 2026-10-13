@@ -41,6 +41,98 @@ Watchdog: every task subscribes and feeds it once per loop iteration; the ISR ho
   only, but remount vs write) are guarded by one mutex each, always taken
   through `BusLock` so it cannot be forgotten on an error path.
 
+### Sequences
+
+**A fix becomes a record and a point on the map.** The record is popped
+from the uplink queue only after the server has acknowledged it; the card
+gets every record, the modem one per interval.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant R as GNSS receiver (UART1)
+    participant G as gps task
+    participant D as display task
+    participant L as logger task
+    participant U as uplink task
+    participant M as SIM800C (UART2)
+    participant S as server
+    R->>G: $GNRMC, $GNGGA, $GNGSV once a second
+    G->>G: NmeaParser: checksum, fields, status
+    G->>G: TrackerFsm (FixValid), MotionDetector, LogPolicy
+    G-)D: displayQueue: FixUpdate (newest wins)
+    alt record due: 1 s moving, 60 s parked, fix passes the quality gate
+        G-)L: logQueue: TrackRecord (every record)
+        G-)U: uplinkQueue: TrackRecord (one per 5 s, skipped while 3 wait)
+    end
+    L->>L: BusLock(sdMutex, 200 ms)
+    L->>L: TrackLogger: append CSV line, fsync
+    U->>U: xQueuePeek: the record stays queued
+    U->>U: BusLock(modemMutex)
+    U->>M: AT+HTTPINIT, HTTPPARA URL, HTTPACTION=0
+    M->>S: GET /?id=..&lat=..&lon=..&timestamp=..
+    S-->>M: HTTP 200
+    M-->>U: +HTTPACTION: 0,200
+    U->>U: xQueueReceive: popped only now
+```
+
+**An upload fails.** Three outcomes, three different answers: a request
+nobody answered counts towards a modem power cycle, a server rejection
+only backs off, and a modem-side error re-opens the bearer.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as uplink task
+    participant Sch as UplinkScheduler
+    participant M as SIM800C
+    participant S as server
+    U->>M: AT+HTTPACTION=0 (record still in the queue)
+    alt no answer within 30 s
+        M--xS: GET lost
+        M-->>U: timeout
+        U->>Sch: onFailure: back-off 5 s, 10 s, 20 s ...
+        Note over U,Sch: third unanswered request: needsReset()
+        U->>M: AT+CPOWD=1, PWRKEY pulse, AT, CFUN=1, CREG?, CGATT=1, SAPBR
+        M-->>U: GPRS up, the same record is retried
+    else the server answers 4xx or 5xx
+        M->>S: GET
+        S-->>M: 400 (device not registered there)
+        M-->>U: +HTTPACTION: 0,400
+        U->>Sch: onRejected: back-off only, the link is fine, no power cycle
+    else the modem reports its own failure (601 network, 603 DNS, 604 busy)
+        M-->>U: +HTTPACTION: 0,601
+        U->>U: connected = false: re-open the bearer (seconds), no power cycle
+    end
+```
+
+**Park, sleep, wake.** Everything happens in the gps task, which owns the
+FSM; the other tasks are stopped first so no one is mid-transaction on a
+bus that is about to be switched off.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant A as BMA400 INT1
+    participant G as gps task
+    participant T as other tasks
+    participant M as SIM800C
+    participant R as GNSS receiver
+    participant P as OLED, SD card
+    G->>G: FSM in Stationary; SleepPolicy counts sleepAfterStationaryMs
+    G->>G: due, and the uplink queue is empty
+    G->>T: take the modem, I2C and SD mutexes (1 s slices, watchdog fed)
+    G->>T: suspend the tasks, unsubscribe them from the watchdog
+    G->>M: health report with state=sleeping (HTTP GET)
+    G->>M: AT+CFUN=0 (minimum functionality, ~2 mA)
+    G->>R: UBX-RXM-PMREQ: backup mode, orbits kept
+    G->>P: display off; EVENTS.LOG flushed; card unmounted
+    G->>G: arm wake: INT1 high (EXT1), button low (EXT0), timer 1 h; RTC domain stays on
+    G->>G: esp_deep_sleep_start()
+    A-->>G: activity pulse: the chip boots from scratch
+    G->>G: Boot: reset reason deep-sleep wake (motion); clock kept; fix back in seconds
+```
+
 ## 3. Patterns, and why each one
 
 | Pattern | Where | Why it is worth it here |

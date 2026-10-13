@@ -26,12 +26,13 @@ when a pin changes.
 | Battery Shield V8 + 2×18650 HG2 | Power: cells in parallel (≈6000 mAh), 5 V boost output (≈2.2 A continuous, 3 A peak), 3 V/3.3 V 1 A rail, charging at 0.6–0.8 A | — | — |
 | 6.8 kΩ resistor | From BIGGA TX to GND: level divider for the 5 V TX line (see §5) | — | — |
 | Red LED + 1 kΩ | On BIGGA NET (NETLIGHT): blink rate shows searching / registered / GPRS without any firmware | — | — |
+| C1: 1000 µF electrolytic (≥ 6.3 V) | Across the BIGGA board's VSS and GND pins, + to VSS: holds the 5 V input through the modem's registration bursts on battery. Without it the ESP32 reset every 30 s (see §5) | — | — |
 
 ## 2. Power tree
 
 ```
 2×18650 HG2 ──► Battery Shield V8 ──► 5V rail ──┬─► ESP32-S3 SuperMini (5V pin → onboard LDO → 3V3)
-   (parallel)   (boost + protection)             ├─► BIGGA GSM VCC (board has 100+10+1 µF on VCC, ~600–900 µF on VBAT)
+   (parallel)   (boost + protection)             ├─► BIGGA GSM VCC, C1 1000 µF at the pins (board has 100+10+1 µF on VCC, ~600–900 µF on VBAT)
                                                  ├─► Foxeer M10Q-250 (5V in)  /  BE-220 (3.0–5.5 V)
                                                  └─► MicroSD adapter VCC (5 V type: regulator + level shifter on board)
                                       3V rail ───┬─► SSD1306 OLED
@@ -50,11 +51,12 @@ Design notes:
 - The SIM800C's transmit bursts reach 2 A for ~0.6 ms every 4.6 ms, and a
   dip below ~3.4 V at VBAT resets the modem. The SIMCom datasheet calls for
   ≥100 µF low-ESR at VBAT; the BIGGA board carries 820 µF 6.3 V there, so
-  the modem itself is covered, and its VCC input already has 100 + 10 + 1 µF
-  at the pins, so no external capacitor is fitted. What remains is wire and
-  contact resistance between the shield and the board: short, thick wires.
-  The 1000 µF is only a fallback across VCC/GND if the boot line ever shows
-  BROWNOUT.
+  the modem itself is covered, and its VCC input has 100 + 10 + 1 µF at the
+  pins. On battery that is not enough: with the devkit and the modem both
+  on the shield's converter, every registration burst reset the ESP32 (§5).
+  **C1, a 1000 µF electrolytic across the board's VSS and GND pins, + to
+  VSS**, is part of the design. Short, thick wires between the shield and
+  the board remain the other half of it.
 - The shield is not a UPS: expect a ~0.5 s dropout when the charger is
   plugged in. Not a problem for a tracker that persists state in NVS.
 - A reversed cell burns the shield's protection IC. Check polarity before

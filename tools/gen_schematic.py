@@ -216,6 +216,7 @@ C6 = lib.use("Connector_Generic", "Conn_01x06")
 C12 = lib.use("Connector_Generic", "Conn_01x12")
 R = lib.use("Device", "R")
 LED = lib.use("Device", "LED")
+CPOL = lib.use("Device", "C_Polarized")
 SW = lib.use("Switch", "SW_Push")
 P5V = lib.use("power", "+5V")
 P3V3 = lib.use("power", "+3V3")
@@ -271,8 +272,15 @@ finish_unused(j2)                 # DTR, RING, audio
 text("Silkscreen: GND  TX (5 V level!) -> IO18  RX <- IO17  PK = BOOT/PWRKEY <- IO7 (open drain)  VSS = VCC 5V in  NET\n"
      "6 NET -> R4 1k -> LED1 (NETLIGHT: 0.8 s searching, 3 s registered, 0.3 s GPRS)  7 DTR  8 RING  9-12 audio: unused.\n"
      "TX high side is pulled to VCC through 4.7k on the board: R3 divides it to ~3.0 V for IO18.\n"
-     "VBAT is 3.64 V (MIC29302), 100+10+1 uF already on VCC: short thick wires keep VCC above 4 V in bursts.",
+     "VBAT is 3.64 V (MIC29302). C1 1000 uF across VSS/GND right at the board's pins (+ to VSS): the onboard\n"
+     "100+10+1 uF are not enough on battery (reset every 30 s during registration without it). Short thick wires.",
      40, 142, 1.27)
+# C1: bulk capacitor on the modem board's 5 V input, as close to its pins
+# as the wires allow. Pin 1 is the positive plate.
+c1 = Part(lib, CPOL, "C1", "1000u", 136, 92, ref_offset=(3, -2), value_offset=(3, 1))
+c1.emit()
+connect(c1, "1", "+5V")
+connect(c1, "2", "", lib, PGND)
 # R3: divider against the board's 4.7k pull-up; the ESP side is GSM_TXD.
 r3 = Part(lib, R, "R3", "6.8k", 100, 92, ref_offset=(2, -2), value_offset=(2, 1))
 r3.emit()

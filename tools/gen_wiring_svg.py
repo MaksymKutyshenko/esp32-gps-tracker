@@ -157,7 +157,18 @@ box(MX, BY, MW, 206, "BIGGA GSM (SIM800C)", "UART2 · AT commands · 115200 · V
 g = {"GND": BY + 54, "VCC": BY + 76, "TX": BY + 118, "RX": BY + 140, "BOOT": BY + 162, "NET": BY + 188}
 pin(MX, g["GND"], "GND", "l"); to_lrail(MX, g["GND"], "GND")
 pin(MX, g["VCC"], "VSS=5V in", "l"); to_lrail(MX, g["VCC"], "5V")
-note(MX + 10, g["VCC"] + 18, "100+10+1 µF on VCC are on the board: no external cap")
+note(MX + 10, g["VCC"] + 18, "C1 1000 µF across VSS/GND at the board's pins (+ to VSS)")
+# C1 sits across the two supply wires, between the module and the rails.
+cx, y_gnd, y_vcc = MX - 34, g["GND"], g["VCC"]
+ym = (y_gnd + y_vcc) / 2
+wire([(cx, y_gnd), (cx, ym - 4)], COL["GND"], 1.6); dot(cx, y_gnd, COL["GND"])
+wire([(cx, ym + 4), (cx, y_vcc)], COL["5V"], 1.6); dot(cx, y_vcc, COL["5V"])
+# Electrolytic symbol: the curved plate is the negative one (GND wire above),
+# the straight plate the positive one (5 V wire below). The value is in
+# the module's note; the rails leave no room for it here.
+add(f'<path d="M {cx-7} {ym-7} Q {cx} {ym-1} {cx+7} {ym-7}" fill="none" stroke="var(--fg)" stroke-width="2"/>')
+add(f'<line x1="{cx-7}" y1="{ym+4}" x2="{cx+7}" y2="{ym+4}" stroke="var(--fg)" stroke-width="2.5"/>')
+add(f'<text x="{cx+10}" y="{ym+4}" class="t-part">C1</text>')
 pin(MX + MW, g["TX"], "TX", "r")
 xc = lwire(g["TX"], "GPIO18", COL["TX"])
 # R3 to ground hangs off the TX channel, in the gap left of it (nothing else there)
