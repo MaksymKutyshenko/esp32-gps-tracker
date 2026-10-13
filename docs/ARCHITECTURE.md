@@ -1,15 +1,14 @@
 # Software architecture
 
-Design rules and the class layout for the GPS tracker firmware. Code follows
-the course repo's `TECH_REQUIREMENTS.md` (fixed-width types, `ESP_LOGx`
-only, every `esp_err_t` checked, `App` owns tasks, peripherals stay passive)
-plus the three goals set for this project: **readable, extendable,
-reliable**, written in OOP style with design patterns where they earn their
-place.
+Design rules and the class layout for the GPS tracker firmware. The code
+rules: fixed-width types, `ESP_LOGx` only, every `esp_err_t` checked, `App`
+owns the tasks, peripherals stay passive. The three goals: **readable,
+extendable, reliable**, written in OOP style with design patterns where
+they earn their place.
 
 ## 1. Layers
 
-The four layers the course grades on, and what lives in each:
+Four layers with one-way dependencies, and what lives in each:
 
 | Layer | Responsibility | Classes |
 | --- | --- | --- |
@@ -48,7 +47,7 @@ Watchdog: every task subscribes and feeds it once per loop iteration; the ISR ho
 | --- | --- | --- |
 | **Interface (abstract class)** | `IFixSink`, `IFixSource`, `IStorage`, `IUplinkTransport`, `ITimeSource` | Logic and Transport are written against interfaces, so the host tests inject fakes (a canned NMEA stream, an in-memory storage) and the hardware driver can be swapped without touching callers |
 | **Strategy** | `GnssProfile` (Foxeer vs BE-220: baud, init sentences), `UplinkProtocol` (Traccar/OsmAnd vs custom endpoint), `LogPolicy` (fixed interval vs motion-adaptive) | Each is a choice made once at start-up from `Settings`; a strategy object keeps the `if (module == …)` out of the data path |
-| **State (table-driven FSM)** | `TrackerFsm`: `NoFix → Acquiring → Tracking → Idle(no motion) → Sleep`, plus `StorageError`, `UplinkError` overlays | An explicit transition table is what the defense asks to see drawn; it is unit-tested by feeding events and asserting states |
+| **State (table-driven FSM)** | `TrackerFsm`: `NoFix → Acquiring → Tracking → Idle(no motion) → Sleep`, plus `StorageError`, `UplinkError` overlays | An explicit transition table can be drawn and read in one screen; it is unit-tested by feeding events and asserting states |
 | **Observer via queues** | `FixBus` fans one `Fix` out to the display, logger and uplink queues | FreeRTOS queues are the observer mechanism that is safe across tasks; no callback registration, no shared state |
 | **RAII guard** | `BusLock`, `WatchdogSubscription`, `SdMount` | A guard releases in its destructor, so every early-return and error path releases the mutex / unmounts the card. This is the single biggest reliability win in the code base |
 | **Command** | `AtCommand` (`"AT+CSQ"`, expected response, timeout, parser) executed by `Sim800Modem` | Each modem interaction is a value object with its own timeout and parser; sequences (power-on, attach GPRS, HTTP POST) become lists of commands instead of nested ifs |
@@ -58,8 +57,7 @@ Watchdog: every task subscribes and feeds it once per loop iteration; the ISR ho
 
 Patterns deliberately **not** used: Singleton (hides dependencies),
 dynamic polymorphism inside the sample loop where a template would do
-(`EmaFilter<T>` is a template like `SmaFilter<N>` in module 3.6), exceptions
-and RTTI (ESP-IDF default, and the course code never uses them), heap
+(`EmaFilter<T>` is a template), exceptions and RTTI (ESP-IDF default), heap
 allocation after `App::run()` (fixed buffers sized in `Config`).
 
 ## 4. Reliability mechanisms

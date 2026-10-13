@@ -6,10 +6,18 @@ sides, the DevKitC-1 sits in the middle with its pins in logical order,
 modules stand left and right. Power pins leave a module towards its rail
 side, signal pins towards the devkit, so power and signal wires never
 cross. Every wire is a Manhattan polyline in the colour of its signal
-class. Pure geometry; run it and paste the output into the sheet.
+class. Pure geometry. The assembly sheet embeds the plain output and
+supplies the colours and fonts through its own CSS variables (light and
+dark theme); --standalone adds a default theme and a white background so
+the file also renders on its own, e.g. in the README on GitHub.
 
-    python3 tools/gen_wiring_svg.py > hardware/wiring.svg
+    python3 tools/gen_wiring_svg.py --standalone > hardware/wiring.svg
+    python3 tools/gen_wiring_svg.py              # to paste into hardware/assembly-sheet.html
 """
+
+import sys
+
+STANDALONE = "--standalone" in sys.argv
 
 W, H = 1200, 775
 
@@ -231,9 +239,15 @@ for i, (k, lab) in enumerate(items):
     note(x + 24, LY + 4, lab)
 note(LX, LY + 22, "dashed = optional or not fitted yet · ⏚ = any GND pin on the shield · dots = junctions")
 
+theme = '''  svg { --paper: #ffffff; --bg: #f5f6f8; --fg: #1d2129; --muted: #5d6675; --line: #d7dbe2; --rail-gnd: #2b2f36;
+        --font-body: "Helvetica Neue", Arial, sans-serif; --font-display: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+        --font-mono: Menlo, Consolas, "DejaVu Sans Mono", monospace; }
+''' if STANDALONE else ''
+background = f'<rect width="{W}" height="{H}" fill="var(--paper)"/>' if STANDALONE else ''
+
 svg = f'''<svg viewBox="0 0 {W} {H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Wiring diagram: devkit in the centre, modules left and right, power rails down both sides">
 <style>
-  .t-title {{ font: 600 14px var(--font-display); fill: var(--fg); }}
+{theme}  .t-title {{ font: 600 14px var(--font-display); fill: var(--fg); }}
   .t-sub {{ font: 11px var(--font-body); fill: var(--muted); }}
   .t-pin {{ font: 11.5px var(--font-mono); fill: var(--fg); }}
   .t-part {{ font: 10px var(--font-mono); fill: var(--fg); }}
@@ -241,6 +255,7 @@ svg = f'''<svg viewBox="0 0 {W} {H}" xmlns="http://www.w3.org/2000/svg" role="im
   .t-bus {{ font: 600 11px var(--font-mono); }}
   .t-tag {{ font: 600 10px var(--font-mono); fill: var(--muted); letter-spacing: 0.04em; }}
 </style>
+{background}
 {chr(10).join(out)}
 </svg>'''
 print(svg)

@@ -8,8 +8,7 @@
 // They are 32-bit atomics so any task (or ISR, for the relaxed increments)
 // can touch them without a lock, and the ui task prints them once a minute
 // next to the stack high-water marks. The numbers are what the README's
-// "Results" section and the defense's "edge cases" question are answered
-// with.
+// "Results" section is written from.
 struct Diagnostics
 {
     std::atomic<uint32_t> sentencesReceived{0};

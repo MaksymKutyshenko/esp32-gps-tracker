@@ -919,7 +919,7 @@ void App::uiLoop()
 }
 
 // ---------------------------------------------------------------------------
-// console task: field settings without a rebuild (checklist 4.3).
+// console task: field settings without a rebuild.
 
 void App::consoleLoop()
 {
@@ -1120,7 +1120,7 @@ void App::logDiagnostics()
 
 // FreeRTOS run-time statistics: CPU time per task since boot, as a
 // percentage of the total (both cores). The idle tasks' share is the
-// headroom; the checklist asks for the application to stay under 70 %.
+// headroom; the application is meant to stay under 70 %.
 void App::logCpuLoad()
 {
     static char table[1024]; // console task; printed, not kept

@@ -9,8 +9,7 @@
 // Cell voltage through a resistor divider on an ADC pin. Raw counts go
 // through the chip's eFuse curve-fitting calibration so readings are
 // comparable between boards, then the divider ratio restores the cell
-// voltage. The same ADC class the course used for the LDR, with the ratio
-// on top.
+// voltage.
 class BatteryMonitor
 {
 public:

@@ -73,9 +73,9 @@ Design notes:
 
 At ~22 Wh of cells and ~90 % boost efficiency, roughly 2 W average gives
 about 10 hours of continuous tracking; duty-cycling the modem and sleeping
-when the BMA400 reports no motion is what stretches that to days. The
-grading checklist only credits power claims backed by multimeter numbers,
-so measure idle, tracking and uploading currents separately.
+when the BMA400 reports no motion is what stretches that to days. Power
+claims need multimeter numbers behind them, so measure idle, tracking and
+uploading currents separately.
 
 ## 3. GPIO map
 
@@ -104,9 +104,8 @@ and on the DevKitC). Only the GSM UART and the status LED differ.
 Pins deliberately unused: GPIO0 (BOOT), GPIO3 (JTAG strapping), GPIO19/20
 (USB D−/D+), GPIO26–32 (flash), GPIO45/46 (strapping).
 
-Optional: the GNSS PPS output is a clean 1 Hz hardware event for checklist
-item 2.5. The SuperMini has no spare header pin for it; on the DevKitC wire
-it to GPIO16 if wanted.
+Optional: the GNSS PPS output is a clean 1 Hz hardware event. The SuperMini
+has no spare header pin for it; on the DevKitC wire it to GPIO16 if wanted.
 
 ## 4. Bus map
 

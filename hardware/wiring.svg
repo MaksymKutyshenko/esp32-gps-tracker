@@ -1,5 +1,8 @@
 <svg viewBox="0 0 1200 775" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Wiring diagram: devkit in the centre, modules left and right, power rails down both sides">
 <style>
+  svg { --paper: #ffffff; --bg: #f5f6f8; --fg: #1d2129; --muted: #5d6675; --line: #d7dbe2; --rail-gnd: #2b2f36;
+        --font-body: "Helvetica Neue", Arial, sans-serif; --font-display: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+        --font-mono: Menlo, Consolas, "DejaVu Sans Mono", monospace; }
   .t-title { font: 600 14px var(--font-display); fill: var(--fg); }
   .t-sub { font: 11px var(--font-body); fill: var(--muted); }
   .t-pin { font: 11.5px var(--font-mono); fill: var(--fg); }
@@ -8,6 +11,7 @@
   .t-bus { font: 600 11px var(--font-mono); }
   .t-tag { font: 600 10px var(--font-mono); fill: var(--muted); letter-spacing: 0.04em; }
 </style>
+<rect width="1200" height="775" fill="var(--paper)"/>
 <polyline points="26,36 1174,36" fill="none" stroke="#e03a4e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
 <polyline points="40,54 1146,54" fill="none" stroke="#f29a1f" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
 <polyline points="54,72 1160,72" fill="none" stroke="var(--rail-gnd)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>

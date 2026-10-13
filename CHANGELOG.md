@@ -5,7 +5,7 @@ version in every health report (`fw=`).
 
 ## 1.0.0 — 2026-10-13
 
-First release: the tracker as defended.
+First release.
 
 ### Firmware
 - GNSS over UART (u-blox M10 profile with UBX setup, BE-220 profile), NMEA

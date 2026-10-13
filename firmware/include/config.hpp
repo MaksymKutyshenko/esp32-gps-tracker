@@ -97,8 +97,8 @@ namespace Config
     constexpr gpio_num_t gsmTxPin = GPIO_NUM_43; // -> SIM800C RXD
     constexpr gpio_num_t gsmRxPin = GPIO_NUM_44; // <- SIM800C TXD
 #else
-    // On the DevKitC GPIO43/44 are wired to the CP2102, so use UART1's
-    // homework pins instead.
+    // On the DevKitC GPIO43/44 are wired to the CP2102, so the modem moves
+    // to two free pins.
     constexpr gpio_num_t gsmTxPin = GPIO_NUM_17;
     constexpr gpio_num_t gsmRxPin = GPIO_NUM_18;
 #endif
@@ -114,7 +114,7 @@ namespace Config
     constexpr gpio_num_t i2cSdaPin = GPIO_NUM_8;
     constexpr gpio_num_t i2cSclPin = GPIO_NUM_9;
     // Breadboard wiring with module pull-ups only: stay at 100 kHz (the
-    // 1 KiB OLED frame NACKed at 400 kHz in module 4.3).
+    // 1 KiB OLED frame NACKed at 400 kHz on this wiring).
     constexpr uint32_t i2cSpeedHz = 100'000;
     // i2c_master_transmit() takes the timeout as a bare int of milliseconds;
     // the I2C wrapper casts at the call.
