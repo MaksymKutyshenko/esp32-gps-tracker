@@ -126,8 +126,9 @@ The accelerometer fits the three places that were reserved for it.
    knows it was deliberate, modem to minimum functionality (`AT+CFUN=0`,
    ~2 mA, no cold-boot burst on wake), GNSS to software backup mode
    (orbit data kept, wakes on the first UART byte), display off, event log
-   flushed and the card unmounted, then EXT1 wake on INT1 (activity,
-   high) and EXT0 wake on the button (low) and `esp_deep_sleep_start()`.
+   flushed and the card unmounted, then EXT1 wake on INT1 (activity, high), EXT0 wake on the button (low),
+   a timer wake every hour for a sign of life, the RTC peripheral domain
+   kept on so the internal pulls hold during sleep, and `esp_deep_sleep_start()`.
    Nothing returns: the next boot logs `Woke from deep sleep: motion` or
    `button` and initialises everything from the top. The modules keep
    their supply; the floor is the battery shield's own converter at a few
