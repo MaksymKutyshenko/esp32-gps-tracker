@@ -22,6 +22,11 @@
 // (the logger) drains the queue into the file in one append per batch.
 // A full queue drops the newest line and counts it rather than blocking
 // whoever is logging.
+//
+// The console shows ESP-IDF's "I (HH:MM:SS.mmm) tag:" prefix. The file
+// spans days, so its copy of the line carries the date in front of the
+// time: "I (26-10-13 13:48:01.000) tag:". Both are UTC from the clock the
+// gps task sets; before the first fix after a power-up it reads 70-01-01.
 class EventLog
 {
 public:
@@ -47,6 +52,9 @@ private:
     };
 
     static int hook(const char *format, va_list args);
+    // Inserts "YY-MM-DD " after the "I (" of a formatted line; returns the
+    // new length, cut to fit the capacity.
+    static size_t stampDate(char *text, size_t capacity, size_t length);
 
     static EventLog *instance_;
     QueueHandle_t queue_ = nullptr;

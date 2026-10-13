@@ -219,7 +219,8 @@ http://gps-tracker-mk.fly.dev/?id=<device>&health=1&fw=..&up=..&rst=..&st=..&fix
    display task re-initialises the controller after five failed frames.
 4. MicroSD on GPIO10–13: `Mounted /sdcard` at boot, `SD ok` on the screen,
    a CSV on the card after the first record. The card also carries
-   `TRACKS/EVENTS.LOG`, a mirror of the firmware's console log, so a run
+   `TRACKS/EVENTS.LOG`, a mirror of the firmware's console log with date
+   and time on every line (UTC, from the GNSS-set clock), so a run
    without a monitor still shows what preceded a reset and the boot line
    after it (`Boot: reset reason ...`). Every health report carries the
    reset reason (`rst=`), so the server keeps the restart history too.
