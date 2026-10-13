@@ -146,6 +146,10 @@ void App::begin()
     led_.begin();
     showStateOnLed(TrackerState::Booting);
 
+    // One ISR service for every GPIO that raises interrupts (button,
+    // accelerometer INT1); the drivers only add their handlers.
+    ESP_ERROR_CHECK(gpio_install_isr_service(0));
+
     i2c_.begin();
     display_.begin(); // a missing or glitched display is reported, not fatal
     // The accelerometer is the better motion source (no fix needed, no

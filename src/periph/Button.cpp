@@ -19,13 +19,8 @@ void Button::begin(QueueHandle_t edgeQueue)
     config.intr_type = GPIO_INTR_ANYEDGE;
     ESP_ERROR_CHECK(gpio_config(&config));
 
-    // The ISR service is shared by every GPIO interrupt; a second begin()
-    // (another button, the accelerometer's INT pin) finds it installed.
-    const esp_err_t installed = gpio_install_isr_service(0);
-    if (installed != ESP_ERR_INVALID_STATE)
-    {
-        ESP_ERROR_CHECK(installed);
-    }
+    // The GPIO ISR service is installed once by App::begin for every pin
+    // that raises interrupts (button, accelerometer).
     ESP_ERROR_CHECK(gpio_isr_handler_add(pin_, isrEntry, this));
 }
 

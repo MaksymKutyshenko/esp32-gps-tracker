@@ -80,11 +80,7 @@ esp_err_t Bma400::begin()
     config.pull_down_en = GPIO_PULLDOWN_ENABLE; // INT1 drives high on activity
     config.intr_type = GPIO_INTR_POSEDGE;
     ESP_ERROR_CHECK(gpio_config(&config));
-    const esp_err_t installed = gpio_install_isr_service(0);
-    if (installed != ESP_ERR_INVALID_STATE)
-    {
-        ESP_ERROR_CHECK(installed);
-    }
+    // The GPIO ISR service is installed once by App::begin.
     ESP_ERROR_CHECK(gpio_isr_handler_add(interruptPin_, isrEntry, this));
 
     present_ = true;
