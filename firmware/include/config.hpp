@@ -46,6 +46,10 @@ namespace Config
     // so it can also wake the chip from deep sleep.
     constexpr gpio_num_t buttonPin = GPIO_NUM_2;
     constexpr int64_t buttonDebounceUs = 20'000;
+    // A page switch waits this long for room in the display queue rather
+    // than being dropped like a measurement would; the ui task can afford
+    // it, and the display task frees a slot every frame.
+    constexpr uint32_t buttonPostWaitMs = 200;
 
     // ---- GNSS receiver (UART1) ------------------------------------------
     // Foxeer M10Q-250 defaults to 115200 baud; the Beitian BE-220 to 9600.

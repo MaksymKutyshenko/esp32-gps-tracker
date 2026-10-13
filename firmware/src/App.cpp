@@ -871,9 +871,16 @@ void App::uiLoop()
             {
             case ButtonPress::Short:
             {
+                // A press is not a measurement: it must not be dropped when
+                // the display queue is busy with fixes and counters, and it
+                // should take effect before them. Front of the queue, with
+                // a short wait instead of the best-effort post.
                 DisplayMessage message = {};
                 message.kind = DisplayMessage::Kind::NextPage;
-                postDisplay(message);
+                if (xQueueSendToFront(displayQueue_, &message, pdMS_TO_TICKS(Config::buttonPostWaitMs)) != pdTRUE)
+                {
+                    ESP_LOGW(logTag, "Page switch lost: display queue full");
+                }
                 break;
             }
             case ButtonPress::Long:
