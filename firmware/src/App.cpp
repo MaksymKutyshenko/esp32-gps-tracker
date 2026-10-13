@@ -16,7 +16,6 @@
 #include "logic/CommandParser.hpp"
 #include "periph/GnssProfile.hpp"
 #include "reliability/BusLock.hpp"
-#include "reliability/FreezeTrace.hpp"
 #include "reliability/TaskWatchdog.hpp"
 #include "transport/HealthReport.hpp"
 #include "transport/OsmAndProtocol.hpp"
@@ -138,16 +137,6 @@ void App::begin()
     {
         ESP_LOGW(logTag, "Task watchdog was tripped by: %s", resetDetail_);
     }
-    // A watchdog reset without a culprit means the watchdog's own interrupt
-    // never ran: the tick-hook samples are the only record of that hang.
-    const bool storm = FreezeTrace::tookStormReset();
-    if (storm)
-    {
-        strlcpy(resetDetail_, "tickstorm", sizeof resetDetail_);
-        ESP_LOGW(logTag, "Reset by the tick-storm guard: the tick interrupt had run away");
-    }
-    FreezeTrace::logLastTrace(storm || reason == ESP_RST_TASK_WDT || reason == ESP_RST_INT_WDT || reason == ESP_RST_WDT);
-    FreezeTrace::begin();
     if (reason == ESP_RST_DEEPSLEEP)
     {
         const esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
@@ -981,7 +970,7 @@ void App::consoleLoop()
         case CommandParser::Command::None:
             break;
         case CommandParser::Command::Help:
-            ESP_LOGI(logTag, "help | show | diag | defaults | save | mount | hang | set <key> <value> | at <AT command>");
+            ESP_LOGI(logTag, "help | show | diag | defaults | save | mount | set <key> <value> | at <AT command>");
             ESP_LOGI(logTag, "keys: moving_ms stationary_ms min_distance_m motion_start motion_stop "
                              "motion_stop_delay_ms gnss(0=%s,1=%s) uplink(0/1) uplink_min_ms health_ms apn url id",
                      GnssProfiles::byIndex(0).name, GnssProfiles::byIndex(1).name);
@@ -1062,17 +1051,6 @@ void App::consoleLoop()
             ESP_LOGI(logTag, "%s -> %s [%s]", parsed.value, response, esp_err_to_name(err));
             break;
         }
-        case CommandParser::Command::Hang:
-            // Watchdog test: this task stops feeding and the watchdog must
-            // reset the tracker in 5 s. The next boot then has to log
-            // "Task watchdog was tripped by: console" and send it in the
-            // health report; a reset without that line means the record
-            // path, not the watchdog, is what needs looking at.
-            ESP_LOGW(logTag, "Watchdog test: the console task stops feeding now");
-            while (true)
-            {
-                vTaskDelay(pdMS_TO_TICKS(1000));
-            }
         case CommandParser::Command::Unknown:
             ESP_LOGW(logTag, "Unknown command; type 'help'");
             break;
