@@ -239,6 +239,11 @@ namespace Config
         // would use 10 min so that a traffic light does not put it to
         // sleep.
         constexpr uint32_t sleepAfterStationaryMs = 1 * 60'000;
+        // Parked with points still waiting for the modem (no coverage, a
+        // modem that will not attach): wait this much longer for the queue
+        // to drain, then sleep anyway. The card has every point; the
+        // health report carries the backlog that was left behind.
+        constexpr uint32_t sleepUplinkGraceMs = 3 * 60'000;
         // Asleep, wake on a timer as well: a health report every hour is
         // the sign of life the dashboard needs, and no stuck wake source
         // can leave the tracker asleep for good. Without motion it sleeps

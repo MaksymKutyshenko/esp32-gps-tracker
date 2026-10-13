@@ -34,7 +34,7 @@ machine, and every piece of pure logic unit-tested on the host.
 | Storage | MicroSD over SPI (DMA), FAT, one CSV per UTC day |
 | Uplink | SIM800C GPRS, HTTP GET: OsmAnd position report plus a health report once a minute |
 | Power | 2×18650 through a Battery Shield V8, cell voltage on ADC; 1000 µF at the modem's supply pins |
-| Motion | BMA400 accelerometer activity interrupt (hardware threshold, no fix needed); GNSS speed as fallback. Parked for `sleepAfterStationaryMs` (1 min in this build, for the demonstration; 10 min for service): deep sleep, wake on motion or the button |
+| Motion | BMA400 accelerometer activity interrupt (hardware threshold, no fix needed); GNSS speed as fallback. Parked for `sleepAfterStationaryMs` (1 min in this build, for the demonstration; 10 min for service): deep sleep, wake on motion or the button. No coverage does not keep it awake: after `sleepUplinkGraceMs` (3 min) with points still queued it sleeps anyway, the card has them |
 
 ## Quick start
 

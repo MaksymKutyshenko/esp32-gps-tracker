@@ -208,7 +208,7 @@ void motion_null_detector_always_moving()
 
 void sleeppolicy_due_after_parked_long_enough_with_idle_uplink()
 {
-    SleepPolicy policy({600'000});
+    SleepPolicy policy({600'000, 180'000});
     policy.onState(TrackerState::Tracking, 0);
     TEST_ASSERT_FALSE(policy.due(10'000'000, true)); // never parked
     policy.onState(TrackerState::Stationary, 1000);
@@ -219,15 +219,31 @@ void sleeppolicy_due_after_parked_long_enough_with_idle_uplink()
 
 void sleeppolicy_motion_restarts_the_parked_period_and_zero_disables()
 {
-    SleepPolicy policy({600'000});
+    SleepPolicy policy({600'000, 180'000});
     policy.onState(TrackerState::Stationary, 0);
     policy.onState(TrackerState::Tracking, 300'000);
     policy.onState(TrackerState::Stationary, 400'000);
     TEST_ASSERT_FALSE(policy.due(900'000, true));
     TEST_ASSERT_TRUE(policy.due(1'000'000, true));
 
-    policy.setParams({0});
+    policy.setParams({0, 0});
     TEST_ASSERT_FALSE(policy.due(10'000'000, true));
+}
+
+void sleeppolicy_sleeps_anyway_once_the_uplink_grace_period_is_over()
+{
+    // No coverage: the queue never drains. The tracker waits the grace
+    // period past the parked time, then sleeps with the backlog on the card.
+    SleepPolicy policy({600'000, 180'000});
+    policy.onState(TrackerState::Stationary, 0);
+    TEST_ASSERT_FALSE(policy.due(600'000, false));
+    TEST_ASSERT_FALSE(policy.due(779'999, false));
+    TEST_ASSERT_TRUE(policy.due(780'000, false));
+    // Motion in between restarts both periods.
+    policy.onState(TrackerState::Tracking, 700'000);
+    policy.onState(TrackerState::Stationary, 700'000);
+    TEST_ASSERT_FALSE(policy.due(1'479'999, false));
+    TEST_ASSERT_TRUE(policy.due(1'480'000, false));
 }
 
 void sleeppolicy_is_not_fooled_by_an_epoch_stamped_before_the_transition()
@@ -235,7 +251,7 @@ void sleeppolicy_is_not_fooled_by_an_epoch_stamped_before_the_transition()
     // The gps task stamps the epoch, then runs the FSM, which stamps the
     // transition a few ms later; asking with the older epoch time must
     // not read as "parked for ages".
-    SleepPolicy policy({600'000});
+    SleepPolicy policy({600'000, 180'000});
     policy.onState(TrackerState::Stationary, 1051);
     TEST_ASSERT_FALSE(policy.due(1000, true));
     TEST_ASSERT_FALSE(policy.due(601'050, true));

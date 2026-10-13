@@ -51,6 +51,7 @@ void motion_accel_detector_ignores_the_fix_entirely();
 void motion_null_detector_always_moving();
 void sleeppolicy_due_after_parked_long_enough_with_idle_uplink();
 void sleeppolicy_motion_restarts_the_parked_period_and_zero_disables();
+void sleeppolicy_sleeps_anyway_once_the_uplink_grace_period_is_over();
 void sleeppolicy_is_not_fooled_by_an_epoch_stamped_before_the_transition();
 
 // test_filters.cpp
@@ -145,6 +146,7 @@ int main()
     RUN_TEST(motion_null_detector_always_moving);
     RUN_TEST(sleeppolicy_due_after_parked_long_enough_with_idle_uplink);
     RUN_TEST(sleeppolicy_motion_restarts_the_parked_period_and_zero_disables);
+    RUN_TEST(sleeppolicy_sleeps_anyway_once_the_uplink_grace_period_is_over);
     RUN_TEST(sleeppolicy_is_not_fooled_by_an_epoch_stamped_before_the_transition);
 
     RUN_TEST(ema_first_sample_seeds_without_transient);

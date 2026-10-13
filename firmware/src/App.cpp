@@ -111,7 +111,7 @@ App::App()
       policy_({Config::Defaults::movingIntervalMs, Config::Defaults::stationaryIntervalMs,
                Config::Defaults::minDistanceM, Config::Defaults::minSatellites,
                Config::Defaults::maxHdopCenti}),
-      sleepPolicy_({Config::Defaults::sleepAfterStationaryMs}),
+      sleepPolicy_({Config::Defaults::sleepAfterStationaryMs, Config::Defaults::sleepUplinkGraceMs}),
       timeZone_({Config::timeZoneStandardOffsetMinutes, Config::timeZoneEuropeanSummerTime}),
       buttonDecoder_(Config::buttonStableUs, Config::buttonLongPressUs),
       view_(display_, timeZone_),
@@ -170,7 +170,7 @@ void App::begin()
     {
         // Without the accelerometer nothing would wake a sleeping tracker
         // when it starts moving, so it stays awake.
-        sleepPolicy_.setParams({0});
+        sleepPolicy_.setParams({0, 0});
         ESP_LOGW(logTag, "No accelerometer: deep sleep disabled for this run");
     }
 
@@ -1228,6 +1228,12 @@ void App::enterSleep()
     applyFsmEvent(TrackerEvent::SleepRequested); // LED off, state logged
     ESP_LOGI(logTag, "Parked for %" PRIu32 " min: sleeping until motion or the button",
              Config::Defaults::sleepAfterStationaryMs / 60'000);
+    const UBaseType_t unsent = uxQueueMessagesWaiting(uplinkQueue_);
+    if (unsent > 0)
+    {
+        ESP_LOGW(logTag, "%u points still waiting for the modem after %" PRIu32 " min; sleeping anyway, the card has them",
+                 static_cast<unsigned>(unsent), Config::Defaults::sleepUplinkGraceMs / 60'000);
+    }
 
     // Wait for every bus to be free, then stop the other tasks: from here
     // on this task alone touches the hardware, and nothing is left waiting

@@ -120,7 +120,7 @@ sequenceDiagram
     participant R as GNSS receiver
     participant P as OLED, SD card
     G->>G: FSM in Stationary; SleepPolicy counts sleepAfterStationaryMs
-    G->>G: due, and the uplink queue is empty
+    G->>G: due: uplink queue empty, or the grace period for it is over
     G->>T: take the modem, I2C and SD mutexes (1 s slices, watchdog fed)
     G->>T: suspend the tasks, unsubscribe them from the watchdog
     G->>M: health report with state=sleeping (HTTP GET)
@@ -210,7 +210,10 @@ The accelerometer fits the three places that were reserved for it.
    use (`motion bma400 pulses N`).
 3. **Sleep** — `SleepPolicy` (logic, host-tested) says when: parked
    (`Stationary`) for `Config::Defaults::sleepAfterStationaryMs` with
-   nothing left in the uplink queue; 0 disables it. The gps task, which
+   nothing left in the uplink queue, or with the queue still stuck once
+   `sleepUplinkGraceMs` more have passed (no coverage must not keep the
+   tracker awake; the card has every point, the health report shows the
+   backlog left behind); 0 disables it. The gps task, which
    owns the FSM, then runs `App::enterSleep`: `SleepRequested` to the FSM
    (LED off), a last health report with state `sleeping` so the dashboard
    knows it was deliberate, modem to minimum functionality (`AT+CFUN=0`,
