@@ -304,6 +304,10 @@ namespace Config
     // current transfer (an HTTP request can take 30 s; a card write with
     // fsync a few hundred ms). Waited in 1 s slices with the watchdog fed.
     constexpr uint32_t sleepLockWaitMs = 60'000;
+    // After the wake pads are handed to the RTC controller with their
+    // pulls, how long the lines get to settle before the wake levels are
+    // armed and read back into the log.
+    constexpr uint32_t wakeLineSettleMs = 20;
 
     // ---- Task layout ---------------------------------------------------
     // One task per blocking peripheral; priorities put the receiver first

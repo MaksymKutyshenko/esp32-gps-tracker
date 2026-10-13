@@ -25,6 +25,7 @@ public:
         Defaults,
         Save,
         Mount,     // retry the storage card now
+        Hang,      // watchdog test: the console task stops feeding
         Set,
         At,        // raw modem command; `value` holds the rest of the line
     };
@@ -68,6 +69,7 @@ public:
         else if (strcmp(word, "defaults") == 0) result.command = Command::Defaults;
         else if (strcmp(word, "save") == 0) result.command = Command::Save;
         else if (strcmp(word, "mount") == 0) result.command = Command::Mount;
+        else if (strcmp(word, "hang") == 0) result.command = Command::Hang;
         else if (strcmp(word, "set") == 0)
         {
             if (count != 3)

@@ -455,6 +455,8 @@ void command_parser_recognises_words_and_set_arguments()
     TEST_ASSERT_EQUAL(CommandParser::Command::Unknown, CommandParser::parse(line8).command);
     char line6[] = "mount";
     TEST_ASSERT_EQUAL(CommandParser::Command::Mount, CommandParser::parse(line6).command);
+    char line9[] = "hang";
+    TEST_ASSERT_EQUAL(CommandParser::Command::Hang, CommandParser::parse(line9).command);
     char line5[] = "frobnicate";
     TEST_ASSERT_EQUAL(CommandParser::Command::Unknown, CommandParser::parse(line5).command);
 }

@@ -16,6 +16,7 @@
 #include "logic/CommandParser.hpp"
 #include "periph/GnssProfile.hpp"
 #include "reliability/BusLock.hpp"
+#include "reliability/FreezeTrace.hpp"
 #include "reliability/TaskWatchdog.hpp"
 #include "transport/HealthReport.hpp"
 #include "transport/OsmAndProtocol.hpp"
@@ -137,6 +138,16 @@ void App::begin()
     {
         ESP_LOGW(logTag, "Task watchdog was tripped by: %s", resetDetail_);
     }
+    // A watchdog reset without a culprit means the watchdog's own interrupt
+    // never ran: the tick-hook samples are the only record of that hang.
+    const bool storm = FreezeTrace::tookStormReset();
+    if (storm)
+    {
+        strlcpy(resetDetail_, "tickstorm", sizeof resetDetail_);
+        ESP_LOGW(logTag, "Reset by the tick-storm guard: the tick interrupt had run away");
+    }
+    FreezeTrace::logLastTrace(storm || reason == ESP_RST_TASK_WDT || reason == ESP_RST_INT_WDT || reason == ESP_RST_WDT);
+    FreezeTrace::begin();
     if (reason == ESP_RST_DEEPSLEEP)
     {
         const esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
@@ -970,7 +981,7 @@ void App::consoleLoop()
         case CommandParser::Command::None:
             break;
         case CommandParser::Command::Help:
-            ESP_LOGI(logTag, "help | show | diag | defaults | save | mount | set <key> <value> | at <AT command>");
+            ESP_LOGI(logTag, "help | show | diag | defaults | save | mount | hang | set <key> <value> | at <AT command>");
             ESP_LOGI(logTag, "keys: moving_ms stationary_ms min_distance_m motion_start motion_stop "
                              "motion_stop_delay_ms gnss(0=%s,1=%s) uplink(0/1) uplink_min_ms health_ms apn url id",
                      GnssProfiles::byIndex(0).name, GnssProfiles::byIndex(1).name);
@@ -1051,6 +1062,17 @@ void App::consoleLoop()
             ESP_LOGI(logTag, "%s -> %s [%s]", parsed.value, response, esp_err_to_name(err));
             break;
         }
+        case CommandParser::Command::Hang:
+            // Watchdog test: this task stops feeding and the watchdog must
+            // reset the tracker in 5 s. The next boot then has to log
+            // "Task watchdog was tripped by: console" and send it in the
+            // health report; a reset without that line means the record
+            // path, not the watchdog, is what needs looking at.
+            ESP_LOGW(logTag, "Watchdog test: the console task stops feeding now");
+            while (true)
+            {
+                vTaskDelay(pdMS_TO_TICKS(1000));
+            }
         case CommandParser::Command::Unknown:
             ESP_LOGW(logTag, "Unknown command; type 'help'");
             break;
@@ -1339,12 +1361,26 @@ void App::parkStorage()
 // domain stays powered, so it is kept on (tens of microamps).
 void App::armWakeSources()
 {
+    // Hand both pads to the RTC controller now, with their pulls, and
+    // let the lines settle before the wake levels are armed: a line read
+    // at the wrong level here would wake the chip the moment it sleeps.
+    ESP_ERROR_CHECK(rtc_gpio_init(Config::accelInterruptPin));
+    ESP_ERROR_CHECK(rtc_gpio_set_direction(Config::accelInterruptPin, RTC_GPIO_MODE_INPUT_ONLY));
     rtc_gpio_pullup_dis(Config::accelInterruptPin);
     rtc_gpio_pulldown_en(Config::accelInterruptPin);
-    ESP_ERROR_CHECK(esp_sleep_enable_ext1_wakeup(1ULL << Config::accelInterruptPin, ESP_EXT1_WAKEUP_ANY_HIGH));
 
+    ESP_ERROR_CHECK(rtc_gpio_init(Config::buttonPin));
+    ESP_ERROR_CHECK(rtc_gpio_set_direction(Config::buttonPin, RTC_GPIO_MODE_INPUT_ONLY));
     rtc_gpio_pulldown_dis(Config::buttonPin);
     rtc_gpio_pullup_en(Config::buttonPin);
+
+    vTaskDelay(pdMS_TO_TICKS(Config::wakeLineSettleMs));
+    const uint32_t button = rtc_gpio_get_level(Config::buttonPin);
+    const uint32_t motion = rtc_gpio_get_level(Config::accelInterruptPin);
+    ESP_LOGI(logTag, "Wake lines: button %s, INT1 %s", button ? "high (idle)" : "LOW (reads as pressed)",
+             motion ? "HIGH (reads as motion)" : "low (idle)");
+
+    ESP_ERROR_CHECK(esp_sleep_enable_ext1_wakeup(1ULL << Config::accelInterruptPin, ESP_EXT1_WAKEUP_ANY_HIGH));
     ESP_ERROR_CHECK(esp_sleep_enable_ext0_wakeup(Config::buttonPin, 0));
     ESP_ERROR_CHECK(esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON));
 
