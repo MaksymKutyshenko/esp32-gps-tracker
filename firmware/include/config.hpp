@@ -51,7 +51,7 @@ namespace Config
     // a press connects it to 3.3 V. With the wrong setting the line reads
     // as "pressed" at rest, and deep sleep ends the moment it starts
     // ('Wake lines: button LOW (reads as pressed)' in the log).
-    constexpr bool buttonPressedHigh = false;
+    constexpr bool buttonPressedHigh = true; // 3-pin module: VCC, GND, signal
     // The interrupt only wakes the ui task; from then on the pin is sampled
     // every buttonSampleMs and a level counts once it has held for
     // buttonStableUs (the module 2.6 debounce: 50 ms, 5 ms polling). The
