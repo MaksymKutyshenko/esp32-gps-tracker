@@ -316,8 +316,16 @@ line and the web dashboard):
   are capped at 1 s. Interrupted uploads left the modem's HTTP stack
   busy; three failures later the uplink power-cycled it, as designed.
 
-_Still to measure: current draw (idle / tracking / uploading), CPU load
-and a multi-hour soak on battery._
+- CPU load (`diag`, FreeRTOS run-time statistics, both cores): the idle
+  tasks hold 98-99 % of the time; the whole application, six tasks, takes
+  1-2 %. The logger is the busiest task (card writes), then the display
+  (I2C frames), then gps.
+- Button: after the contact-bounce fix (a level is accepted only once it
+  has held for 50 ms) every short press switches the page; the bench
+  switch produces up to 16 edges per press.
+
+_Still to measure: current draw (tracking / uploading / asleep) and a
+multi-hour soak on battery._
 
 ## Known issues and limitations
 
