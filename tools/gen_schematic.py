@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generates docs/kicad/gps_tracker.kicad_sch from the design in docs/HARDWARE.md.
+"""Generates hardware/kicad/gps_tracker.kicad_sch from the design in hardware/README.md.
 
 The schematic is built from KiCad's own symbol libraries (ESP32-S3-WROOM-1
 module, generic pin-header connectors for the breakout modules, passives,
@@ -9,8 +9,8 @@ the single source for the pin assignment.
 
 Run from the project root:
     python3 tools/gen_schematic.py
-    kicad-cli sch erc docs/kicad/gps_tracker.kicad_sch
-    kicad-cli sch export pdf docs/kicad/gps_tracker.kicad_sch -o docs/kicad/gps_tracker.pdf
+    kicad-cli sch erc hardware/kicad/gps_tracker.kicad_sch
+    kicad-cli sch export pdf hardware/kicad/gps_tracker.kicad_sch -o hardware/kicad/gps_tracker.pdf
 """
 import math
 import re
@@ -18,7 +18,7 @@ import uuid
 from pathlib import Path
 
 LIB_DIR = Path("/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols")
-OUT_DIR = Path("docs/kicad")
+OUT_DIR = Path("hardware/kicad")
 PROJECT = "gps_tracker"
 
 # --------------------------------------------------------------------------
@@ -207,7 +207,7 @@ def finish_unused(part: Part):
 
 
 # --------------------------------------------------------------------------
-# The design (pins from include/config.hpp, DevKitC environment)
+# The design (pins from firmware/include/config.hpp, DevKitC environment)
 
 lib = Library()
 WROOM = lib.use("RF_Module", "ESP32-S3-WROOM-1")
@@ -386,8 +386,8 @@ header = f'''(kicad_sch (version 20250114) (generator "gen_schematic.py") (gener
     (date "2026-10-09")
     (rev "1")
     (company "Maksym Kutyshenko")
-    (comment 1 "ESP32-S3 DevKitC-1 development build; pins per include/config.hpp")
-    (comment 2 "Breakout modules drawn as pin headers; see docs/HARDWARE.md")
+    (comment 1 "ESP32-S3 DevKitC-1 development build; pins per firmware/include/config.hpp")
+    (comment 2 "Breakout modules drawn as pin headers; see hardware/README.md")
   )
   (lib_symbols
 {chr(10).join(lib.blocks.values())}

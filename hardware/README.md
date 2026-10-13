@@ -1,7 +1,7 @@
 # Hardware design
 
 Component roles, power tree, GPIO map and the wiring risks for the GPS
-tracker. Pin numbers here are the single source for `include/config.hpp`;
+tracker. Pin numbers here are the single source for `firmware/include/config.hpp`;
 change them together.
 
 Schematic: [kicad/gps_tracker.kicad_sch](kicad/gps_tracker.kicad_sch)

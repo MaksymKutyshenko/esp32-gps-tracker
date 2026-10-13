@@ -12,7 +12,7 @@
 
 // Pins, bus parameters and task layout for the GPS tracker. Every constant
 // the firmware tunes lives here; driver code never carries a literal pin.
-// The wiring rationale is in docs/HARDWARE.md — keep the two in step.
+// The wiring rationale is in hardware/README.md — keep the two in step.
 //
 // Two boards are supported through the build environment in platformio.ini:
 //   -DBOARD_SUPERMINI  ESP32-S3 SuperMini (primary)
@@ -30,7 +30,7 @@ namespace Config
 {
     // Reported in every health report so the web app can tell which build
     // produced a number.
-    constexpr const char *firmwareVersion = "0.2.0";
+    constexpr const char *firmwareVersion = "1.0.0";
 
     // ---- Battery -------------------------------------------------------
     // Cell voltage from the shield's B+ through a 100 k / 100 k divider:

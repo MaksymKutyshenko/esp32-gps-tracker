@@ -271,7 +271,7 @@ draft, with real function names and values, and must be reviewed.
 ## 8. Decisions for the GPS tracker (component list of 2026-10-09)
 
 Hardware details, power tree and the GPIO map are in
-[docs/HARDWARE.md](docs/HARDWARE.md).
+[hardware/README.md](hardware/README.md).
 
 | Checklist item | How the chosen hardware covers it |
 | --- | --- |
@@ -288,11 +288,11 @@ Hardware details, power tree and the GPIO map are in
 | 6.2 DMA | SD card over SPI uses DMA; UART DMA optional |
 | 9.2 edge cases to demo | Block the sky (no fix), pull the SD card mid-log, unplug the GSM antenna (upload backlog then catch-up) |
 
-### Status (2026-10-12, firmware at `0d4cd84`)
+### Status (2026-10-13, release v1.0.0)
 
 | Items | Status | Evidence |
 | --- | --- | --- |
-| 1.1, 1.2, 1.3, 1.5 | done | six FreeRTOS tasks in `src/App.cpp`; no `delay()` outside bounded waits; `logic/TrackerFsm.hpp` table-driven FSM; one class per file |
+| 1.1, 1.2, 1.3, 1.5 | done | six FreeRTOS tasks in `firmware/src/App.cpp`; no `delay()` outside bounded waits; `logic/TrackerFsm.hpp` table-driven FSM; one class per file |
 | 1.4, 8.2 | done | Mermaid block diagram and FSM diagram in README |
 | 2.1 | done | `periph/BatteryMonitor` (ADC1, calibrated) |
 | 2.2 | done | UART1 GNSS, UART2 modem, I2C OLED + BMA400, SPI SD |
@@ -310,8 +310,8 @@ Hardware details, power tree and the GPIO map are in
 | 6.1 | partly | stack high-water marks per task in the minute line; no per-section timing yet |
 | 6.2, 6.3 | done | SD over SPI with DMA; NMEA parsed in place |
 | 6.4 | tool in place | `diag` prints `vTaskGetRunTimeStats`; the number goes into README results after a run |
-| 7.1 | done | `docs/kicad/gps_tracker.kicad_sch`, ERC 0/0; 7.2–7.7 optional (layout, manufacturing) |
-| 8.1, 8.3, 8.4, 8.5 | done | README sections; `docs/ARCHITECTURE.md`, `docs/HARDWARE.md` |
+| 7.1 | done | `hardware/kicad/gps_tracker.kicad_sch`, ERC 0/0; 7.2–7.7 optional (layout, manufacturing) |
+| 8.1, 8.3, 8.4, 8.5 | done | README sections; `docs/ARCHITECTURE.md`, `hardware/README.md` |
 | 9.1 | done on the bench | hours of uptime through modem bursts, charger changes and sleep cycles |
 | 9.2 | done on the bench | SD pulled, display glitched, modem powered down, no-fix, deep sleep and wake |
 | 9.3, 9.4 | at the defence | `docs/PRESENTATION.md`, schematic walk-through |
@@ -326,7 +326,6 @@ Still open before the defence:
 - [ ] Outdoor track for the README results and the demo.
 - [ ] CPU-load line from `diag` into README results.
 - [ ] Slides from `docs/PRESENTATION.md` in the academy template.
-- [ ] Repository on GitHub, release tag v1.0.0.
-- [ ] Decide whether the web app (branch `tracker-web`) joins `main` or is presented as a second repository.
+- [x] Web app and firmware in one repository (`web/`, `firmware/`), release v1.0.0 on GitHub.
 - [ ] Cleanup pass over the repository files.
 - [ ] Rehearse the demo and the edge case twice.

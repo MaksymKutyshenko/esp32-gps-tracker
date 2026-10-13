@@ -8,7 +8,7 @@ side, signal pins towards the devkit, so power and signal wires never
 cross. Every wire is a Manhattan polyline in the colour of its signal
 class. Pure geometry; run it and paste the output into the sheet.
 
-    python3 tools/gen_wiring_svg.py > wiring.svg
+    python3 tools/gen_wiring_svg.py > hardware/wiring.svg
 """
 
 W, H = 1200, 775

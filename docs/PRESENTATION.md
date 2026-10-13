@@ -15,7 +15,7 @@ diagrams over text, concrete numbers.
    report live when it can, and not die quietly. Three failure modes: lost
    records, false positions, silent hangs.
 3. **Hardware** — photo of the build plus the GPIO map (from
-   `docs/HARDWARE.md`). ESP32-S3, GNSS, OLED, SD, SIM800C, 2×18650.
+   `hardware/README.md`). ESP32-S3, GNSS, OLED, SD, SIM800C, 2×18650.
 4. **Architecture** — the task/queue diagram (README). Four layers, six
    tasks, queues only, one mutex per bus. Say why queues and not shared
    state.
@@ -77,6 +77,6 @@ diagrams over text, concrete numbers.
 
 - [ ] Fill the checklist copy (≥ 80 %) with evidence links (file:line).
 - [ ] README results section with measured numbers.
-- [x] KiCad schematic in `docs/kicad/` (regenerate with `tools/gen_schematic.py` after pin changes).
+- [x] KiCad schematic in `hardware/kicad/` (regenerate with `tools/gen_schematic.py` after pin changes).
 - [ ] GitHub release v1.0.0 with a changelog.
 - [ ] Rehearse the edge case twice.

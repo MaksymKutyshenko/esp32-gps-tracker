@@ -136,6 +136,8 @@ The accelerometer fits the three places that were reserved for it.
 
 ## 8. Reading order for a reviewer
 
+All paths under `firmware/`.
+
 1. `include/config.hpp` — pins and tuning.
 2. `src/App.cpp` — composition root, task layout.
 3. `include/logic/TrackerFsm.hpp` — states and transitions.

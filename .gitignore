@@ -1,14 +1,28 @@
-.pio/
+# Firmware (PlatformIO / ESP-IDF). The sdkconfig.<env> files are generated
+# from sdkconfig.defaults on every build and are not source.
+firmware/.pio/
+firmware/sdkconfig.devkitc
+firmware/sdkconfig.supermini
 build/
-.vscode/
-.DS_Store
+
+# Web app
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.log
 
 # KiCad scratch
 *.kicad_prl
 *-backups/
 *.kicad_sch-bak
 fp-info-cache
-docs/kicad/erc.txt
+hardware/kicad/erc.txt
+
+# Editors and OS
+.vscode/
+.DS_Store
 
 # Claude desktop app session data
 .claude/
