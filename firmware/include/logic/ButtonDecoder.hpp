@@ -2,10 +2,17 @@
 
 #include <stdint.h>
 
-// Turns raw button edges (from the GPIO interrupt) into presses. Contact
-// bounce shows up as edges a few hundred microseconds apart; any edge
-// closer than debounceUs to the previous accepted edge is ignored. A
-// release after at least longPressUs is a long press, otherwise short.
+// Turns sampled button levels into presses. The caller samples the pin
+// every few milliseconds while the button is active and feeds each
+// sample with its timestamp; the decoder is the four-state debounce from
+// the module 2.6 homework (released, confirming a press, pressed,
+// confirming a release): a level has to hold for stableUs before it
+// counts, so contact bounce of any length shorter than that is ignored.
+//
+// A press is reported as soon as it is confirmed, not at the release, so
+// the screen reacts at once and a bouncing release can never count as a
+// second press. Holding the button for longPressUs reports Long once more
+// while it is still held.
 //
 // Pure logic, no ESP-IDF dependency; unit-tested on the host.
 enum class ButtonPress : uint8_t
@@ -18,42 +25,81 @@ enum class ButtonPress : uint8_t
 class ButtonDecoder
 {
 public:
-    ButtonDecoder(int64_t debounceUs, int64_t longPressUs)
-        : debounceUs_(debounceUs), longPressUs_(longPressUs)
+    ButtonDecoder(int64_t stableUs, int64_t longPressUs)
+        : stableUs_(stableUs), longPressUs_(longPressUs)
     {
     }
 
-    ButtonPress feed(bool pressed, int64_t timestampUs)
+    ButtonPress feed(bool pressed, int64_t nowUs)
     {
-        if (haveEdge_ && timestampUs - lastEdgeUs_ < debounceUs_)
+        switch (state_)
         {
+        case State::Released:
+            if (pressed)
+            {
+                state_ = State::ConfirmingPress;
+                sinceUs_ = nowUs;
+            }
+            return ButtonPress::None;
+
+        case State::ConfirmingPress:
+            if (!pressed)
+            {
+                state_ = State::Released;
+            }
+            else if (nowUs - sinceUs_ >= stableUs_)
+            {
+                state_ = State::Pressed;
+                pressedAtUs_ = sinceUs_;
+                longReported_ = false;
+                return ButtonPress::Short;
+            }
+            return ButtonPress::None;
+
+        case State::Pressed:
+            if (!pressed)
+            {
+                state_ = State::ConfirmingRelease;
+                sinceUs_ = nowUs;
+            }
+            else if (!longReported_ && nowUs - pressedAtUs_ >= longPressUs_)
+            {
+                longReported_ = true;
+                return ButtonPress::Long;
+            }
+            return ButtonPress::None;
+
+        case State::ConfirmingRelease:
+            if (pressed)
+            {
+                state_ = State::Pressed;
+            }
+            else if (nowUs - sinceUs_ >= stableUs_)
+            {
+                state_ = State::Released;
+            }
             return ButtonPress::None;
         }
-        if (pressed == pressed_)
-        {
-            return ButtonPress::None; // repeated level, e.g. after a dropped edge
-        }
-
-        lastEdgeUs_ = timestampUs;
-        haveEdge_ = true;
-        pressed_ = pressed;
-
-        if (pressed)
-        {
-            pressedAtUs_ = timestampUs;
-            return ButtonPress::None;
-        }
-        return (timestampUs - pressedAtUs_ >= longPressUs_) ? ButtonPress::Long
-                                                             : ButtonPress::Short;
+        return ButtonPress::None;
     }
 
-    bool isPressed() const { return pressed_; }
+    // True while a press is being confirmed, held, or its release is being
+    // confirmed: the caller keeps sampling until this goes false.
+    bool active() const { return state_ != State::Released; }
 
 private:
-    int64_t debounceUs_;
+    enum class State : uint8_t
+    {
+        Released,
+        ConfirmingPress,
+        Pressed,
+        ConfirmingRelease,
+    };
+
+    int64_t stableUs_;
     int64_t longPressUs_;
-    int64_t lastEdgeUs_ = 0;
+    State state_ = State::Released;
+    int64_t sinceUs_ = 0;
     int64_t pressedAtUs_ = 0;
-    bool haveEdge_ = false;
-    bool pressed_ = false;
+    bool longReported_ = false;
 };

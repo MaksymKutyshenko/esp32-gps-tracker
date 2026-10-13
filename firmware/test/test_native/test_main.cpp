@@ -93,9 +93,9 @@ void scheduler_first_attempt_is_immediate_then_paced_by_min_interval();
 void scheduler_backs_off_exponentially_up_to_cap();
 void scheduler_rejection_backs_off_but_never_requests_reset();
 void scheduler_requests_reset_after_failure_run_and_success_clears_it();
-void button_short_and_long_press_by_duration();
-void button_bounce_edges_inside_debounce_window_are_ignored();
-void button_repeated_level_after_dropped_edge_is_ignored();
+void button_press_counts_once_the_level_has_held();
+void button_bounce_shorter_than_the_stable_window_is_ignored();
+void button_long_press_is_reported_once_while_held();
 void command_parser_recognises_words_and_set_arguments();
 void command_parser_unsigned_rejects_garbage_and_overflow();
 
@@ -185,9 +185,9 @@ int main()
     RUN_TEST(scheduler_backs_off_exponentially_up_to_cap);
     RUN_TEST(scheduler_rejection_backs_off_but_never_requests_reset);
     RUN_TEST(scheduler_requests_reset_after_failure_run_and_success_clears_it);
-    RUN_TEST(button_short_and_long_press_by_duration);
-    RUN_TEST(button_bounce_edges_inside_debounce_window_are_ignored);
-    RUN_TEST(button_repeated_level_after_dropped_edge_is_ignored);
+    RUN_TEST(button_press_counts_once_the_level_has_held);
+    RUN_TEST(button_bounce_shorter_than_the_stable_window_is_ignored);
+    RUN_TEST(button_long_press_is_reported_once_while_held);
     RUN_TEST(command_parser_recognises_words_and_set_arguments);
     RUN_TEST(command_parser_unsigned_rejects_garbage_and_overflow);
 

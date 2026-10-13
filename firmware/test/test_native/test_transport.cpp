@@ -384,31 +384,50 @@ void scheduler_requests_reset_after_failure_run_and_success_clears_it()
 
 // --- ButtonDecoder -------------------------------------------------------
 
-void button_short_and_long_press_by_duration()
+void button_press_counts_once_the_level_has_held()
 {
-    ButtonDecoder decoder(20'000, 1'000'000);
+    ButtonDecoder decoder(50'000, 1'000'000);
     TEST_ASSERT_EQUAL(ButtonPress::None, decoder.feed(true, 0));
-    TEST_ASSERT_EQUAL(ButtonPress::Short, decoder.feed(false, 300'000));
-    TEST_ASSERT_EQUAL(ButtonPress::None, decoder.feed(true, 2'000'000));
-    TEST_ASSERT_EQUAL(ButtonPress::Long, decoder.feed(false, 3'100'000));
+    TEST_ASSERT_TRUE(decoder.active());
+    TEST_ASSERT_EQUAL(ButtonPress::None, decoder.feed(true, 25'000));
+    TEST_ASSERT_EQUAL(ButtonPress::Short, decoder.feed(true, 50'000));
+    // Held on: nothing more until the long-press threshold.
+    TEST_ASSERT_EQUAL(ButtonPress::None, decoder.feed(true, 300'000));
+    // Released and confirmed: back to idle, no second event.
+    TEST_ASSERT_EQUAL(ButtonPress::None, decoder.feed(false, 400'000));
+    TEST_ASSERT_EQUAL(ButtonPress::None, decoder.feed(false, 450'000));
+    TEST_ASSERT_FALSE(decoder.active());
 }
 
-void button_bounce_edges_inside_debounce_window_are_ignored()
+void button_bounce_shorter_than_the_stable_window_is_ignored()
 {
-    ButtonDecoder decoder(20'000, 1'000'000);
+    ButtonDecoder decoder(50'000, 1'000'000);
     decoder.feed(true, 0);
-    TEST_ASSERT_EQUAL(ButtonPress::None, decoder.feed(false, 500));   // bounce
-    TEST_ASSERT_EQUAL(ButtonPress::None, decoder.feed(true, 900));    // bounce
-    TEST_ASSERT_TRUE(decoder.isPressed());
-    TEST_ASSERT_EQUAL(ButtonPress::Short, decoder.feed(false, 200'000));
+    TEST_ASSERT_EQUAL(ButtonPress::None, decoder.feed(false, 5'000)); // bounce: back to idle
+    TEST_ASSERT_FALSE(decoder.active());
+    decoder.feed(true, 10'000);
+    TEST_ASSERT_EQUAL(ButtonPress::None, decoder.feed(true, 40'000));
+    TEST_ASSERT_EQUAL(ButtonPress::Short, decoder.feed(true, 60'000));
+    // Bounce on the release: the press is already counted, so a dip and a
+    // return to "pressed" change nothing.
+    TEST_ASSERT_EQUAL(ButtonPress::None, decoder.feed(false, 200'000));
+    TEST_ASSERT_EQUAL(ButtonPress::None, decoder.feed(true, 210'000));
+    TEST_ASSERT_EQUAL(ButtonPress::None, decoder.feed(false, 220'000));
+    TEST_ASSERT_EQUAL(ButtonPress::None, decoder.feed(false, 270'000));
+    TEST_ASSERT_FALSE(decoder.active());
 }
 
-void button_repeated_level_after_dropped_edge_is_ignored()
+void button_long_press_is_reported_once_while_held()
 {
-    ButtonDecoder decoder(20'000, 1'000'000);
+    ButtonDecoder decoder(50'000, 1'000'000);
     decoder.feed(true, 0);
-    TEST_ASSERT_EQUAL(ButtonPress::None, decoder.feed(true, 500'000)); // release edge was lost
-    TEST_ASSERT_EQUAL(ButtonPress::Short, decoder.feed(false, 600'000));
+    TEST_ASSERT_EQUAL(ButtonPress::Short, decoder.feed(true, 50'000));
+    TEST_ASSERT_EQUAL(ButtonPress::None, decoder.feed(true, 900'000));
+    TEST_ASSERT_EQUAL(ButtonPress::Long, decoder.feed(true, 1'000'000));
+    TEST_ASSERT_EQUAL(ButtonPress::None, decoder.feed(true, 3'000'000));
+    TEST_ASSERT_EQUAL(ButtonPress::None, decoder.feed(false, 3'100'000));
+    TEST_ASSERT_EQUAL(ButtonPress::None, decoder.feed(false, 3'150'000));
+    TEST_ASSERT_FALSE(decoder.active());
 }
 
 // --- CommandParser -------------------------------------------------------

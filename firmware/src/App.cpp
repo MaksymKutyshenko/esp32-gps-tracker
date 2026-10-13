@@ -113,7 +113,7 @@ App::App()
                Config::Defaults::maxHdopCenti}),
       sleepPolicy_({Config::Defaults::sleepAfterStationaryMs}),
       timeZone_({Config::timeZoneStandardOffsetMinutes, Config::timeZoneEuropeanSummerTime}),
-      buttonDecoder_(Config::buttonDebounceUs, Config::buttonLongPressUs),
+      buttonDecoder_(Config::buttonStableUs, Config::buttonLongPressUs),
       view_(display_, timeZone_),
       storage_(sdCard_, Config::trackDirectory),
       logger_(storage_, Config::trackDirectory, Config::storageRetries),
@@ -923,62 +923,27 @@ void App::uiLoop()
     }
 }
 
-// Waits up to a ui tick for the button to move, then turns what the
-// contacts did into one press at most. The ISR only says "something
-// moved": the level it saw is whatever the bouncing contact showed at
-// that instant, and this switch bounces for tens of milliseconds (16
-// edges per press on the bench), so no fixed delay is safe. The pin is
-// sampled until it has held one level for buttonStableMs; that level goes
-// to the decoder. A tap released before the level could settle is still
-// a press if the samples saw it pressed for buttonTapMinMs. After a press
-// the contacts get buttonLockoutMs to finish bouncing, and the edges they
-// produce meanwhile are discarded, so one press never counts twice.
+// One sample of the button for the decoder. Idle, the ui task sleeps on the
+// edge queue for a ui tick: the GPIO interrupt only says "something moved",
+// and the level it saw mid-bounce is not used. Once the decoder is active
+// (a press being confirmed, held, or released) the pin is sampled every
+// buttonSampleMs until it is idle again; edges that arrive meanwhile are
+// discarded, the samples carry the information.
 ButtonPress App::readButton()
 {
     ButtonEdge edge = {};
-    if (xQueueReceive(buttonEdgeQueue_, &edge, pdMS_TO_TICKS(Config::uiTickMs)) != pdTRUE)
-    {
-        return ButtonPress::None;
-    }
-
-    bool level = button_.isPressed();
-    uint32_t stableMs = 0;
-    uint32_t pressedSeenMs = level ? Config::buttonSampleMs : 0;
-    for (uint32_t waited = 0; stableMs < Config::buttonStableMs && waited < Config::buttonSettleMaxMs;
-         waited += Config::buttonSampleMs)
+    if (buttonDecoder_.active())
     {
         vTaskDelay(pdMS_TO_TICKS(Config::buttonSampleMs));
-        const bool now = button_.isPressed();
-        if (now)
-        {
-            pressedSeenMs += Config::buttonSampleMs;
-        }
-        if (now == level)
-        {
-            stableMs += Config::buttonSampleMs;
-        }
-        else
-        {
-            level = now;
-            stableMs = 0;
-        }
     }
-
-    const bool wasPressed = buttonDecoder_.isPressed();
-    ButtonPress press = buttonDecoder_.feed(level, esp_timer_get_time());
-    if (press == ButtonPress::None && !wasPressed && !level && pressedSeenMs >= Config::buttonTapMinMs)
+    else if (xQueueReceive(buttonEdgeQueue_, &edge, pdMS_TO_TICKS(Config::uiTickMs)) != pdTRUE)
     {
-        press = ButtonPress::Short;
-    }
-
-    if (press != ButtonPress::None)
-    {
-        vTaskDelay(pdMS_TO_TICKS(Config::buttonLockoutMs));
+        return ButtonPress::None;
     }
     while (xQueueReceive(buttonEdgeQueue_, &edge, 0) == pdTRUE)
     {
     }
-    return press;
+    return buttonDecoder_.feed(button_.isPressed(), esp_timer_get_time());
 }
 
 // ---------------------------------------------------------------------------
