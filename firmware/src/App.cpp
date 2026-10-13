@@ -882,6 +882,7 @@ void App::uiLoop()
             {
             case ButtonPress::Short:
             {
+                ESP_LOGI(logTag, "Button: short press, next page");
                 // A press is not a measurement: it must not be dropped when
                 // the display queue is busy with fixes and counters, and it
                 // should take effect before them. Front of the queue, with
@@ -895,6 +896,7 @@ void App::uiLoop()
                 break;
             }
             case ButtonPress::Long:
+                ESP_LOGI(logTag, "Button: long press");
                 logDiagnostics();
                 break;
             case ButtonPress::None:
@@ -1114,7 +1116,7 @@ void App::logDiagnostics()
              " sky %u sig %u cn0 %u | "
              "log ok %" PRIu32 " drop %" PRIu32 " err %" PRIu32 " | "
              "up ok %" PRIu32 " drop %" PRIu32 " fail %" PRIu32 " cycles %" PRIu32 " | "
-             "disp err %" PRIu32 " bus to %" PRIu32 " batt err %" PRIu32 " btn drop %" PRIu32
+             "disp err %" PRIu32 " bus to %" PRIu32 " batt err %" PRIu32 " btn edges %" PRIu32 " drop %" PRIu32
              " evt drop %" PRIu32 " | motion %s pulses %" PRIu32,
              d.sentencesReceived.load(), d.sentencesRejected.load(),
              parser_.checksumFailures(), parser_.fieldFailures(), d.gnssSilences.load(),
@@ -1123,7 +1125,7 @@ void App::logDiagnostics()
              d.recordsUploaded.load(), d.recordsDroppedUplinkQueue.load(),
              d.uplinkFailures.load(), d.modemPowerCycles.load(),
              d.displayErrors.load(), d.busTimeouts.load(), d.batteryReadErrors.load(),
-             button_.droppedEdges(), eventLog_.dropped(),
+             button_.edges(), button_.droppedEdges(), eventLog_.dropped(),
              motion_ == &accelMotion_ ? "bma400" : "gnss", accelMotion_.totalPulses());
 
     // Stack headroom in bytes (ESP-IDF reports words of one byte); the

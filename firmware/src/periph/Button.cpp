@@ -35,6 +35,7 @@ void IRAM_ATTR Button::isrEntry(void *self)
     ButtonEdge edge = {};
     edge.pressed = gpio_get_level(button->pin_) == 0;
     edge.timestampUs = esp_timer_get_time();
+    button->edges_.fetch_add(1, std::memory_order_relaxed);
 
     BaseType_t woken = pdFALSE;
     if (xQueueSendFromISR(button->queue_, &edge, &woken) != pdTRUE)

@@ -30,7 +30,11 @@ public:
 
     bool isPressed() const;
 
-    // Edges the queue could not take; read from the ui task.
+    // Edges the ISR saw, and those the queue could not take; read from
+    // the ui task. A press that reaches nothing shows up here first: no
+    // edges at all means the pin never moved (wiring), edges without a
+    // decoded press means the decoder or the levels.
+    uint32_t edges() const { return edges_.load(std::memory_order_relaxed); }
     uint32_t droppedEdges() const { return droppedEdges_.load(std::memory_order_relaxed); }
 
 private:
@@ -38,5 +42,6 @@ private:
 
     gpio_num_t pin_;
     QueueHandle_t queue_ = nullptr;
+    std::atomic<uint32_t> edges_{0};
     std::atomic<uint32_t> droppedEdges_{0};
 };
