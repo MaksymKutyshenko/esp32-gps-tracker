@@ -46,9 +46,13 @@ namespace Config
     // so it can also wake the chip from deep sleep.
     constexpr gpio_num_t buttonPin = GPIO_NUM_2;
     constexpr int64_t buttonDebounceUs = 20'000;
-    // After an edge the ui task waits this long and reads the settled
-    // level instead of trusting the level the ISR saw mid-bounce.
-    constexpr uint32_t buttonSettleMs = 20;
+    // After an edge the ui task samples the pin every buttonSampleMs and
+    // accepts a level only once it has held for buttonStableMs, giving up
+    // after buttonSettleMaxMs. The bench switch bounced for longer than a
+    // fixed 20 ms wait, so stability, not a delay, decides.
+    constexpr uint32_t buttonSampleMs = 5;
+    constexpr uint32_t buttonStableMs = 50;
+    constexpr uint32_t buttonSettleMaxMs = 300;
     // A page switch waits this long for room in the display queue rather
     // than being dropped like a measurement would; the ui task can afford
     // it, and the display task frees a slot every frame.

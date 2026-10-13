@@ -867,18 +867,33 @@ void App::uiLoop()
         ButtonEdge edge = {};
         if (xQueueReceive(buttonEdgeQueue_, &edge, pdMS_TO_TICKS(Config::uiTickMs)) == pdTRUE)
         {
-            // The ISR's level is the pin at the moment the handler ran, not
-            // at the edge, and during contact bounce the two differ: the
-            // last edge of a release can read "still pressed", and the
-            // decoder then waits for a release that never comes. So the
-            // edge only says "something moved": let the contacts settle,
-            // drop the edges they produced meanwhile, and read the level
-            // that is actually there.
-            vTaskDelay(pdMS_TO_TICKS(Config::buttonSettleMs));
+            // The edge only says "something moved". The level the ISR saw
+            // is whatever the bouncing contact showed at that instant, and
+            // this switch bounces for tens of milliseconds (16 edges per
+            // press on the bench), so no fixed delay is safe. Sample the
+            // pin until it has held one level for buttonStableMs, drop the
+            // edges the bounce produced meanwhile, and feed that level.
+            bool level = button_.isPressed();
+            uint32_t stableMs = 0;
+            for (uint32_t waited = 0; stableMs < Config::buttonStableMs && waited < Config::buttonSettleMaxMs;
+                 waited += Config::buttonSampleMs)
+            {
+                vTaskDelay(pdMS_TO_TICKS(Config::buttonSampleMs));
+                const bool now = button_.isPressed();
+                if (now == level)
+                {
+                    stableMs += Config::buttonSampleMs;
+                }
+                else
+                {
+                    level = now;
+                    stableMs = 0;
+                }
+            }
             while (xQueueReceive(buttonEdgeQueue_, &edge, 0) == pdTRUE)
             {
             }
-            switch (buttonDecoder_.feed(button_.isPressed(), esp_timer_get_time()))
+            switch (buttonDecoder_.feed(level, esp_timer_get_time()))
             {
             case ButtonPress::Short:
             {
