@@ -34,6 +34,11 @@ struct HealthSnapshot
 {
     uint32_t uptimeS;
     ResetCause resetCause;
+    // After a task-watchdog reset: the tasks that missed the deadline
+    // ("logger", "gps,uplink"), from TaskWatchdog::takeLastCulprits.
+    // Empty otherwise.
+    static constexpr size_t resetDetailBytes = 24;
+    char resetDetail[resetDetailBytes];
     TrackerState state;
 
     // GNSS
@@ -122,9 +127,12 @@ namespace HealthReport
     inline size_t buildUrl(const char *serverUrl, const char *deviceId, const char *firmware,
                            const HealthSnapshot &s, char *out, size_t capacity)
     {
+        // "rst=taskwdt:logger" names the task behind a watchdog reset; the
+        // server keeps rst as text, so the detail needs no new key.
+        const bool detailed = s.resetDetail[0] != '\0';
         const int n = snprintf(
             out, capacity,
-            "%s/?id=%s&health=1&fw=%s&up=%" PRIu32 "&rst=%s&st=%s"
+            "%s/?id=%s&health=1&fw=%s&up=%" PRIu32 "&rst=%s%s%s&st=%s"
             "&fix=%u&sat=%u&sky=%u&sig=%u&cn0=%u&q=%u"
             "&nrx=%" PRIu32 "&nrej=%" PRIu32 "&ncks=%" PRIu32 "&nfld=%" PRIu32 "&sil=%" PRIu32
             "&sd=%u&lok=%" PRIu32 "&ldrop=%" PRIu32 "&lerr=%" PRIu32 "&lrm=%" PRIu32
@@ -132,7 +140,8 @@ namespace HealthReport
             "&derr=%" PRIu32 "&bto=%" PRIu32 "&berr=%" PRIu32 "&bdrop=%" PRIu32
             "&bmv=%u&heap=%" PRIu32 "&hmin=%" PRIu32
             "&stk=%" PRIu32 "/%" PRIu32 "/%" PRIu32 "/%" PRIu32 "/%" PRIu32,
-            serverUrl, deviceId, firmware, s.uptimeS, resetCauseToken(s.resetCause), stateToken(s.state),
+            serverUrl, deviceId, firmware, s.uptimeS, resetCauseToken(s.resetCause),
+            detailed ? ":" : "", detailed ? s.resetDetail : "", stateToken(s.state),
             s.fixValid ? 1u : 0u, s.satellites, s.satellitesInView, s.satellitesTracked, s.maxSnrDbHz, s.quality,
             s.sentencesReceived, s.sentencesRejected, s.checksumFailures, s.fieldFailures, s.gnssSilences,
             s.storageReady ? 1u : 0u, s.recordsLogged, s.recordsDroppedLogQueue, s.storageErrors, s.storageRemounts,

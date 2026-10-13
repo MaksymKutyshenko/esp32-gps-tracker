@@ -17,7 +17,7 @@ class SdCard
 public:
     SdCard(spi_host_device_t host, gpio_num_t sclkPin, gpio_num_t mosiPin,
            gpio_num_t misoPin, gpio_num_t csPin, uint32_t clockHz,
-           const char *mountPoint);
+           uint32_t commandTimeoutMs, const char *mountPoint);
 
     // Initialises the SPI bus only; call mount() to bring up the card.
     void begin();
@@ -39,6 +39,7 @@ private:
     gpio_num_t misoPin_;
     gpio_num_t csPin_;
     uint32_t clockHz_;
+    uint32_t commandTimeoutMs_;
     const char *mountPoint_;
     sdmmc_card_t *card_ = nullptr;
 };

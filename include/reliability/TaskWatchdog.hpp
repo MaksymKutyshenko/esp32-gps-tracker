@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stddef.h>
+
 #include "esp_err.h"
 
 // The task watchdog, scoped to a task. Every long-running task constructs a
@@ -29,3 +31,19 @@ public:
 private:
     bool subscribed_ = false;
 };
+
+// What the watchdog caught. ESP-IDF names the tasks that missed the
+// deadline on the console only, and in the field nobody is reading it. The
+// interrupt hook in TaskWatchdog.cpp copies the names into RTC memory,
+// which a panic reset keeps, so the next boot can log them and send them
+// in the health report ("rst=taskwdt:logger").
+namespace TaskWatchdog
+{
+    constexpr size_t culpritBytes = 24; // "gps,uplink" and the like
+
+    // The names of the tasks that tripped the watchdog before the last
+    // reset, comma-separated; an empty string when the last reset was not
+    // a task-watchdog panic or the record did not survive. One-shot: the
+    // record is cleared by the call.
+    size_t takeLastCulprits(char *out, size_t capacity);
+}

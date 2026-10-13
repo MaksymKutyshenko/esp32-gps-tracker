@@ -209,4 +209,6 @@ private:
 
     TrackerState ledState_ = TrackerState::Sleeping; // forces the first LED write
     ResetCause resetCause_ = ResetCause::Other;
+    // Tasks named by the watchdog before a task-watchdog reset, else "".
+    char resetDetail_[HealthSnapshot::resetDetailBytes] = {};
 };

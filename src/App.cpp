@@ -98,7 +98,7 @@ App::App()
       i2c_(Config::i2cPort, Config::i2cSdaPin, Config::i2cSclPin),
       display_(i2c_),
       sdCard_(Config::sdSpiHost, Config::sdSclkPin, Config::sdMosiPin, Config::sdMisoPin,
-              Config::sdCsPin, Config::sdSpiHz, Config::sdMountPoint),
+              Config::sdCsPin, Config::sdSpiHz, Config::sdCommandTimeoutMs, Config::sdMountPoint),
       battery_(Config::batteryAdcUnit, Config::batteryAdcChannel,
                Config::batteryAdcAttenuation, Config::batteryDividerRatio),
       accel_(i2c_, Config::accelInterruptPin),
@@ -133,6 +133,10 @@ void App::begin()
     const esp_reset_reason_t reason = esp_reset_reason();
     ESP_LOGI(logTag, "Boot: reset reason %s (%d)", resetReasonName(reason), static_cast<int>(reason));
     resetCause_ = resetCauseOf(reason);
+    if (TaskWatchdog::takeLastCulprits(resetDetail_, sizeof resetDetail_) > 0)
+    {
+        ESP_LOGW(logTag, "Task watchdog was tripped by: %s", resetDetail_);
+    }
     if (reason == ESP_RST_DEEPSLEEP)
     {
         const esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
@@ -591,6 +595,10 @@ void App::loggerLoop()
                 eventLog_.flush(storage_, Config::eventLogFile);
             }
         }
+        // Two card appends per pass at worst, each a few commands capped at
+        // Config::sdCommandTimeoutMs. Fed between them, a card that stalls
+        // costs a second and an error, not the 5 s watchdog.
+        watchdog.feed();
 
         if (!haveRecord)
         {
@@ -1133,6 +1141,7 @@ HealthSnapshot App::buildHealthSnapshot()
     HealthSnapshot s = {};
     s.uptimeS = nowMs() / 1000;
     s.resetCause = resetCause_;
+    strlcpy(s.resetDetail, resetDetail_, sizeof s.resetDetail);
     s.state = fsm_.state();
 
     s.fixValid = fix.valid;

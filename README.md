@@ -26,7 +26,7 @@ machine, and every piece of pure logic unit-tested on the host.
 | Storage | MicroSD over SPI (DMA), FAT, one CSV per UTC day |
 | Uplink | SIM800C GPRS, HTTP GET: OsmAnd position report plus a health report once a minute |
 | Power | 2×18650 through a Battery Shield V8, cell voltage on ADC |
-| Motion | BMA400 accelerometer activity interrupt (hardware threshold, no fix needed); GNSS speed as fallback. Parked 10 min: deep sleep, wake on motion or the button |
+| Motion | BMA400 accelerometer activity interrupt (hardware threshold, no fix needed); GNSS speed as fallback. Parked for `sleepAfterStationaryMs` (1 min in this build, for the demonstration; 10 min for service): deep sleep, wake on motion or the button |
 
 ## Quick start
 
@@ -152,7 +152,11 @@ blue parked.
 
 ### Reliability
 
-Task watchdog on every task (5 s, panic and reset, reason logged at boot);
+Task watchdog on every task (5 s, panic and reset, reason logged at boot;
+the names of the tasks that missed the deadline are kept in RTC memory
+across the panic, logged at the next boot and sent as `rst=taskwdt:<task>`);
+SD commands capped at 1 s so a card that stops answering is a counted
+error, not a watchdog reset;
 NMEA checksum and field validation; receiver-silence timeout; bounded
 retries then remount for the card; AT timeouts and modem power cycle;
 RAII `BusLock` on shared buses with timeouts, never `portMAX_DELAY`;
@@ -255,9 +259,18 @@ line and the web dashboard):
 - Deep sleep: the shield keeps its output up at the sleeping load; the
   BMA400's CS pin must be tied to 3.3 V, or it starts in SPI mode on
   about one power-up in three and cannot wake the tracker.
+- First walk outdoors, 2026-10-13, two hours on battery (3.88-3.96 V):
+  12 satellites in use, HDOP 0.8-1.0, a one-kilometre track on the map,
+  one position on the server every 13 s; nine park / sleep / wake cycles,
+  no power resets. Nine task-watchdog resets, all while walking and
+  shortly after a boot, none at the bench: the card was the suspect
+  (ESP-IDF waits 5 s, the watchdog period, for a write to finish), which
+  is why the watchdog now records the task it caught and card commands
+  are capped at 1 s. Interrupted uploads left the modem's HTTP stack
+  busy; three failures later the uplink power-cycled it, as designed.
 
-_Still to measure: current draw (idle / tracking / uploading), CPU load,
-an outdoor track and a multi-hour soak on battery._
+_Still to measure: current draw (idle / tracking / uploading), CPU load
+and a multi-hour soak on battery._
 
 ## Known issues and limitations
 

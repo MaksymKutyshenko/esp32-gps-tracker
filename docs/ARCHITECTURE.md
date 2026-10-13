@@ -29,7 +29,7 @@ UART1 ──► gps_rx ──► NmeaParser ──► TrackerFsm ──┬─►
                                                  ├─► logQueue    (N slots, every fix)       ──► logger  ──► TrackLogger ──► SdCard (SPI, BusLock)
                                                  └─► uplinkQueue (N slots, batched)         ──► uplink  ──► Uplink ──► Sim800Modem (UART2)
 GPIO ISR (button, BMA400 INT1) ──► uiEvents (ISR-safe queue) ──► ui ──► TrackerFsm events / Settings / LogPolicy
-Watchdog: every task subscribes and feeds it once per loop iteration.
+Watchdog: every task subscribes and feeds it once per loop iteration; the ISR hook keeps the culprits' names in RTC memory for the next boot.
 ```
 
 - One task per independent activity, each entered through a static

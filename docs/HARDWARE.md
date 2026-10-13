@@ -240,6 +240,14 @@ it to GPIO16 if wanted.
   chip; plugging it in did not.
   Plug and unplug the charger with the tracker off, or hold the 5 V rail
   up with a 1000 µF capacitor near the devkit.
+- The card in motion: on the first walk (2026-10-13) the tracker took
+  nine task-watchdog resets, all while moving, none at the bench. The
+  card's five jumper wires are the suspect: a write that stalls because a
+  contact bounces keeps the logger task inside the SD driver, and
+  ESP-IDF's write timeout (5 s) is the watchdog period. The firmware now
+  caps card commands at 1 s (`Config::sdCommandTimeoutMs`) and names the
+  task behind a watchdog reset at the next boot, so the next walk tells.
+  Seat the card wires firmly, keep them short, and keep 10 MHz.
 - SuperMini quirks: some units have the Wi-Fi antenna mis-mounted (not
   relevant, no Wi-Fi here); a crashed or deep-sleeping board can drop the
   USB port, so hold BOOT while plugging in to re-enter the bootloader.

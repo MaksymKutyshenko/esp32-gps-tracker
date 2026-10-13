@@ -252,6 +252,20 @@ void health_url_carries_every_counter()
     TEST_ASSERT_EQUAL_size_t(strlen(url), n);
 }
 
+void health_url_names_the_task_behind_a_watchdog_reset()
+{
+    HealthSnapshot h = sampleHealth();
+    strlcpy(h.resetDetail, "logger", sizeof h.resetDetail);
+    char url[512];
+    HealthReport::buildUrl("http://h", "d", "1", h, url, sizeof url);
+    TEST_ASSERT_NOT_NULL(strstr(url, "&rst=taskwdt:logger&st=acquiring"));
+
+    h.resetCause = ResetCause::DeepSleep;
+    h.resetDetail[0] = '\0';
+    HealthReport::buildUrl("http://h", "d", "1", h, url, sizeof url);
+    TEST_ASSERT_NOT_NULL(strstr(url, "&rst=deepsleep&st=acquiring"));
+}
+
 void health_widest_settings_fit_the_url_buffer()
 {
     // The longest server URL and device id the settings allow, with every
@@ -275,7 +289,9 @@ void health_widest_settings_fit_the_url_buffer()
     {
         h.stackFreeBytes[i] = 9'999'999;
     }
-    h.resetCause = ResetCause::DeepSleep; // the longest token
+    h.resetCause = ResetCause::TaskWatchdog; // with the detail: the longest rst
+    memset(h.resetDetail, 'w', sizeof h.resetDetail - 1);
+    h.resetDetail[sizeof h.resetDetail - 1] = '\0';
     h.state = TrackerState::Stationary;
     h.satellites = h.satellitesInView = h.satellitesTracked = h.maxSnrDbHz = 255;
     h.quality = 9;

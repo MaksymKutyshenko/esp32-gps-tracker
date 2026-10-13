@@ -85,6 +85,7 @@ void osmand_url_carries_every_field();
 void osmand_widest_settings_fit_the_url_buffer();
 void osmand_url_too_long_returns_zero();
 void health_url_carries_every_counter();
+void health_url_names_the_task_behind_a_watchdog_reset();
 void health_widest_settings_fit_the_url_buffer();
 void health_url_too_long_returns_zero();
 void health_tokens_name_every_reset_cause_and_state();
@@ -176,6 +177,7 @@ int main()
     RUN_TEST(osmand_widest_settings_fit_the_url_buffer);
     RUN_TEST(osmand_url_too_long_returns_zero);
     RUN_TEST(health_url_carries_every_counter);
+    RUN_TEST(health_url_names_the_task_behind_a_watchdog_reset);
     RUN_TEST(health_widest_settings_fit_the_url_buffer);
     RUN_TEST(health_url_too_long_returns_zero);
     RUN_TEST(health_tokens_name_every_reset_cause_and_state);

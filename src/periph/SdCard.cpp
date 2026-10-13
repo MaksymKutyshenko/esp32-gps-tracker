@@ -11,9 +11,10 @@ namespace
 
 SdCard::SdCard(spi_host_device_t host, gpio_num_t sclkPin, gpio_num_t mosiPin,
                gpio_num_t misoPin, gpio_num_t csPin, uint32_t clockHz,
-               const char *mountPoint)
+               uint32_t commandTimeoutMs, const char *mountPoint)
     : host_(host), sclkPin_(sclkPin), mosiPin_(mosiPin), misoPin_(misoPin),
-      csPin_(csPin), clockHz_(clockHz), mountPoint_(mountPoint)
+      csPin_(csPin), clockHz_(clockHz), commandTimeoutMs_(commandTimeoutMs),
+      mountPoint_(mountPoint)
 {
 }
 
@@ -42,6 +43,11 @@ esp_err_t SdCard::mount()
     sdmmc_host_t host = SDSPI_HOST_DEFAULT();
     host.slot = host_;
     host.max_freq_khz = static_cast<int>(clockHz_ / 1000);
+    // One bound for every command, in place of ESP-IDF's 5 s for writes:
+    // a card that stops answering mid-write (a jumper wire bouncing in a
+    // bag) then returns an error the logger counts and recovers from,
+    // instead of holding the logger task past the 5 s task watchdog.
+    host.command_timeout_ms = static_cast<int>(commandTimeoutMs_);
 
     sdspi_device_config_t slot = SDSPI_DEVICE_CONFIG_DEFAULT();
     slot.gpio_cs = csPin_;

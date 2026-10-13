@@ -136,6 +136,12 @@ namespace Config
     // SD cards initialise at <= 400 kHz; the sdspi host handles that itself.
     // 10 MHz keeps the edges clean on jumper wires.
     constexpr uint32_t sdSpiHz = 10'000'000;
+    // Longest wait for the card to answer one command. A healthy card
+    // finishes a 512-byte write in milliseconds and the SD specification
+    // allows 250 ms; ESP-IDF's own default of 5 s for writes equals the
+    // task watchdog period, which is how a flaky card contact in the
+    // field became a watchdog reset instead of a counted error.
+    constexpr uint32_t sdCommandTimeoutMs = 1000;
 
     // ---- Status LED (onboard WS2812) -----------------------------------
 #if defined(BOARD_SUPERMINI)
@@ -218,7 +224,11 @@ namespace Config
         // or the button is pressed. 0 disables sleep. The battery shield's
         // own converter still draws a few mA, so the gain is days of
         // standby, not the ESP32's microamps alone.
-        constexpr uint32_t sleepAfterStationaryMs = 10 * 60'000;
+        // 1 min is the demonstration value: parked tracker, sleep, wake on
+        // a nudge, all inside a short presentation. A tracker in service
+        // would use 10 min so that a traffic light does not put it to
+        // sleep.
+        constexpr uint32_t sleepAfterStationaryMs = 1 * 60'000;
         // Asleep, wake on a timer as well: a health report every hour is
         // the sign of life the dashboard needs, and no stuck wake source
         // can leave the tracker asleep for good. Without motion it sleeps
