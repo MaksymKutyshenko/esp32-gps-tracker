@@ -100,7 +100,7 @@ and on the DevKitC). Only the GSM UART and the status LED differ.
 | SD MISO | GPIO13 | GPIO13 | |
 | GSM UART2 TX | GPIO43 | GPIO17 | → BIGGA RX. On the SuperMini 43/44 are the unused UART0 pins; on the DevKitC they are wired to the CP2102, so the GSM moves to 17/18 |
 | GSM UART2 RX | GPIO44 | GPIO18 | ← BIGGA TX **through a 6.8 kΩ to GND**: the board's TX idles at VCC (5 V) via its 4.7 k pull-up; the divider brings it to ~3.0 V |
-| Status LED (WS2812) | GPIO48 | GPIO38 | Onboard RGB. DevKitC-1 v1.0 boards use GPIO48 instead of 38 |
+| Status LED (WS2812) | GPIO48 | GPIO48 | Onboard RGB. DevKitC-1 v1.1 boards use GPIO38 instead of 48 |
 | Console | USB Serial/JTAG (`sdkconfig.defaults.supermini`) | UART0 via CP2102, connector labelled "UART" | On the DevKitC the "USB" connector also carries the log as secondary console |
 
 Pins deliberately unused: GPIO0 (BOOT), GPIO3 (JTAG strapping), GPIO19/20

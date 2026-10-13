@@ -156,8 +156,9 @@ namespace Config
 #if defined(BOARD_SUPERMINI)
     constexpr gpio_num_t statusLedPin = GPIO_NUM_48;
 #else
-    // DevKitC-1 v1.1; v1.0 boards use GPIO48.
-    constexpr gpio_num_t statusLedPin = GPIO_NUM_38;
+    // DevKitC-1 v1.0 and most clones; v1.1 boards moved the LED to GPIO38
+    // (the silkscreen next to the LED says which).
+    constexpr gpio_num_t statusLedPin = GPIO_NUM_48;
 #endif
 
     // ---- Modem timing --------------------------------------------------
