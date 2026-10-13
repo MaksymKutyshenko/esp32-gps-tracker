@@ -177,7 +177,11 @@ it to GPIO16 if wanted.
   GPIO8, SCL to GPIO9, INT1 to GPIO6. CS must be high for I2C; the board
   pulls it up, tie it to 3.3 V if the chip stays silent. SDO selects the
   address (low 0x14, high 0x15) and the firmware probes both, so it can be
-  left as the board sets it. INT2 unused. The boot log reports
+  left as the board sets it. On the bench the chip answered at 0x15 on
+  only two boots in three with CS left to the board: tie CS to 3.3 V.
+  The firmware retries the probe three times and, if the chip is still
+  silent, runs without deep sleep for that boot (nothing else could wake
+  it on the road). INT2 unused. The boot log reports
   `BMA400 at 0x14: activity > 96 mg for 10 samples` or `No BMA400 ...;
   motion from GNSS speed`; the diagnostics line shows `motion bma400
   pulses N`, and `pulses` should stay flat while the tracker lies still

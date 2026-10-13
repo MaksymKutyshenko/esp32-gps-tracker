@@ -49,14 +49,23 @@ Bma400::Bma400(I2cBus &bus, gpio_num_t interruptPin)
 
 esp_err_t Bma400::begin()
 {
+    // The chip picks I2C or SPI from its CS pin at power-up and takes a
+    // few ms to listen; a NACK on the first try is not yet a missing chip.
     const uint8_t candidates[] = {Config::accelAddress, static_cast<uint8_t>(Config::accelAddress ^ 0x01)};
     esp_err_t err = ESP_ERR_NOT_FOUND;
-    for (uint8_t address : candidates)
+    for (uint8_t attempt = 0; attempt < Config::accelProbeAttempts && err != ESP_OK; ++attempt)
     {
-        err = probe(address);
-        if (err == ESP_OK)
+        for (uint8_t address : candidates)
         {
-            break;
+            err = probe(address);
+            if (err == ESP_OK)
+            {
+                break;
+            }
+        }
+        if (err != ESP_OK)
+        {
+            vTaskDelay(pdMS_TO_TICKS(Config::accelProbeRetryMs));
         }
     }
     if (err != ESP_OK)

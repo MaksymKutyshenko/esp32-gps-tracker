@@ -2,6 +2,7 @@
 
 #include <inttypes.h>
 #include <string.h>
+#include <sys/time.h>
 
 #include "esp_log.h"
 #include "esp_system.h"
@@ -160,6 +161,13 @@ void App::begin()
     if (accel_.begin() == ESP_OK)
     {
         motion_ = &accelMotion_;
+    }
+    else
+    {
+        // Without the accelerometer nothing would wake a sleeping tracker
+        // when it starts moving, so it stays awake.
+        sleepPolicy_.setParams({0});
+        ESP_LOGW(logTag, "No accelerometer: deep sleep disabled for this run");
     }
 
     gpsUart_.begin();
@@ -347,6 +355,10 @@ void App::gpsLoop()
 void App::onEpoch(const Fix &fix, uint32_t nowMs)
 {
     applyFsmEvent(fix.valid ? TrackerEvent::FixValid : TrackerEvent::FixLost);
+    if (fix.valid && !clockSynced_)
+    {
+        syncClock(fix.utc);
+    }
 
     switch (motion_->update(fix, nowMs))
     {
@@ -411,6 +423,20 @@ void App::publishRecord(const Fix &fix, uint32_t nowMs)
     haveUplinkSample_ = true;
     lastUplinkSampleMs_ = nowMs;
     enqueueDroppingOldest(uplinkQueue_, record, diagnostics_.recordsDroppedUplinkQueue);
+}
+
+// The receiver's time is GPS-disciplined: good to the second, which is
+// all the log needs. Set once per boot; deep sleep keeps the clock.
+void App::syncClock(const UtcTime &utc)
+{
+    const timeval now = {static_cast<time_t>(Calendar::unixTime(utc)), 0};
+    if (settimeofday(&now, nullptr) != 0)
+    {
+        return;
+    }
+    clockSynced_ = true;
+    ESP_LOGI(logTag, "Clock set from GNSS: %04u-%02u-%02u %02u:%02u:%02u UTC", utc.year, utc.month,
+             utc.day, utc.hour, utc.minute, utc.second);
 }
 
 void App::publishFix(const Fix &fix)

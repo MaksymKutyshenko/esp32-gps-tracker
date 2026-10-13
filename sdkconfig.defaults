@@ -10,6 +10,11 @@ CONFIG_ESP_TASK_WDT_INIT=y
 CONFIG_ESP_TASK_WDT_TIMEOUT_S=5
 CONFIG_ESP_TASK_WDT_PANIC=y
 
+# Log lines carry the system clock (HH:MM:SS.mmm) instead of milliseconds
+# since boot; the gps task sets the clock from the first GNSS fix, and it
+# survives deep sleep. Before the first fix the clock reads 00:00:xx.
+CONFIG_LOG_TIMESTAMP_SOURCE_SYSTEM=y
+
 # Run-time statistics for the CPU-load figure the checklist asks for.
 CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS=y
 CONFIG_FREERTOS_USE_TRACE_FACILITY=y

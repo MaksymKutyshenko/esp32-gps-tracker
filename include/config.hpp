@@ -71,6 +71,8 @@ namespace Config
     // ---- Accelerometer (BMA400 on the CJMCU-400 breakout) --------------
     constexpr gpio_num_t accelInterruptPin = GPIO_NUM_6; // INT1, RTC GPIO
     constexpr uint8_t accelAddress = 0x14;               // 0x15 if SDO high; both are probed
+    constexpr uint8_t accelProbeAttempts = 3;            // the chip is slow to listen after power-up
+    constexpr uint32_t accelProbeRetryMs = 50;
     // Activity = a change between consecutive 100 Hz samples above this
     // on any axis, for this many samples in a row. Consecutive samples are
     // 10 ms apart, so even a hand lifting the tracker changes by only a

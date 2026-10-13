@@ -108,6 +108,8 @@ private:
     // every drive (gps task only).
     void publishRecord(const Fix &fix, uint32_t nowMs);
     void publishFix(const Fix &fix);
+    // Sets the system clock (log timestamps, event log) from the receiver's UTC.
+    void syncClock(const UtcTime &utc);
     void showStateOnLed(TrackerState state);
 
     // console helpers
@@ -168,6 +170,7 @@ private:
     IMotionDetector *motion_;
     LogPolicy policy_;
     SleepPolicy sleepPolicy_;
+    bool clockSynced_ = false;
     TimeZone timeZone_;
     uint32_t uplinkSampleIntervalMs_ = 0;
     uint32_t lastUplinkSampleMs_ = 0;
