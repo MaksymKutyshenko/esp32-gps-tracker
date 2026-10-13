@@ -867,7 +867,18 @@ void App::uiLoop()
         ButtonEdge edge = {};
         if (xQueueReceive(buttonEdgeQueue_, &edge, pdMS_TO_TICKS(Config::uiTickMs)) == pdTRUE)
         {
-            switch (buttonDecoder_.feed(edge.pressed, edge.timestampUs))
+            // The ISR's level is the pin at the moment the handler ran, not
+            // at the edge, and during contact bounce the two differ: the
+            // last edge of a release can read "still pressed", and the
+            // decoder then waits for a release that never comes. So the
+            // edge only says "something moved": let the contacts settle,
+            // drop the edges they produced meanwhile, and read the level
+            // that is actually there.
+            vTaskDelay(pdMS_TO_TICKS(Config::buttonSettleMs));
+            while (xQueueReceive(buttonEdgeQueue_, &edge, 0) == pdTRUE)
+            {
+            }
+            switch (buttonDecoder_.feed(button_.isPressed(), esp_timer_get_time()))
             {
             case ButtonPress::Short:
             {
