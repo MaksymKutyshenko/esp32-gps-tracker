@@ -3,3 +3,7 @@
 # port, and nothing on UART0 so GPIO43/44 are free for the GSM modem.
 CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
 CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
+
+# The SuperMini module (ESP32-S3FH4R2) has 4 MB of flash; without this the
+# image header says 2 MB, the ESP-IDF default.
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
