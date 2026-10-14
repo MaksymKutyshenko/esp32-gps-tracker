@@ -17,6 +17,7 @@
 #include "periph/GnssProfile.hpp"
 #include "reliability/BusLock.hpp"
 #include "reliability/TaskWatchdog.hpp"
+#include "logic/Calendar.hpp"
 #include "transport/HealthReport.hpp"
 #include "transport/OsmAndProtocol.hpp"
 
@@ -356,8 +357,21 @@ void App::gpsLoop()
     }
 }
 
-void App::onEpoch(const Fix &fix, uint32_t nowMs)
+void App::onEpoch(const Fix &received, uint32_t nowMs)
 {
+    // A position is only as good as its time: a date the clock cannot
+    // believe means the receiver is not settled yet.
+    Fix fix = received;
+    if (fix.valid && !Calendar::plausible(fix.utc, Config::clockMinYear, Config::clockMaxYear))
+    {
+        fix.valid = false;
+        if (!implausibleDateLogged_)
+        {
+            implausibleDateLogged_ = true;
+            ESP_LOGW(logTag, "Fix dated %04u-%02u-%02u ignored until the receiver has the full date",
+                     fix.utc.year, fix.utc.month, fix.utc.day);
+        }
+    }
     applyFsmEvent(fix.valid ? TrackerEvent::FixValid : TrackerEvent::FixLost);
     if (fix.valid && !clockSynced_)
     {

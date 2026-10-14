@@ -91,7 +91,7 @@ and on the DevKitC). Only the GSM UART and the status LED differ.
 | GNSS UART1 RX | GPIO5 | GPIO5 | ← GNSS TX |
 | GNSS UART1 TX | GPIO4 | GPIO4 | → GNSS RX (sends the UBX setup at boot) |
 | BMA400 INT1 | GPIO6 | GPIO6 | Motion interrupt; RTC GPIO for deep-sleep wake (EXT1) |
-| BIGGA BOOT (= PWRKEY) | GND | GPIO7 | SuperMini build: tied to GND on the modem side, the modem powers itself and stays on (`gsmPowerKeyWired = false`); a GPIO7 wire there carried the disturbance of every network attach into the chip. DevKitC: open-drain on GPIO7, held low ≥ 1 s to toggle power |
+| BIGGA BOOT (= PWRKEY) | GPIO7 | GPIO7 | Open-drain, held low ≥ 1 s to toggle the modem's power. **Through an RC filter at the ESP end: 1 kΩ in series, 100 nF to GND.** A bare wire here carried the disturbance of every network attach into the chip and reset it with the task watchdog (bench 2026-10-14). Without the filter, tie PWRKEY to GND instead and set `gsmPowerKeyWired = false`: the modem powers itself and stays on |
 | I2C SDA | GPIO8 | GPIO8 | OLED 0x3C, BMA400 0x14 (0x15 if SDO high), GNSS compass 0x0D (QMC5883L) |
 | I2C SCL | GPIO9 | GPIO9 | 100 kHz on breadboard; modules carry their own pull-ups |
 | SD CS | GPIO10 | GPIO10 | SPI2 through the GPIO matrix (SCK/MOSI swapped from the IOMUX pins for a straight 10-11-12-13 run; fine at 10 MHz) |

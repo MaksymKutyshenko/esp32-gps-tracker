@@ -56,6 +56,17 @@ namespace Calendar
         return t;
     }
 
+    // Whether a receiver date can be believed. Right after a cold start a
+    // GNSS receiver can report a valid position with a date decades off
+    // (seen on the bench: 2087-07-15 with five satellites, before the
+    // receiver had the full GPS week), and that date would set the clock,
+    // stamp the log and go into every upload.
+    inline bool plausible(const UtcTime &utc, uint16_t minYear, uint16_t maxYear)
+    {
+        return utc.year >= minYear && utc.year <= maxYear && utc.month >= 1 && utc.month <= 12 &&
+               utc.day >= 1 && utc.day <= 31;
+    }
+
     // Day of the last Sunday of a month.
     inline uint8_t lastSunday(uint16_t year, uint8_t month)
     {

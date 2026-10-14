@@ -194,6 +194,16 @@ void record_csv_line_reports_overflow_as_zero()
 
 // --- Calendar / TimeZone ----------------------------------------------------
 
+void calendar_rejects_a_date_from_an_unsettled_receiver()
+{
+    UtcTime today = {2026, 10, 14, 20, 52, 53};
+    TEST_ASSERT_TRUE(Calendar::plausible(today, 2025, 2045));
+    UtcTime coldStart = {2087, 7, 15, 20, 51, 32}; // seen on the bench
+    TEST_ASSERT_FALSE(Calendar::plausible(coldStart, 2025, 2045));
+    UtcTime unset = {2000, 0, 0, 0, 0, 0};
+    TEST_ASSERT_FALSE(Calendar::plausible(unset, 2025, 2045));
+}
+
 void calendar_round_trips_unix_time()
 {
     const UtcTime t = {2026, 10, 9, 10, 30, 45};

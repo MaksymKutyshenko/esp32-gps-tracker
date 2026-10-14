@@ -210,6 +210,7 @@ private:
     TaskHandle_t tasks_[TaskCount] = {};
 
     TrackerState ledState_ = TrackerState::Sleeping; // forces the first LED write
+    bool implausibleDateLogged_ = false;
     ResetCause resetCause_ = ResetCause::Other;
     // Tasks named by the watchdog before a task-watchdog reset, else "".
     char resetDetail_[HealthSnapshot::resetDetailBytes] = {};

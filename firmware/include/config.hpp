@@ -107,14 +107,14 @@ namespace Config
     // >= 1 s to toggle the modem's power. The board has no auto power-on
     // circuit, so the firmware pulses this when the modem stays silent.
     constexpr gpio_num_t gsmPowerKeyPin = GPIO_NUM_7;
-    // false: PWRKEY is tied to GND on the modem side, the modem powers up
-    // by itself and stays on, and GPIO7 is left unconnected. Chosen for the
-    // SuperMini build: the GPIO7 wire ran from beside the modem's power
-    // circuit into an ESP32 pad and carried the disturbance of every
-    // network attach into the chip (task-watchdog resets ~17 s after
-    // "Modem answered"; none with PWRKEY on GND, bench 2026-10-14). Without
-    // the key the firmware restarts a wedged modem with AT+CFUN=1,1.
-    constexpr bool gsmPowerKeyWired = false;
+    // true: GPIO7 drives PWRKEY through an RC filter at the ESP end, 1 kΩ
+    // in series and 100 nF to GND. A bare wire there carried the
+    // disturbance of every network attach into the chip (task-watchdog
+    // resets ~17 s after "Modem answered", bench 2026-10-14); the filter
+    // passes the 1.2 s key pulse and stops the rest. false: PWRKEY tied to
+    // GND on the modem side, the modem powers itself and stays on, GPIO7
+    // unconnected, and a wedged modem is restarted with AT+CFUN=1,1.
+    constexpr bool gsmPowerKeyWired = true;
     constexpr uart_port_t gsmUart = UART_NUM_2;
 #if defined(BOARD_SUPERMINI)
     // UART0's pins are unused on the SuperMini (console is USB Serial/JTAG).
@@ -166,6 +166,13 @@ namespace Config
     // task watchdog period, which is how a flaky card contact in the
     // field became a watchdog reset instead of a counted error.
     constexpr uint32_t sdCommandTimeoutMs = 1000;
+
+    // ---- Clock -----------------------------------------------------------
+    // A fix whose date falls outside these years is treated as no fix yet:
+    // a receiver fresh from a cold start can report a good position with a
+    // date decades off until it has the full GPS week.
+    constexpr uint16_t clockMinYear = 2025;
+    constexpr uint16_t clockMaxYear = 2045;
 
     // ---- Status LED (onboard WS2812) -----------------------------------
 #if defined(BOARD_SUPERMINI)
