@@ -207,7 +207,7 @@ def finish_unused(part: Part):
 
 
 # --------------------------------------------------------------------------
-# The design (pins from firmware/include/config.hpp, DevKitC environment)
+# The design (pins from firmware/include/config.hpp, SuperMini environment)
 
 lib = Library()
 WROOM = lib.use("RF_Module", "ESP32-S3-WROOM-1")
@@ -218,33 +218,34 @@ C12 = lib.use("Connector_Generic", "Conn_01x12")
 R = lib.use("Device", "R")
 LED = lib.use("Device", "LED")
 CPOL = lib.use("Device", "C_Polarized")
-SW = lib.use("Switch", "SW_Push")
+CAP = lib.use("Device", "C")
+C3 = lib.use("Connector_Generic", "Conn_01x03")
 P5V = lib.use("power", "+5V")
 P3V3 = lib.use("power", "+3V3")
 PBAT = lib.use("power", "+BATT")
 PGND = lib.use("power", "GND")
 PFLAG = lib.use("power", "PWR_FLAG")
 
-# --- ESP32-S3 module (on the DevKitC-1) -----------------------------------
-u1 = Part(lib, WROOM, "U1", "ESP32-S3-WROOM-1 (DevKitC-1)", 200, 130,
+# --- ESP32-S3 (SuperMini board; WROOM-1 symbol for the pinout) -----------
+u1 = Part(lib, WROOM, "U1", "ESP32-S3 SuperMini (ESP32-S3FH4R2)", 200, 130,
           ref_offset=(-18, -40), value_offset=(-18, -37))
 u1.emit()
 gpio = {
     "IO1": "BATT_SENSE", "IO2": "BTN", "IO4": "GNSS_RXD", "IO5": "GNSS_TXD",
-    "IO6": "ACC_INT1", "IO7": "GSM_PWRKEY", "IO8": "SDA", "IO9": "SCL",
+    "IO6": "ACC_INT1", "IO7": "PWRKEY_GPIO", "IO8": "SDA", "IO9": "SCL",
     "IO10": "SD_CS", "IO11": "SD_SCK", "IO12": "SD_MOSI", "IO13": "SD_MISO",
-    "IO17": "GSM_RXD", "IO18": "GSM_TXD",
+    "TXD0": "GSM_RXD", "RXD0": "GSM_TXD",   # IO43 / IO44: UART2 on the SuperMini
 }
 by_name = {v[3]: k for k, v in u1.pins.items()}
 for name, net in gpio.items():
     connect(u1, by_name[name], net)
 connect(u1, "1", "", lib, PGND)
 u1.used.update({"40", "41"})  # stacked on pin 1 in the library symbol
-connect(u1, "2", "3V3_DEVKIT")   # the devkit LDO output: NOT tied to the shield's rail
+connect(u1, "2", "3V3_BOARD")    # the board's LDO output: NOT tied to the shield's rail
 finish_unused(u1)
-text("DevKitC-1: 5V pin <- +5V rail (onboard LDO makes 3V3_DEVKIT).\n"
-     "USB, EN, BOOT, JTAG and the onboard RGB LED (IO38/IO48) stay on the devkit.\n"
-     "SuperMini build: GSM on IO43/IO44 instead of IO17/IO18.",
+text("SuperMini: 5V pin = its USB VBUS (no diode): +5V from the shield only with USB unplugged.\n"
+     "Onboard LDO makes 3V3_BOARD. USB (console), EN, BOOT and the RGB LED (IO48) stay on the board.\n"
+     "DevKitC-1 build: GSM on IO17/IO18 instead of IO43/IO44.",
      176, 182, 1.27)
 
 # --- GNSS module -----------------------------------------------------------
@@ -266,13 +267,14 @@ j2.emit()
 connect(j2, "1", "GND")
 connect(j2, "2", "GSM_TXD")       # idles at VCC (5 V) on the board: R3 below divides it
 connect(j2, "3", "GSM_RXD")
-connect(j2, "4", "GSM_PWRKEY")    # "BOOT" on the silkscreen = SIM800C PWRKEY
+connect(j2, "4", "GSM_PWRKEY")    # "BOOT" on the silkscreen = SIM800C PWRKEY; R5/C2 below
 connect(j2, "5", "+5V")
 connect(j2, "6", "GSM_NET")
 finish_unused(j2)                 # DTR, RING, audio
-text("Silkscreen: GND  TX (5 V level!) -> IO18  RX <- IO17  PK = BOOT/PWRKEY <- IO7 (open drain)  VSS = VCC 5V in  NET\n"
+text("Silkscreen: GND  TX (5 V level!) -> IO44  RX <- IO43  PK = BOOT/PWRKEY  VSS = VCC 5V in  NET\n"
      "6 NET -> R4 1k -> LED1 (NETLIGHT: 0.8 s searching, 3 s registered, 0.3 s GPRS)  7 DTR  8 RING  9-12 audio: unused.\n"
-     "TX high side is pulled to VCC through 4.7k on the board: R3 divides it to ~3.0 V for IO18.\n"
+     "TX high side is pulled to VCC through 4.7k on the board: R3 divides it to ~3.0 V for IO44.\n"
+     "PK <- R5 1k <- IO7 (open drain), C2 100n PK to GND, at the ESP end: a bare wire carried every attach burst in.\n"
      "VBAT is 3.64 V (MIC29302). C1 1000 uF across VSS/GND right at the board's pins (+ to VSS): the onboard\n"
      "100+10+1 uF are not enough on battery (reset every 30 s during registration without it). Short thick wires.",
      40, 142, 1.27)
@@ -285,7 +287,7 @@ connect(c1, "2", "", lib, PGND)
 # R3: divider against the board's 4.7k pull-up; the ESP side is GSM_TXD.
 r3 = Part(lib, R, "R3", "6.8k", 100, 92, ref_offset=(2, -2), value_offset=(2, 1))
 r3.emit()
-connect(r3, "1", "GSM_TXD")   # same net as J2 pin 2 and IO18: the divider hangs off it
+connect(r3, "1", "GSM_TXD")   # same net as J2 pin 2 and IO44: the divider hangs off it
 connect(r3, "2", "", lib, PGND)
 # NETLIGHT indicator: 2.8 V output from the modem, ~1 mA through a red LED.
 r4 = Part(lib, R, "R4", "1k", 118, 92, ref_offset=(2, -2), value_offset=(2, 1))
@@ -300,6 +302,17 @@ wire(p_r4, p_led)
 r4.used.add("2")
 led1.used.add("2")
 connect(led1, "1", "", lib, PGND)
+
+# PWRKEY filter, at the ESP end of the wire: R5 in series, C2 to GND on the
+# modem side of R5. Passes the 1.2 s key pulse, stops the attach bursts.
+r5 = Part(lib, R, "R5", "1k", 154, 92, ref_offset=(2, -2), value_offset=(2, 1))
+r5.emit()
+connect(r5, "1", "PWRKEY_GPIO")
+connect(r5, "2", "GSM_PWRKEY")
+c2 = Part(lib, CAP, "C2", "100n", 166, 92, ref_offset=(3, -2), value_offset=(3, 1))
+c2.emit()
+connect(c2, "1", "GSM_PWRKEY")
+connect(c2, "2", "", lib, PGND)
 
 # --- OLED ------------------------------------------------------------------
 j3 = Part(lib, C4, "J3", "SSD1306 0.96\" OLED I2C 0x3C", 320, 40, ref_offset=(-4, -8), value_offset=(-4, -6))
@@ -348,7 +361,7 @@ connect(j5, "2", "+3V3")
 connect(j5, "3", "GND")
 connect(j5, "4", "+BATT")
 text("1 5V out (<= 2.2 A cont.)  2 3V out (1 A; measure: 3.0 or 3.3 V)  3 GND  4 B+ (cell)\n"
-     "Feeds: +5V -> devkit 5V pin, GNSS, SIM800C board. +3V3 -> OLED, SD, BMA400.",
+     "Feeds: +5V -> SuperMini 5V pin (USB unplugged), GNSS, SIM800C board, SD. +3V3 -> OLED, BMA400, button.",
      40, 176, 1.27)
 
 # --- Battery sense divider -------------------------------------------------
@@ -368,12 +381,15 @@ r1.used.update({"2"})
 r2.used.update({"1"})
 text("Cell 4.2 V max -> 2.1 V at IO1 (ADC1_CH0, 12 dB).", 140, 198, 1.27)
 
-# --- Button -----------------------------------------------------------------
-sw1 = Part(lib, SW, "SW1", "Button (BOOT-style, active low)", 120, 120, ref_offset=(-4, -6), value_offset=(-4, -4))
-sw1.emit()
-connect(sw1, "1", "BTN")
-connect(sw1, "2", "", lib, PGND)
-text("Internal pull-up on IO2; GPIO interrupt on both edges.", 105, 128, 1.27)
+# --- Button module (3-pin: VCC, GND, SIG with its own pull-down) -------------
+j7 = Part(lib, C3, "J7", "Button module", 120, 118, ref_offset=(-4, -8), value_offset=(-4, -6))
+j7.emit()
+connect(j7, "1", "+3V3")
+connect(j7, "2", "GND")
+connect(j7, "3", "BTN")
+text("1 VCC 3V3  2 GND  3 SIG -> IO2\n"
+     "Own pull-down: SIG low at rest,\n"
+     "3V3 when pressed (buttonPressedHigh).", 105, 128, 1.27)
 
 # --- Power flags so ERC knows the rails are driven by the shield -------------
 for i, (sym, net_x) in enumerate([(P5V, 250), (P3V3, 265), (PBAT, 280), (PGND, 295)]):
@@ -386,8 +402,8 @@ flag = Part(lib, PFLAG, "#FLG4", "PWR_FLAG", 310, 200)
 flag.emit()
 flag_point, _ = flag.pin_point("1")
 wire(flag_point, (flag_point[0], flag_point[1] + STUB))
-label("3V3_DEVKIT", (flag_point[0], flag_point[1] + STUB), (0, 1))
-text("PWR_FLAG: the rails are sourced by the battery shield (J5); 3V3_DEVKIT by the devkit's LDO.",
+label("3V3_BOARD", (flag_point[0], flag_point[1] + STUB), (0, 1))
+text("PWR_FLAG: the rails are sourced by the battery shield (J5); 3V3_BOARD by the board's LDO.",
      245, 212, 1.27)
 
 # --------------------------------------------------------------------------
@@ -398,10 +414,10 @@ header = f'''(kicad_sch (version 20250114) (generator "gen_schematic.py") (gener
   (paper "A3")
   (title_block
     (title "GPS Tracker")
-    (date "2026-10-09")
-    (rev "1")
+    (date "2026-10-15")
+    (rev "2")
     (company "Maksym Kutyshenko")
-    (comment 1 "ESP32-S3 DevKitC-1 development build; pins per firmware/include/config.hpp")
+    (comment 1 "ESP32-S3 SuperMini build; pins per firmware/include/config.hpp")
     (comment 2 "Breakout modules drawn as pin headers; see hardware/README.md")
   )
   (lib_symbols

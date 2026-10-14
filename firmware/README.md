@@ -7,8 +7,8 @@ are in [docs/](../docs/).
 
 ```bash
 cd firmware
-pio run -t upload -t monitor                # DevKitC-1 (default env): build, flash, watch the log
-pio run -e supermini -t upload -t monitor   # same firmware on the ESP32-S3 SuperMini
+pio run -t upload -t monitor                # ESP32-S3 SuperMini (default env): build, flash, watch the log
+pio run -e devkitc -t upload -t monitor     # same firmware on the DevKitC-1
 pio test -e native                          # host-side unit tests for the pure logic
 ```
 

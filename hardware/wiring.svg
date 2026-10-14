@@ -1,4 +1,4 @@
-<svg viewBox="0 0 1320 840" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Wiring diagram: devkit in the centre, modules left and right, power rails down both sides">
+<svg viewBox="0 0 1320 840" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Wiring diagram: ESP32-S3 SuperMini in the centre, modules left and right, power rails down both sides">
 <style>
   svg { --paper: #ffffff; --bg: #f5f6f8; --fg: #1d2129; --muted: #5d6675; --line: #d7dbe2; --rail-gnd: #2b2f36;
         --font-body: "Helvetica Neue", Arial, sans-serif; --font-display: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
@@ -53,9 +53,9 @@
 <circle cx="110" cy="196" r="2.5" fill="var(--fg)"/>
 <polyline points="110,196 68,196" fill="none" stroke="#9b6ff0" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="68" cy="196" r="3.2" fill="#9b6ff0"/>
-<text x="370" y="122" class="t-note" text-anchor="start">Shield USB-A → devkit USB-C: alternative supply for the devkit</text>
+<text x="370" y="122" class="t-note" text-anchor="start">SuperMini 5V pin = its USB VBUS: shield 5V only with USB unplugged</text>
 <rect x="500" y="150" width="250" height="510" rx="6" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
-<text x="510" y="172" class="t-title">ESP32-S3 DevKitC-1</text>
+<text x="510" y="172" class="t-title">ESP32-S3 SuperMini</text>
 <text x="510" y="188" class="t-sub">pins in logical order, not header order</text>
 <line x1="500" y1="215" x2="522" y2="215" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="528" y="219" class="t-pin">GPIO5</text>
@@ -64,10 +64,10 @@
 <text x="528" y="249" class="t-pin">GPIO4</text>
 <circle cx="500" cy="245" r="2.5" fill="var(--fg)"/>
 <line x1="500" y1="300" x2="522" y2="300" stroke="var(--fg)" stroke-width="1.5"/>
-<text x="528" y="304" class="t-pin">GPIO18</text>
+<text x="528" y="304" class="t-pin">GPIO44</text>
 <circle cx="500" cy="300" r="2.5" fill="var(--fg)"/>
 <line x1="500" y1="330" x2="522" y2="330" stroke="var(--fg)" stroke-width="1.5"/>
-<text x="528" y="334" class="t-pin">GPIO17</text>
+<text x="528" y="334" class="t-pin">GPIO43</text>
 <circle cx="500" cy="330" r="2.5" fill="var(--fg)"/>
 <line x1="500" y1="360" x2="522" y2="360" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="528" y="364" class="t-pin">GPIO7</text>
@@ -119,8 +119,9 @@
 <text x="665" y="349" class="t-tag" text-anchor="middle">SPI2</text>
 <rect x="649.5" y="438" width="31" height="16" rx="8" fill="var(--bg)" stroke="var(--line)" stroke-width="1"/>
 <text x="665" y="450" class="t-tag" text-anchor="middle">IRQ</text>
-<text x="510" y="630" class="t-sub">3V3 pin: leave free (devkit LDO output)</text>
-<text x="510" y="646" class="t-sub">USB "UART" port → laptop console</text>
+<text x="510" y="614" class="t-sub">3V3 pin: leave free (board LDO output)</text>
+<text x="510" y="630" class="t-sub">USB-C → laptop console (USB Serial/JTAG)</text>
+<text x="510" y="646" class="t-sub">DevKitC-1 build: modem on GPIO17/18</text>
 <rect x="110" y="222" width="250" height="150" rx="6" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="120" y="244" class="t-title">GNSS Foxeer M10Q-250</text>
 <text x="120" y="260" class="t-sub">UART1 · NMEA · 115200 (BE-220: 9600)</text>
@@ -184,7 +185,7 @@
 <line x1="371" y1="458" x2="381" y2="458" stroke="var(--rail-gnd)" stroke-width="2"/>
 <line x1="374" y1="462" x2="378" y2="462" stroke="var(--rail-gnd)" stroke-width="2"/>
 <text x="398" y="434" class="t-part" text-anchor="middle">6.8k</text>
-<text x="120" y="500" class="t-note" text-anchor="start">R3 6.8k on TX → ~3 V at GPIO18</text>
+<text x="120" y="500" class="t-note" text-anchor="start">R3 6.8k on TX → ~3 V at GPIO44</text>
 <line x1="338" y1="532" x2="360" y2="532" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="332" y="536" class="t-pin" text-anchor="end">RX</text>
 <circle cx="360" cy="532" r="2.5" fill="var(--fg)"/>
@@ -193,6 +194,8 @@
 <text x="332" y="558" class="t-pin" text-anchor="end">PK (PWRKEY)</text>
 <circle cx="360" cy="554" r="2.5" fill="var(--fg)"/>
 <polyline points="360,554 460,554 460,360 500,360" fill="none" stroke="#b0733b" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="364.0" y="546.0" width="84" height="16" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="406" y="558" class="t-part" text-anchor="middle">R5 1k·C2 100n</text>
 <line x1="338" y1="580" x2="360" y2="580" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="332" y="584" class="t-pin" text-anchor="end">NET</text>
 <circle cx="360" cy="580" r="2.5" fill="var(--fg)"/>
@@ -209,17 +212,22 @@
 <line x1="458" y1="596" x2="462" y2="596" stroke="var(--rail-gnd)" stroke-width="2"/>
 <text x="120" y="570" class="t-note" text-anchor="start">LED1: 0.8 s blink = searching · 3 s = registered</text>
 <rect x="110" y="610" width="250" height="110" rx="6" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
-<text x="120" y="632" class="t-title">Button · battery sense</text>
-<text x="120" y="648" class="t-sub">GPIO interrupt · ADC1 channel 0</text>
-<text x="144" y="676" class="t-pin">SW1</text>
-<line x1="120" y1="660" x2="140" y2="660" stroke="var(--fg)" stroke-width="1.5"/>
-<line x1="140" y1="660" x2="162" y2="650" stroke="var(--fg)" stroke-width="1.5"/>
-<line x1="164" y1="660" x2="184" y2="660" stroke="var(--fg)" stroke-width="1.5"/>
-<polyline points="110,660 120,660" fill="none" stroke="var(--rail-gnd)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
-<polyline points="110,660 54,660" fill="none" stroke="var(--rail-gnd)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="54" cy="660" r="3.2" fill="var(--rail-gnd)"/>
-<polyline points="184,660 360,660" fill="none" stroke="#b0733b" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
-<polyline points="360,660 474,660 474,430 500,430" fill="none" stroke="#b0733b" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="120" y="632" class="t-title">Button module · battery sense</text>
+<text x="120" y="648" class="t-sub">3-pin module, own pull-down · ADC1 ch 0</text>
+<line x1="110" y1="666" x2="132" y2="666" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="138" y="670" class="t-pin">VCC</text>
+<circle cx="110" cy="666" r="2.5" fill="var(--fg)"/>
+<polyline points="110,666 40,666" fill="none" stroke="#f29a1f" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="40" cy="666" r="3.2" fill="#f29a1f"/>
+<line x1="110" y1="684" x2="132" y2="684" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="138" y="688" class="t-pin">GND</text>
+<circle cx="110" cy="684" r="2.5" fill="var(--fg)"/>
+<polyline points="110,684 54,684" fill="none" stroke="var(--rail-gnd)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="54" cy="684" r="3.2" fill="var(--rail-gnd)"/>
+<line x1="338" y1="666" x2="360" y2="666" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="332" y="670" class="t-pin" text-anchor="end">SIG</text>
+<circle cx="360" cy="666" r="2.5" fill="var(--fg)"/>
+<polyline points="360,666 474,666 474,430 500,430" fill="none" stroke="#b0733b" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
 <rect x="140.0" y="692.0" width="40" height="16" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="160" y="704" class="t-part" text-anchor="middle">R1 100k</text>
 <rect x="220.0" y="692.0" width="40" height="16" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>

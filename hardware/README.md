@@ -15,7 +15,7 @@ when a pin changes.
 | Component | Role in the tracker | Interface | Supply |
 | --- | --- | --- | --- |
 | ESP32-S3 SuperMini | Main controller (4 MB flash, 2 MB PSRAM unused). No USB-UART bridge: console and flashing go through the chip's USB Serial/JTAG | — | 5 V in → onboard 3V3 LDO |
-| ESP32-S3 DevKitC-1 (WROOM-1 module) | Development board and fallback: same firmware, `devkitc` is the default build environment. Its CP2102 UART console survives deep sleep and crashes, which the SuperMini's USB Serial/JTAG does not | — | USB or 5 V |
+| ESP32-S3 DevKitC-1 (WROOM-1 module) | Second build (`-e devkitc`), same firmware. Its CP2102 UART console survives deep sleep and crashes, which the SuperMini's USB Serial/JTAG does not. The bench unit resets when the modem attaches nearby, even with no wire between them (section 5) | — | USB or 5 V |
 | Foxeer M10Q-250 | Primary GNSS (u-blox M10 class, GPS+GLONASS+Galileo+BDS, up to 10 Hz). Default 115200 baud, NMEA/UBX. Onboard QMC5883L (or IST8310 on V2) compass on I2C. Backup cell for warm starts | UART + I2C (compass) | 5 V in, 3.3 V logic |
 | Beitian BE-220 | Alternative GNSS (u-blox M8030 class per most listings; some say M10050). Default 9600 baud, NMEA | UART | 3.0–5.5 V in, 3.3 V logic |
 | BIGGA GSM (SIM800C, Ukrainian board, schematic at arduino.ua) | GPRS uplink for live position upload (2G only) | UART (AT commands) + BOOT (= PWRKEY) | 5 V on VCC → MIC29302 → 3.64 V modem rail; 2 A bursts; ~600–900 µF onboard |
@@ -25,6 +25,8 @@ when a pin changes.
 | MicroSD adapter (6-pin, 4.5–5.5 V) + card | Track log (CSV) and upload backlog while offline | SPI (with DMA) | 5 V on VCC; onboard regulator and level shifter give 3.3 V signals |
 | Battery Shield V8 + 2×18650 HG2 | Power: cells in parallel (≈6000 mAh), 5 V boost output (≈2.2 A continuous, 3 A peak), 3 V/3.3 V 1 A rail, charging at 0.6–0.8 A | — | — |
 | 6.8 kΩ resistor | From BIGGA TX to GND: level divider for the 5 V TX line (see §5) | — | — |
+| R5 1 kΩ + C2 100 nF | RC filter in the PWRKEY wire at the ESP end: R5 in series between GPIO7 and PK, C2 from PK to GND. Passes the key pulse, keeps the attach bursts out of the chip (see §5) | — | — |
+| Button module (3 pins: VCC, GND, SIG) | Page switch, diagnostics, deep-sleep wake. Own pull-down: SIG high when pressed | GPIO | 3.3 V |
 | Red LED + 1 kΩ | On BIGGA NET (NETLIGHT): blink rate shows searching / registered / GPRS without any firmware | — | — |
 | C1: 1000 µF electrolytic (≥ 6.3 V) | Across the BIGGA board's VSS and GND pins, + to VSS: holds the 5 V input through the modem's registration bursts on battery. Without it the ESP32 reset every 30 s (see §5) | — | — |
 
@@ -197,7 +199,8 @@ has no spare header pin for it; on the DevKitC wire it to GPIO16 if wanted.
   sleeping tracker would then lose power and never wake. This shield
   keeps its output up at the sleeping load (checked 2026-10-13: still
   powered after an hour asleep). Wake
-  sources are INT1 (GPIO6, high) and the button (GPIO2, low); both are
+  sources are INT1 (GPIO6, high) and the button (GPIO2, at its pressed
+  level); both are
   RTC-capable pins, which is why they were chosen.
 - 5 V pins differ between the two boards. The devkit's `5VIN` sits behind
   a diode: input only, reads ~1.7 V of leakage on a meter, cannot feed a
@@ -232,6 +235,25 @@ has no spare header pin for it; on the DevKitC wire it to GPIO16 if wanted.
   the modem's VSS and GND pins** ended them: the next run went 648 s to
   its scheduled sleep and the sleep / wake cycles after it had no resets
   at all. It is part of the design, not a bench aid.
+- Resets during the network attach, 2026-10-14. The DevKitC reset with
+  the task watchdog (no culprit, `TG0WDT_SYS_RST`) about 17 s after
+  "Modem answered", on every attach. Removed one path at a time: its 5 V
+  feed (own USB source), its 3.3 V rail (brownout detector at 2.98 V,
+  never tripped), the UART and PWRKEY wires, and finally the shared
+  ground. It still reset with the modem on its own shield a hand's width
+  away: radiated pickup that this module does not survive. The SuperMini
+  ignored the radio even with the antenna beside it, but reset the same
+  way through the PWRKEY wire, which runs from beside the modem's power
+  circuit straight into an ESP32 pad. **1 kΩ in series and 100 nF to GND
+  at the ESP end of that wire** (R5, C2) stopped it: the 1.2 s key pulse
+  passes (τ = 100 µs), the burst edges and the RF do not. Tying PWRKEY to
+  GND instead (modem always on, `gsmPowerKeyWired = false`) also works.
+- The bench button is a 3-pin module (VCC, GND, SIG) with its own
+  pull-down: SIG idles low, a press lifts it to 3.3 V. Wired as a bare
+  switch is expected, the line read "pressed" at rest, presses registered
+  on release, and every deep sleep ended 0.4 s later as a button wake.
+  `Config::buttonPressedHigh` selects the wiring; the log line `Wake
+  lines: button idle` before each sleep confirms it.
 - Battery Shield V8 has no seamless power path: plugging or unplugging
   the charger switches the boost converter between the input and the
   cells, and the 5 V / 3 V outputs dip for tens of milliseconds. The
@@ -255,9 +277,9 @@ has no spare header pin for it; on the DevKitC wire it to GPIO16 if wanted.
 
 ## 6. Still to decide
 
-- [ ] Which SIM800C breakout exactly (PWRKEY exposed? level shifter? input range) — photograph the silkscreen.
-- [ ] Which SD module type (bare 3.3 V or 5 V with level shifter).
-- [ ] Upload target: Traccar server (OsmAnd HTTP protocol) is the least work; a Cloudflare Worker endpoint is the alternative.
+- [x] SIM800C breakout: the BIGGA board, PWRKEY exposed as BOOT, TX at 5 V logic (6.8 kΩ divider), 5 V input.
+- [x] SD module: the 5 V type with its own regulator and level shifter.
+- [x] Upload target: the project's own server (OsmAnd HTTP protocol, Traccar-compatible), see `web/`.
 - [ ] Measure the shield's 3 V rail.
 - [ ] Measure idle / tracking / uploading current for the README.
 

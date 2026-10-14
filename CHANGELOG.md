@@ -3,6 +3,28 @@
 Firmware and web app are versioned together; the firmware reports its
 version in every health report (`fw=`).
 
+## Unreleased
+
+### Firmware
+- SuperMini is the build board and the default environment; its image
+  declares the module's 4 MB of flash.
+- Modem PWRKEY through an RC filter (1 kΩ, 100 nF); `gsmPowerKeyWired`
+  selects the alternative of PWRKEY tied to GND, with an AT reset instead
+  of the key.
+- Button wiring is a setting (`buttonPressedHigh`) for a 3-pin module
+  with its own pull-down; the wake lines are checked before each sleep,
+  and a button line that reads pressed at rest is not armed.
+- Sleep entry turns the screen off first and waits 10 s, not 60 s, for a
+  modem that never attached; a parked tracker sleeps at most 3 min after
+  its parked time even with points still queued.
+- A fix dated outside 2025-2045 is treated as no fix yet.
+- Status LED on GPIO48 for the DevKitC.
+- 85 host-side unit tests.
+
+### Hardware
+- Wiring diagram, KiCad schematic and assembly sheet redrawn for the
+  SuperMini, with R5/C2 on PWRKEY and the 3-pin button module.
+
 ## 1.0.0 — 2026-10-13
 
 First release.

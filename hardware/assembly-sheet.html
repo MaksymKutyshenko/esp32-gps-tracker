@@ -106,7 +106,7 @@
 <div class="wrap">
   <header class="top">
     <h1>GPS Tracker Wiring</h1>
-    <div class="meta">ESP32-S3 DevKitC-1 build · rev 1 · 2026-10-09 · pins match firmware/include/config.hpp</div>
+    <div class="meta">ESP32-S3 SuperMini build · rev 2 · 2026-10-15 · pins match firmware/include/config.hpp</div>
   </header>
   <p class="lede">Bench sheet for assembling the tracker on a breadboard. One table per module, read left to right: module pin, wire, where it goes. Wire colours follow the legend so a photo of the board can be checked against this page.</p>
 
@@ -114,9 +114,11 @@
     <strong>Before the first wire</strong>
     <ul>
       <li><strong>3.3 V logic everywhere.</strong> The ESP32-S3 pins are not 5 V tolerant. GNSS modules and the OLED output 3.3 V logic even when fed 5 V, so TX/RX/SDA/SCL go straight in.</li>
-      <li><strong>Measure the shield's "3V" rail first.</strong> Listings disagree whether it is 3.0 V or 3.3 V. Below 3.1 V, feed the OLED and BMA400 from the devkit's 3V3 pin instead and give the SD module 5 V (level-shifter type only).</li>
-      <li><strong>Never join the devkit's 3V3 pin to the shield's 3V rail.</strong> Both are regulator outputs. The devkit gets 5 V on its 5V/VIN pin and makes its own 3.3 V.</li>
-      <li><strong>BIGGA GSM: TX is 5 V logic and the modem draws 2 A bursts.</strong> Put 6.8 kΩ from the board's TX pin to GND before it reaches GPIO18. Put C1, a 1000 µF electrolytic, across VSS and GND right at the board's pins, + to VSS: the board's own 100 + 10 + 1 µF are not enough on battery, and without C1 every registration burst resets the ESP32. Use short 22 AWG or thicker wires for VCC/GND.</li>
+      <li><strong>Measure the shield's "3V" rail first.</strong> Listings disagree whether it is 3.0 V or 3.3 V. Below 3.1 V, feed the OLED and BMA400 from the board's 3V3 pin instead and give the SD module 5 V (level-shifter type only).</li>
+      <li><strong>Never join the SuperMini's 3V3 pin to the shield's 3V rail.</strong> Both are regulator outputs. The board makes its own 3.3 V from its 5V pin.</li>
+      <li><strong>The SuperMini's 5V pin is its USB power line, with no diode.</strong> Feed it from the shield only with the USB cable unplugged. On the bench with the console open, power the board from USB and leave that wire off; keep GND common.</li>
+      <li><strong>BIGGA GSM: TX is 5 V logic and the modem draws 2 A bursts.</strong> Put 6.8 kΩ from the board's TX pin to GND before it reaches GPIO44. Put C1, a 1000 µF electrolytic, across VSS and GND right at the board's pins, + to VSS: the board's own 100 + 10 + 1 µF are not enough on battery, and without C1 every registration burst resets the ESP32. Use short 22 AWG or thicker wires for VCC/GND.</li>
+      <li><strong>PWRKEY through an RC filter.</strong> 1 kΩ in series and 100 nF to GND, both at the ESP end of the wire. A bare wire from the modem's PK pin carried the disturbance of every network attach into the chip and reset it with the task watchdog. Without the parts, tie PK to GND instead and set <code>gsmPowerKeyWired = false</code>.</li>
       <li><strong>One ground.</strong> Every GND goes to the shield's GND. Star it at the shield, not daisy-chained through modules.</li>
       <li><strong>Check 18650 polarity twice</strong> before inserting. A reversed cell burns the shield's protection IC.</li>
       <li><strong>Antennas.</strong> GNSS patch antenna face-up with a sky view; keep the GSM antenna cable away from it.</li>
@@ -136,20 +138,20 @@
   <pre class="mermaid">
 flowchart LR
   CELLS["2 x 18650 HG2"] --> SHIELD["Battery Shield V8<br/>boost + protection"]
-  SHIELD -- "+5V ≤ 2.2 A" --> DEV["DevKitC-1 5V pin<br/>(onboard LDO → 3V3_DEVKIT)"]
+  SHIELD -- "+5V ≤ 2.2 A, USB unplugged" --> DEV["SuperMini 5V pin<br/>(onboard LDO → 3V3_BOARD)"]
   SHIELD -- "+5V" --> GNSS["GNSS module VCC"]
   SHIELD -- "+5V, short thick wires" --> GSM["BIGGA GSM VCC"]
   SHIELD -- "+3V3 1 A" --> OLED["SSD1306 VCC"]
   SHIELD -- "+5V" --> SD["MicroSD adapter VCC<br/>(onboard 3.3 V regulator + shifter)"]
-  SHIELD -- "+3V3" --> ACC["BMA400 VCC"]
+  SHIELD -- "+3V3" --> ACC["BMA400 VCC, button module VCC"]
   SHIELD -- "B+ (cell)" --> DIV["100k / 100k divider → GPIO1"]
   SHIELD -- "GND star" --> ALL["every module GND"]
   </pre>
 
   <h2>Wiring diagram</h2>
-  <p>Every wire on the bench, drawn once. Each module's subtitle names the bus it talks on (UART, I2C, SPI, ADC, interrupt) with its speed or address, and the tags inside the devkit mark which peripheral each pin group belongs to. The devkit's pins are in logical order here (grouped by module), not in header order; the pin map below gives the physical positions. Power rails run down both sides from the shield.</p>
+  <p>Every wire on the bench, drawn once. Each module's subtitle names the bus it talks on (UART, I2C, SPI, ADC, interrupt) with its speed or address, and the tags inside the board mark which peripheral each pin group belongs to. The board's pins are in logical order here (grouped by module), not in header order; the pin map below gives the physical positions. Power rails run down both sides from the shield.</p>
   <div class="diagram">
-<svg viewBox="0 0 1320 840" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Wiring diagram: devkit in the centre, modules left and right, power rails down both sides">
+<svg viewBox="0 0 1320 840" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Wiring diagram: ESP32-S3 SuperMini in the centre, modules left and right, power rails down both sides">
 <style>
   .t-title { font: 600 14px var(--font-display); fill: var(--fg); }
   .t-sub { font: 11px var(--font-body); fill: var(--muted); }
@@ -201,9 +203,9 @@ flowchart LR
 <circle cx="110" cy="196" r="2.5" fill="var(--fg)"/>
 <polyline points="110,196 68,196" fill="none" stroke="#9b6ff0" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="68" cy="196" r="3.2" fill="#9b6ff0"/>
-<text x="370" y="122" class="t-note" text-anchor="start">Shield USB-A → devkit USB-C: alternative supply for the devkit</text>
+<text x="370" y="122" class="t-note" text-anchor="start">SuperMini 5V pin = its USB VBUS: shield 5V only with USB unplugged</text>
 <rect x="500" y="150" width="250" height="510" rx="6" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
-<text x="510" y="172" class="t-title">ESP32-S3 DevKitC-1</text>
+<text x="510" y="172" class="t-title">ESP32-S3 SuperMini</text>
 <text x="510" y="188" class="t-sub">pins in logical order, not header order</text>
 <line x1="500" y1="215" x2="522" y2="215" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="528" y="219" class="t-pin">GPIO5</text>
@@ -212,10 +214,10 @@ flowchart LR
 <text x="528" y="249" class="t-pin">GPIO4</text>
 <circle cx="500" cy="245" r="2.5" fill="var(--fg)"/>
 <line x1="500" y1="300" x2="522" y2="300" stroke="var(--fg)" stroke-width="1.5"/>
-<text x="528" y="304" class="t-pin">GPIO18</text>
+<text x="528" y="304" class="t-pin">GPIO44</text>
 <circle cx="500" cy="300" r="2.5" fill="var(--fg)"/>
 <line x1="500" y1="330" x2="522" y2="330" stroke="var(--fg)" stroke-width="1.5"/>
-<text x="528" y="334" class="t-pin">GPIO17</text>
+<text x="528" y="334" class="t-pin">GPIO43</text>
 <circle cx="500" cy="330" r="2.5" fill="var(--fg)"/>
 <line x1="500" y1="360" x2="522" y2="360" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="528" y="364" class="t-pin">GPIO7</text>
@@ -267,8 +269,9 @@ flowchart LR
 <text x="665" y="349" class="t-tag" text-anchor="middle">SPI2</text>
 <rect x="649.5" y="438" width="31" height="16" rx="8" fill="var(--bg)" stroke="var(--line)" stroke-width="1"/>
 <text x="665" y="450" class="t-tag" text-anchor="middle">IRQ</text>
-<text x="510" y="630" class="t-sub">3V3 pin: leave free (devkit LDO output)</text>
-<text x="510" y="646" class="t-sub">USB "UART" port → laptop console</text>
+<text x="510" y="614" class="t-sub">3V3 pin: leave free (board LDO output)</text>
+<text x="510" y="630" class="t-sub">USB-C → laptop console (USB Serial/JTAG)</text>
+<text x="510" y="646" class="t-sub">DevKitC-1 build: modem on GPIO17/18</text>
 <rect x="110" y="222" width="250" height="150" rx="6" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="120" y="244" class="t-title">GNSS Foxeer M10Q-250</text>
 <text x="120" y="260" class="t-sub">UART1 · NMEA · 115200 (BE-220: 9600)</text>
@@ -332,7 +335,7 @@ flowchart LR
 <line x1="371" y1="458" x2="381" y2="458" stroke="var(--rail-gnd)" stroke-width="2"/>
 <line x1="374" y1="462" x2="378" y2="462" stroke="var(--rail-gnd)" stroke-width="2"/>
 <text x="398" y="434" class="t-part" text-anchor="middle">6.8k</text>
-<text x="120" y="500" class="t-note" text-anchor="start">R3 6.8k on TX → ~3 V at GPIO18</text>
+<text x="120" y="500" class="t-note" text-anchor="start">R3 6.8k on TX → ~3 V at GPIO44</text>
 <line x1="338" y1="532" x2="360" y2="532" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="332" y="536" class="t-pin" text-anchor="end">RX</text>
 <circle cx="360" cy="532" r="2.5" fill="var(--fg)"/>
@@ -341,6 +344,8 @@ flowchart LR
 <text x="332" y="558" class="t-pin" text-anchor="end">PK (PWRKEY)</text>
 <circle cx="360" cy="554" r="2.5" fill="var(--fg)"/>
 <polyline points="360,554 460,554 460,360 500,360" fill="none" stroke="#b0733b" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="364.0" y="546.0" width="84" height="16" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="406" y="558" class="t-part" text-anchor="middle">R5 1k·C2 100n</text>
 <line x1="338" y1="580" x2="360" y2="580" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="332" y="584" class="t-pin" text-anchor="end">NET</text>
 <circle cx="360" cy="580" r="2.5" fill="var(--fg)"/>
@@ -357,17 +362,22 @@ flowchart LR
 <line x1="458" y1="596" x2="462" y2="596" stroke="var(--rail-gnd)" stroke-width="2"/>
 <text x="120" y="570" class="t-note" text-anchor="start">LED1: 0.8 s blink = searching · 3 s = registered</text>
 <rect x="110" y="610" width="250" height="110" rx="6" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
-<text x="120" y="632" class="t-title">Button · battery sense</text>
-<text x="120" y="648" class="t-sub">GPIO interrupt · ADC1 channel 0</text>
-<text x="144" y="676" class="t-pin">SW1</text>
-<line x1="120" y1="660" x2="140" y2="660" stroke="var(--fg)" stroke-width="1.5"/>
-<line x1="140" y1="660" x2="162" y2="650" stroke="var(--fg)" stroke-width="1.5"/>
-<line x1="164" y1="660" x2="184" y2="660" stroke="var(--fg)" stroke-width="1.5"/>
-<polyline points="110,660 120,660" fill="none" stroke="var(--rail-gnd)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
-<polyline points="110,660 54,660" fill="none" stroke="var(--rail-gnd)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="54" cy="660" r="3.2" fill="var(--rail-gnd)"/>
-<polyline points="184,660 360,660" fill="none" stroke="#b0733b" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
-<polyline points="360,660 474,660 474,430 500,430" fill="none" stroke="#b0733b" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="120" y="632" class="t-title">Button module · battery sense</text>
+<text x="120" y="648" class="t-sub">3-pin module, own pull-down · ADC1 ch 0</text>
+<line x1="110" y1="666" x2="132" y2="666" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="138" y="670" class="t-pin">VCC</text>
+<circle cx="110" cy="666" r="2.5" fill="var(--fg)"/>
+<polyline points="110,666 40,666" fill="none" stroke="#f29a1f" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="40" cy="666" r="3.2" fill="#f29a1f"/>
+<line x1="110" y1="684" x2="132" y2="684" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="138" y="688" class="t-pin">GND</text>
+<circle cx="110" cy="684" r="2.5" fill="var(--fg)"/>
+<polyline points="110,684 54,684" fill="none" stroke="var(--rail-gnd)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="54" cy="684" r="3.2" fill="var(--rail-gnd)"/>
+<line x1="338" y1="666" x2="360" y2="666" stroke="var(--fg)" stroke-width="1.5"/>
+<text x="332" y="670" class="t-pin" text-anchor="end">SIG</text>
+<circle cx="360" cy="666" r="2.5" fill="var(--fg)"/>
+<polyline points="360,666 474,666 474,430 500,430" fill="none" stroke="#b0733b" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
 <rect x="140.0" y="692.0" width="40" height="16" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="160" y="704" class="t-part" text-anchor="middle">R1 100k</text>
 <rect x="220.0" y="692.0" width="40" height="16" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
@@ -500,35 +510,35 @@ flowchart LR
 
   </div>
 
-  <h2>ESP32-S3 DevKitC-1 pin map</h2>
-  <p>The devkit is the hub. Every signal wire ends here; the table is the same assignment as <code>config.hpp</code> and the schematic.</p>
+  <h2>ESP32-S3 SuperMini pin map</h2>
+  <p>The SuperMini is the hub. Every signal wire ends here; the table is the same assignment as <code>config.hpp</code> and the schematic.</p>
   <div class="module">
     <div class="tbl">
       <table>
-        <thead><tr><th>Devkit pin</th><th>Direction</th><th>Signal</th><th>Goes to</th></tr></thead>
+        <thead><tr><th>Board pin</th><th>Direction</th><th>Signal</th><th>Goes to</th></tr></thead>
         <tbody>
-          <tr><td class="esp">5V / VIN</td><td class="arrow">←</td><td><span class="net v5">+5V</span></td><td>Battery shield 5V</td></tr>
+          <tr><td class="esp">5V</td><td class="arrow">←</td><td><span class="net v5">+5V</span></td><td>Battery shield 5V, only with USB unplugged (the pin is USB VBUS)</td></tr>
           <tr><td class="esp">GND</td><td class="arrow">—</td><td><span class="net gnd">GND</span></td><td>Battery shield GND (star)</td></tr>
-          <tr><td class="esp">3V3</td><td class="arrow">out</td><td><span class="net v33">3V3_DEVKIT</span></td><td>Leave free. Do not tie to the shield rail.</td></tr>
+          <tr><td class="esp">3V3</td><td class="arrow">out</td><td><span class="net v33">3V3_BOARD</span></td><td>Leave free. Do not tie to the shield rail.</td></tr>
           <tr><td class="esp">GPIO1</td><td class="arrow">←</td><td><span class="net batt">BATT_SENSE</span></td><td>Divider midpoint (R1/R2)</td></tr>
-          <tr><td class="esp">GPIO2</td><td class="arrow">←</td><td><span class="net sig">BTN</span></td><td>Push button, other side to GND</td></tr>
+          <tr><td class="esp">GPIO2</td><td class="arrow">←</td><td><span class="net sig">BTN</span></td><td>Button module SIG (the module has its own pull-down)</td></tr>
           <tr><td class="esp">GPIO5</td><td class="arrow">←</td><td><span class="net sig">GNSS_TXD</span></td><td>GNSS TX</td></tr>
           <tr><td class="esp">GPIO4</td><td class="arrow">→</td><td><span class="net sig">GNSS_RXD</span></td><td>GNSS RX</td></tr>
           <tr><td class="esp">GPIO6</td><td class="arrow">←</td><td><span class="net sig">ACC_INT1</span></td><td>BMA400 INT1</td></tr>
-          <tr><td class="esp">GPIO7</td><td class="arrow">→</td><td><span class="net sig">GSM_PWRKEY</span></td><td>BIGGA BOOT pin (= PWRKEY), open drain</td></tr>
+          <tr><td class="esp">GPIO7</td><td class="arrow">→</td><td><span class="net sig">GSM_PWRKEY</span></td><td>BIGGA PK (= BOOT, PWRKEY) through R5 1 kΩ, C2 100 nF from PK to GND; open drain</td></tr>
           <tr><td class="esp">GPIO8</td><td class="arrow">↔</td><td><span class="net sig">SDA</span></td><td>OLED SDA, BMA400 SDA, GNSS compass SDA</td></tr>
           <tr><td class="esp">GPIO9</td><td class="arrow">→</td><td><span class="net sig">SCL</span></td><td>OLED SCL, BMA400 SCL, GNSS compass SCL</td></tr>
           <tr><td class="esp">GPIO10</td><td class="arrow">→</td><td><span class="net sig">SD_CS</span></td><td>MicroSD CS</td></tr>
           <tr><td class="esp">GPIO11</td><td class="arrow">→</td><td><span class="net sig">SD_SCK</span></td><td>MicroSD SCK (CLK)</td></tr>
           <tr><td class="esp">GPIO12</td><td class="arrow">→</td><td><span class="net sig">SD_MOSI</span></td><td>MicroSD MOSI (DI)</td></tr>
           <tr><td class="esp">GPIO13</td><td class="arrow">←</td><td><span class="net sig">SD_MISO</span></td><td>MicroSD MISO (DO)</td></tr>
-          <tr><td class="esp">GPIO17</td><td class="arrow">→</td><td><span class="net sig">GSM_RXD</span></td><td>BIGGA RX</td></tr>
-          <tr><td class="esp">GPIO18</td><td class="arrow">←</td><td><span class="net sig">GSM_TXD</span></td><td>BIGGA TX, with 6.8 kΩ from that pin to GND</td></tr>
-          <tr><td class="esp">USB "UART" port</td><td class="arrow">—</td><td>console</td><td>Laptop, 115200 baud, log + commands</td></tr>
+          <tr><td class="esp">GPIO43 (TX)</td><td class="arrow">→</td><td><span class="net sig">GSM_RXD</span></td><td>BIGGA RX</td></tr>
+          <tr><td class="esp">GPIO44 (RX)</td><td class="arrow">←</td><td><span class="net sig">GSM_TXD</span></td><td>BIGGA TX, with 6.8 kΩ from that pin to GND</td></tr>
+          <tr><td class="esp">USB-C port</td><td class="arrow">—</td><td>console</td><td>Laptop, USB Serial/JTAG: log + commands, flashing</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="note" style="margin-top:10px">Keep off: GPIO0 (BOOT), GPIO3, GPIO19/20 (USB), GPIO26–32 (flash), GPIO45/46. The onboard RGB LED (GPIO38 on v1.1 boards, GPIO48 on many clones) is the status light; nothing to wire.</p>
+    <p class="note" style="margin-top:10px">Keep off: GPIO0 (BOOT), GPIO3, GPIO19/20 (USB), GPIO45/46. The onboard RGB LED on GPIO48 is the status light; nothing to wire. DevKitC-1 build (<code>pio run -e devkitc</code>): the same pins, except the modem on GPIO17/18 and the console on the "UART" connector.</p>
   </div>
 
   <h2>Module by module</h2>
@@ -540,9 +550,9 @@ flowchart LR
       <table>
         <thead><tr><th>Shield pin</th><th></th><th>Rail</th><th>Feeds</th></tr></thead>
         <tbody>
-          <tr><td class="pin">5V</td><td class="arrow">→</td><td><span class="net v5">+5V</span></td><td>Devkit 5V, GNSS VCC, BIGGA GSM VSS, MicroSD VCC</td></tr>
-          <tr><td class="pin">3V</td><td class="arrow">→</td><td><span class="net v33">+3V3</span></td><td>OLED VCC, BMA400 VCC. Measure first.</td></tr>
-          <tr><td class="pin">GND</td><td class="arrow">—</td><td><span class="net gnd">GND</span></td><td>Star point for every module, devkit, capacitor −, divider, button</td></tr>
+          <tr><td class="pin">5V</td><td class="arrow">→</td><td><span class="net v5">+5V</span></td><td>SuperMini 5V (USB unplugged), GNSS VCC, BIGGA GSM VSS, MicroSD VCC</td></tr>
+          <tr><td class="pin">3V</td><td class="arrow">→</td><td><span class="net v33">+3V3</span></td><td>OLED VCC, BMA400 VCC and CS, button module VCC. Measure first.</td></tr>
+          <tr><td class="pin">GND</td><td class="arrow">—</td><td><span class="net gnd">GND</span></td><td>Star point for every module, the board, capacitors −, divider, button module</td></tr>
           <tr><td class="pin">B+ (cell terminal)</td><td class="arrow">→</td><td><span class="net batt">+BATT</span></td><td>R1 top only (battery divider)</td></tr>
         </tbody>
       </table>
@@ -558,10 +568,10 @@ flowchart LR
         <tbody>
           <tr><td class="pin">VCC / 5V</td><td class="arrow">←</td><td><span class="net v5">+5V</span></td><td>Shield 5V</td></tr>
           <tr><td class="pin">GND</td><td class="arrow">—</td><td><span class="net gnd">GND</span></td><td>Shield GND</td></tr>
-          <tr><td class="pin">TX</td><td class="arrow">→</td><td><span class="net sig">GNSS_TXD</span></td><td class="esp">Devkit GPIO5</td></tr>
-          <tr><td class="pin">RX</td><td class="arrow">←</td><td><span class="net sig">GNSS_RXD</span></td><td class="esp">Devkit GPIO4</td></tr>
-          <tr><td class="pin">SCL (Foxeer compass)</td><td class="arrow">←</td><td><span class="net sig">SCL</span></td><td class="esp">Devkit GPIO9 (optional)</td></tr>
-          <tr><td class="pin">SDA (Foxeer compass)</td><td class="arrow">↔</td><td><span class="net sig">SDA</span></td><td class="esp">Devkit GPIO8 (optional)</td></tr>
+          <tr><td class="pin">TX</td><td class="arrow">→</td><td><span class="net sig">GNSS_TXD</span></td><td class="esp">SuperMini GPIO5</td></tr>
+          <tr><td class="pin">RX</td><td class="arrow">←</td><td><span class="net sig">GNSS_RXD</span></td><td class="esp">SuperMini GPIO4</td></tr>
+          <tr><td class="pin">SCL (Foxeer compass)</td><td class="arrow">←</td><td><span class="net sig">SCL</span></td><td class="esp">SuperMini GPIO9 (optional)</td></tr>
+          <tr><td class="pin">SDA (Foxeer compass)</td><td class="arrow">↔</td><td><span class="net sig">SDA</span></td><td class="esp">SuperMini GPIO8 (optional)</td></tr>
         </tbody>
       </table>
     </div>
@@ -575,9 +585,9 @@ flowchart LR
         <thead><tr><th>Module pin</th><th></th><th>Net</th><th>Connect to</th></tr></thead>
         <tbody>
           <tr><td class="pin">GND</td><td class="arrow">—</td><td><span class="net gnd">GND</span></td><td>Shield GND</td></tr>
-          <tr><td class="pin">VCC</td><td class="arrow">←</td><td><span class="net v33">+3V3</span></td><td>Shield 3V (or devkit 3V3 if the rail measures 3.0 V)</td></tr>
-          <tr><td class="pin">SCL</td><td class="arrow">←</td><td><span class="net sig">SCL</span></td><td class="esp">Devkit GPIO9</td></tr>
-          <tr><td class="pin">SDA</td><td class="arrow">↔</td><td><span class="net sig">SDA</span></td><td class="esp">Devkit GPIO8</td></tr>
+          <tr><td class="pin">VCC</td><td class="arrow">←</td><td><span class="net v33">+3V3</span></td><td>Shield 3V (or the board's 3V3 if the rail measures 3.0 V)</td></tr>
+          <tr><td class="pin">SCL</td><td class="arrow">←</td><td><span class="net sig">SCL</span></td><td class="esp">SuperMini GPIO9</td></tr>
+          <tr><td class="pin">SDA</td><td class="arrow">↔</td><td><span class="net sig">SDA</span></td><td class="esp">SuperMini GPIO8</td></tr>
         </tbody>
       </table>
     </div>
@@ -585,33 +595,33 @@ flowchart LR
 
   <div class="module">
     <div class="head"><h3>MicroSD SPI module</h3><span class="ref">J4 · SPI2</span></div>
-    <p class="note">Pins run straight along the devkit header: CS 10, SCK 11, MOSI 12, MISO 13. This adapter (6 pins, rated 4.5–5.5 V) is the 5 V kind: it has its own 3.3 V regulator and a level-shifter chip, so <strong>VCC goes to a shield 5V pin</strong> and the four signals go directly to the devkit at 3.3 V. On 3.3 V it stays silent and the firmware reports a mount timeout. Card: 8–32 GB, FAT32.</p>
+    <p class="note">Pins run in a straight row on the board: CS 10, SCK 11, MOSI 12, MISO 13. This adapter (6 pins, rated 4.5–5.5 V) is the 5 V kind: it has its own 3.3 V regulator and a level-shifter chip, so <strong>VCC goes to a shield 5V pin</strong> and the four signals go directly to the board at 3.3 V. On 3.3 V it stays silent and the firmware reports a mount timeout. Card: 8–32 GB, FAT32.</p>
     <div class="tbl">
       <table>
         <thead><tr><th>Module pin</th><th></th><th>Net</th><th>Connect to</th></tr></thead>
         <tbody>
           <tr><td class="pin">GND</td><td class="arrow">—</td><td><span class="net gnd">GND</span></td><td>Shield GND</td></tr>
           <tr><td class="pin">VCC</td><td class="arrow">←</td><td><span class="net v5">+5V</span></td><td>Shield 5V (module regulates to 3.3 V internally)</td></tr>
-          <tr><td class="pin">MISO (DO)</td><td class="arrow">→</td><td><span class="net sig">SD_MISO</span></td><td class="esp">Devkit GPIO13</td></tr>
-          <tr><td class="pin">MOSI (DI)</td><td class="arrow">←</td><td><span class="net sig">SD_MOSI</span></td><td class="esp">Devkit GPIO12</td></tr>
-          <tr><td class="pin">SCK (CLK)</td><td class="arrow">←</td><td><span class="net sig">SD_SCK</span></td><td class="esp">Devkit GPIO11</td></tr>
-          <tr><td class="pin">CS</td><td class="arrow">←</td><td><span class="net sig">SD_CS</span></td><td class="esp">Devkit GPIO10</td></tr>
+          <tr><td class="pin">MISO (DO)</td><td class="arrow">→</td><td><span class="net sig">SD_MISO</span></td><td class="esp">SuperMini GPIO13</td></tr>
+          <tr><td class="pin">MOSI (DI)</td><td class="arrow">←</td><td><span class="net sig">SD_MOSI</span></td><td class="esp">SuperMini GPIO12</td></tr>
+          <tr><td class="pin">SCK (CLK)</td><td class="arrow">←</td><td><span class="net sig">SD_SCK</span></td><td class="esp">SuperMini GPIO11</td></tr>
+          <tr><td class="pin">CS</td><td class="arrow">←</td><td><span class="net sig">SD_CS</span></td><td class="esp">SuperMini GPIO10</td></tr>
         </tbody>
       </table>
     </div>
   </div>
 
   <div class="module">
-    <div class="head"><h3>BIGGA GSM (SIM800C) board</h3><span class="ref">J2 · UART2 · C1 1000 µF on VSS · R3 6.8 kΩ on TX · LED1 + 1 kΩ on NET</span></div>
-    <p class="note">Silkscreen names on the board: <code>NET VSS PK RX TX GND</code> on one edge, <code>SPN SPP MICN MICP RING DTR</code> on the other. <strong>VSS is the 5 V supply input here, not ground</strong>; confirm with the meter that the pin marked GND beeps against the SMA shell and VSS does not. <strong>TX idles at 5 V</strong>: the board's level shifter is referenced to VCC, so a 6.8 kΩ resistor from TX to GND is required before GPIO18 (gives about 3.0 V). RX needs nothing extra. <code>BOOT</code> is the modem's PWRKEY; the board does not start by itself, the firmware holds BOOT low for a second when the modem is silent. Feed VCC with 5 V only: 9 V damages the ESP through the shifter, 3.3 V is below the regulator's dropout. Nano-SIM, PIN disabled, 2G coverage confirmed, full-size SMA antenna.</p>
+    <div class="head"><h3>BIGGA GSM (SIM800C) board</h3><span class="ref">J2 · UART2 · C1 1000 µF on VSS · R3 6.8 kΩ on TX · R5/C2 on PK · LED1 + 1 kΩ on NET</span></div>
+    <p class="note">Silkscreen names on the board: <code>NET VSS PK RX TX GND</code> on one edge, <code>SPN SPP MICN MICP RING DTR</code> on the other. <strong>VSS is the 5 V supply input here, not ground</strong>; confirm with the meter that the pin marked GND beeps against the SMA shell and VSS does not. <strong>TX idles at 5 V</strong>: the board's level shifter is referenced to VCC, so a 6.8 kΩ resistor from TX to GND is required before GPIO44 (gives about 3.0 V). RX needs nothing extra. <code>BOOT</code> is the modem's PWRKEY; the board does not start by itself, the firmware holds BOOT low for a second when the modem is silent, through R5 1 kΩ with C2 100 nF to GND at the ESP end. Feed VCC with 5 V only: 9 V damages the ESP through the shifter, 3.3 V is below the regulator's dropout. Nano-SIM, PIN disabled, 2G coverage confirmed, full-size SMA antenna.</p>
     <div class="tbl">
       <table>
         <thead><tr><th>Board pin</th><th></th><th>Net</th><th>Connect to</th></tr></thead>
         <tbody>
           <tr><td class="pin">GND</td><td class="arrow">—</td><td><span class="net gnd">GND</span></td><td>Shield GND, short thick wire</td></tr>
-          <tr><td class="pin">TX</td><td class="arrow">→</td><td><span class="net sig">GSM_TXD</span></td><td class="esp">R3 6.8 kΩ from this pin to GND, then the pin to devkit GPIO18</td></tr>
-          <tr><td class="pin">RX</td><td class="arrow">←</td><td><span class="net sig">GSM_RXD</span></td><td class="esp">Devkit GPIO17 directly</td></tr>
-          <tr><td class="pin">PK (= BOOT / PWRKEY)</td><td class="arrow">←</td><td><span class="net sig">GSM_PWRKEY</span></td><td class="esp">Devkit GPIO7 (open drain, pulses low to power the modem)</td></tr>
+          <tr><td class="pin">TX</td><td class="arrow">→</td><td><span class="net sig">GSM_TXD</span></td><td class="esp">R3 6.8 kΩ from this pin to GND, then the pin to SuperMini GPIO44</td></tr>
+          <tr><td class="pin">RX</td><td class="arrow">←</td><td><span class="net sig">GSM_RXD</span></td><td class="esp">SuperMini GPIO43 directly</td></tr>
+          <tr><td class="pin">PK (= BOOT / PWRKEY)</td><td class="arrow">←</td><td><span class="net sig">GSM_PWRKEY</span></td><td class="esp">R5 1 kΩ to SuperMini GPIO7 (open drain, pulses low to power the modem); C2 100 nF from PK to GND at that end</td></tr>
           <tr><td class="pin">VSS (= VCC, 5 V in)</td><td class="arrow">←</td><td><span class="net v5">+5V</span></td><td>Shield 5V, short thick wire, and C1 1000 µF electrolytic across VSS and GND right at the board's pins (+ to VSS); the onboard 100+10+1 µF are not enough on battery</td></tr>
           <tr><td class="pin">NET</td><td class="arrow">→</td><td>LED1</td><td>NET → 1 kΩ → red LED anode; LED cathode → GND. Blink: 0.8 s = searching, 3 s = registered, 0.3 s = GPRS data. 2.8 V signal, dim but visible; no GPIO</td></tr>
           <tr><td class="pin">DTR, RING, SPN, SPP, MICN, MICP</td><td class="arrow">—</td><td>n/c</td><td>Leave open</td></tr>
@@ -623,14 +633,15 @@ flowchart LR
 
   <div class="grid2">
     <div class="module">
-      <div class="head"><h3>Button</h3><span class="ref">SW1</span></div>
-      <p class="note">Any momentary switch. Internal pull-up on GPIO2; the firmware debounces. Short press = next display page, hold ≥ 1 s = print diagnostics.</p>
+      <div class="head"><h3>Button module</h3><span class="ref">J7 · 3 pins</span></div>
+      <p class="note">A module with VCC, GND and a signal pin. Its own pull-down holds SIG low at rest; a press connects it to VCC, so <code>buttonPressedHigh = true</code> in <code>config.hpp</code>. A bare switch to GND works too, with that setting <code>false</code>. Short press = next display page, hold ≥ 1 s = print diagnostics; also a deep-sleep wake source.</p>
       <div class="tbl">
         <table>
-          <thead><tr><th>Switch pin</th><th></th><th>Connect to</th></tr></thead>
+          <thead><tr><th>Module pin</th><th></th><th>Connect to</th></tr></thead>
           <tbody>
-            <tr><td class="pin">1</td><td class="arrow">→</td><td class="esp">Devkit GPIO2 <span class="net sig">BTN</span></td></tr>
-            <tr><td class="pin">2</td><td class="arrow">—</td><td><span class="net gnd">GND</span></td></tr>
+            <tr><td class="pin">VCC</td><td class="arrow">←</td><td><span class="net v33">+3V3</span> shield 3V</td></tr>
+            <tr><td class="pin">GND</td><td class="arrow">—</td><td><span class="net gnd">GND</span></td></tr>
+            <tr><td class="pin">SIG</td><td class="arrow">→</td><td class="esp">SuperMini GPIO2 <span class="net sig">BTN</span></td></tr>
           </tbody>
         </table>
       </div>
@@ -644,7 +655,7 @@ flowchart LR
           <thead><tr><th>Part</th><th></th><th>Connect to</th></tr></thead>
           <tbody>
             <tr><td class="pin">R1 end A</td><td class="arrow">←</td><td><span class="net batt">+BATT</span> shield B+</td></tr>
-            <tr><td class="pin">R1 end B + R2 end A</td><td class="arrow">→</td><td class="esp">Devkit GPIO1 <span class="net batt">BATT_SENSE</span></td></tr>
+            <tr><td class="pin">R1 end B + R2 end A</td><td class="arrow">→</td><td class="esp">SuperMini GPIO1 <span class="net batt">BATT_SENSE</span></td></tr>
             <tr><td class="pin">R2 end B</td><td class="arrow">—</td><td><span class="net gnd">GND</span></td></tr>
           </tbody>
         </table>
@@ -661,9 +672,9 @@ flowchart LR
         <tbody>
           <tr><td class="pin">VCC</td><td class="arrow">←</td><td><span class="net v33">+3V3</span></td><td>Shield 3V (3.3 V only; never 5 V)</td></tr>
           <tr><td class="pin">GND</td><td class="arrow">—</td><td><span class="net gnd">GND</span></td><td>Shield GND</td></tr>
-          <tr><td class="pin">SDA</td><td class="arrow">↔</td><td><span class="net sig">SDA</span></td><td class="esp">Devkit GPIO8</td></tr>
-          <tr><td class="pin">SCL</td><td class="arrow">←</td><td><span class="net sig">SCL</span></td><td class="esp">Devkit GPIO9</td></tr>
-          <tr><td class="pin">INT1</td><td class="arrow">→</td><td><span class="net sig">ACC_INT1</span></td><td class="esp">Devkit GPIO6</td></tr>
+          <tr><td class="pin">SDA</td><td class="arrow">↔</td><td><span class="net sig">SDA</span></td><td class="esp">SuperMini GPIO8</td></tr>
+          <tr><td class="pin">SCL</td><td class="arrow">←</td><td><span class="net sig">SCL</span></td><td class="esp">SuperMini GPIO9</td></tr>
+          <tr><td class="pin">INT1</td><td class="arrow">→</td><td><span class="net sig">ACC_INT1</span></td><td class="esp">SuperMini GPIO6</td></tr>
           <tr><td class="pin">CS</td><td class="arrow">←</td><td><span class="net v33">+3V3</span></td><td>Shield 3V, same rail as VCC (I2C mode at power-up)</td></tr>
           <tr><td class="pin">SDO</td><td class="arrow">←</td><td><span class="net gnd">GND</span></td><td>Optional: fixes the address at 0x14</td></tr>
           <tr><td class="pin">INT2</td><td class="arrow">—</td><td>n/c</td><td>Leave open</td></tr>
@@ -676,10 +687,10 @@ flowchart LR
   <p>Add one module at a time and watch the console after each. The expected log line comes from the firmware; if it does not appear, stop and fix that module before adding the next. Ticks are remembered in this browser only.</p>
   <ol class="steps" id="steps">
     <li><input type="checkbox" id="s1"><div><label for="s1">Shield: insert cells (polarity!), switch on, measure 5V and 3V rails with the multimeter. Write the 3V figure here: ______ V.</label><span class="expect">5V rail: 4.9–5.2 V · 3V rail: 3.0 or 3.3 V (decides OLED/SD supply)</span></div></li>
-    <li><input type="checkbox" id="s2"><div><label for="s2">Devkit alone: 5V and GND from the shield, USB "UART" to the laptop, flash with <code>pio run -t upload -t monitor</code>.</label><span class="expect">I (..) tracker: Boot: reset reason power-on (1)
-I (..) console: Commands on UART0; type 'help'
+    <li><input type="checkbox" id="s2"><div><label for="s2">SuperMini alone: USB-C to the laptop, GND to the shield, flash with <code>pio run -e supermini -t upload -t monitor</code>. If the port does not appear, hold BOOT while plugging in.</label><span class="expect">I (..) tracker: Boot: reset reason power-on (1)
+I (..) console: Commands on USB Serial/JTAG; type 'help'
 LED white, then amber once the GNSS is added</span></div></li>
-    <li><input type="checkbox" id="s3"><div><label for="s3">Button on GPIO2 and the battery divider on GPIO1.</label><span class="expect">type <kbd>diag</kbd> → battery error counter stays 0; the system page shows the cell voltage</span></div></li>
+    <li><input type="checkbox" id="s3"><div><label for="s3">Button module (VCC 3V3, GND, SIG→GPIO2) and the battery divider on GPIO1.</label><span class="expect">a press logs "Button: short press, next page"; <kbd>diag</kbd> → battery error counter stays 0; the system page shows the cell voltage</span></div></li>
     <li><input type="checkbox" id="s4"><div><label for="s4">GNSS: 5V, GND, TX→GPIO5, RX→GPIO4. Put the antenna by a window or outside.</label><span class="expect">I (..) tracker: State BOOTING -> ACQUIRING
 I (..) tracker: State ACQUIRING -> TRACKING   (sky view, 30–90 s cold)
 Wrong baud: 'rej' grows in diag → set gnss 1 / save</span></div></li>
@@ -687,7 +698,7 @@ Wrong baud: 'rej' grows in diag → set gnss 1 / save</span></div></li>
 Tracking page with state, satellites, position</span></div></li>
     <li><input type="checkbox" id="s6"><div><label for="s6">MicroSD: GND, VCC→shield 5V (not 3V), CS→GPIO10, SCK→GPIO11, MOSI→GPIO12, MISO→GPIO13 (a straight run). Card formatted FAT32.</label><span class="expect">I (..) sdcard: Mounted /sdcard: NNNN MiB
 'SD ok' on the screen; TRACKS/YYYYMMDD.CSV appears after the first record</span></div></li>
-    <li><input type="checkbox" id="s7"><div><label for="s7">BIGGA GSM: 6.8 kΩ from TX to GND, LED + 1 kΩ on NET, C1 1000 µF across VSS/GND at the board (+ to VSS), then VCC/GND with short thick wires, TX→GPIO18, RX→GPIO17, PK→GPIO7, VSS→5V (it is the supply, not ground), antenna. Measure TX idle at GPIO18 with the modem on: expect about 3.0 V, not 5 V. NET LED: fast blink while searching, one blink every 3 s once registered. Console: <kbd>set apn &lt;your apn&gt;</kbd>, <kbd>set url ...</kbd>, <kbd>set id ...</kbd>, <kbd>set uplink 1</kbd>, <kbd>save</kbd>.</label><span class="expect">I (..) sim800: Modem silent at every baud rate, pulsing PWRKEY (1/3)   (normal: the board needs the pulse)
+    <li><input type="checkbox" id="s7"><div><label for="s7">BIGGA GSM: 6.8 kΩ from TX to GND, LED + 1 kΩ on NET, C1 1000 µF across VSS/GND at the board (+ to VSS), R5 1 kΩ + C2 100 nF on PK at the ESP end, then VCC/GND with short thick wires, TX→GPIO44, RX→GPIO43, PK→R5→GPIO7, VSS→5V (it is the supply, not ground), antenna. Measure TX idle at GPIO44 with the modem on: expect about 3.0 V, not 5 V. NET LED: fast blink while searching, one blink every 3 s once registered. Console: <kbd>set apn &lt;your apn&gt;</kbd>, <kbd>set url ...</kbd>, <kbd>set id ...</kbd>, <kbd>set uplink 1</kbd>, <kbd>save</kbd>.</label><span class="expect">I (..) sim800: Modem silent at every baud rate, pulsing PWRKEY (1/3)   (normal: the board needs the pulse)
 I (..) sim800: Modem answered at 9600 baud   (or 115200)
 I (..) uplink: GPRS up on APN internet
 'sent:' grows on the system page; the point appears in Traccar</span></div></li>

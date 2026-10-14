@@ -2,9 +2,10 @@
 """Draws the bench wiring diagram (SVG) for the assembly sheet.
 
 Breadboard-style layout: power rails run as vertical buses down both
-sides, the DevKitC-1 sits in the middle with its pins in logical order,
-modules stand left and right. Power pins leave a module towards its rail
-side, signal pins towards the devkit, so power and signal wires never
+sides, the ESP32-S3 SuperMini sits in the middle with its pins in
+logical order, modules stand left and right. Power pins leave a module
+towards its rail side, signal pins towards the board, so power and signal
+wires never
 cross. Every wire is a Manhattan polyline in the colour of its signal
 class. Pure geometry. The assembly sheet embeds the plain output and
 supplies the colours and fonts through its own CSS variables (light and
@@ -88,7 +89,7 @@ LRAIL = {"5V": 26, "3V3": 40, "GND": 54, "BATT": 68}       # vertical, left side
 RRAIL = {"3V3": W - 54, "GND": W - 40, "5V": W - 26}        # vertical, right side
 RAIL_BOTTOM = H - 40
 
-# top buses bridge the two sides; the devkit taps them
+# top buses bridge the two sides; the board taps them
 for name, y in TOP.items():
     x1 = RRAIL.get(name, LRAIL[name])
     wire([(LRAIL[name], y), (x1, y)], COL[name], 3)
@@ -109,12 +110,12 @@ MX, MW = 110, 250                 # left module column
 box(MX, 104, MW, 108, "Battery Shield V8", "2×18650 · switch ON · GND = star point")
 for name, lab, y in [("5V", "5V ×4", 150), ("3V3", "3V ×4", 166), ("GND", "GND", 182), ("BATT", "B+ tab", 198 - 2)]:
     pin(MX, y, lab, "l"); to_lrail(MX, y, name)
-note(MX + MW + 10, 122, "Shield USB-A → devkit USB-C: alternative supply for the devkit")
+note(MX + MW + 10, 122, "SuperMini 5V pin = its USB VBUS: shield 5V only with USB unplugged")
 
-# ---------------------------------------------------------------- devkit
+# ---------------------------------------------------------------- board
 DX, DY, DW, DH = 500, 150, 250, 510
-box(DX, DY, DW, DH, "ESP32-S3 DevKitC-1", "pins in logical order, not header order")
-left = [("GPIO5", 215), ("GPIO4", 245), ("GPIO18", 300), ("GPIO17", 330), ("GPIO7", 360),
+box(DX, DY, DW, DH, "ESP32-S3 SuperMini", "pins in logical order, not header order")
+left = [("GPIO5", 215), ("GPIO4", 245), ("GPIO44", 300), ("GPIO43", 330), ("GPIO7", 360),
         ("GPIO2", 430), ("GPIO1", 470)]
 right = [("GPIO8 SDA", 215), ("GPIO9 SCL", 245), ("GPIO13 MISO", 300), ("GPIO12 MOSI", 330),
          ("GPIO11 SCK", 360), ("GPIO10 CS", 390), ("GPIO6 INT1", 470)]
@@ -129,8 +130,9 @@ for x, rail, lab in [(DX + 185, "5V", "5V pin"), (DX + 225, "GND", "GND")]:
 for x, y, label in [(DX + 97, 230, "UART1"), (DX + 97, 330, "UART2"), (DX + 97, 430, "IRQ"), (DX + 97, 470, "ADC1"),
                     (DX + 165, 230, "I2C0"), (DX + 165, 345, "SPI2"), (DX + 165, 446, "IRQ")]:
     tag(x, y, label)
-add(f'<text x="{DX+10}" y="{DY+DH-30}" class="t-sub">3V3 pin: leave free (devkit LDO output)</text>')
-add(f'<text x="{DX+10}" y="{DY+DH-14}" class="t-sub">USB "UART" port → laptop console</text>')
+add(f'<text x="{DX+10}" y="{DY+DH-46}" class="t-sub">3V3 pin: leave free (board LDO output)</text>')
+add(f'<text x="{DX+10}" y="{DY+DH-30}" class="t-sub">USB-C → laptop console (USB Serial/JTAG)</text>')
+add(f'<text x="{DX+10}" y="{DY+DH-14}" class="t-sub">DevKitC-1 build: modem on GPIO17/18</text>')
 
 # ---------------------------------------------------------------- left modules
 lch = {"n": 0}
@@ -139,7 +141,7 @@ def lchan():
     return MX + MW + 30 + lch["n"] * 14
 
 def lwire(py, dev, color):
-    """From the left module's right edge at y to a devkit left pin."""
+    """From the left module's right edge at y to a board left pin."""
     dx, dy = LP[dev]
     xc = lchan()
     wire([(MX + MW, py), (xc, py), (xc, dy), (dx, dy)], color)
@@ -173,16 +175,21 @@ add(f'<path d="M {cx-7} {ym-7} Q {cx} {ym-1} {cx+7} {ym-7}" fill="none" stroke="
 add(f'<line x1="{cx-7}" y1="{ym+4}" x2="{cx+7}" y2="{ym+4}" stroke="var(--fg)" stroke-width="2.5"/>')
 add(f'<text x="{cx+10}" y="{ym+4}" class="t-part">C1</text>')
 pin(MX + MW, g["TX"], "TX", "r")
-xc = lwire(g["TX"], "GPIO18", COL["TX"])
+xc = lwire(g["TX"], "GPIO44", COL["TX"])
 # R3 to ground hangs off the TX channel, in the gap left of it (nothing else there)
 ry = g["TX"] - 64
 wire([(xc, ry), (xc - 20, ry)], COL["TX"], 1.6); dot(xc, ry, COL["TX"])
 part(xc - 34, ry, 28, 16, "R3")
 wire([(xc - 48, ry), (xc - 56, ry)], COL["GND"], 1.6); ground(xc - 56, ry)
 add(f'<text x="{xc-34}" y="{ry-12}" class="t-part" text-anchor="middle">6.8k</text>')
-note(MX + 10, g["VCC"] + 32, "R3 6.8k on TX → ~3 V at GPIO18")
-pin(MX + MW, g["RX"], "RX", "r"); lwire(g["RX"], "GPIO17", COL["RX"])
+note(MX + 10, g["VCC"] + 32, "R3 6.8k on TX → ~3 V at GPIO44")
+pin(MX + MW, g["RX"], "RX", "r"); lwire(g["RX"], "GPIO43", COL["RX"])
 pin(MX + MW, g["BOOT"], "PK (PWRKEY)", "r"); lwire(g["BOOT"], "GPIO7", COL["CTRL"])
+# RC filter in the PWRKEY wire: R5 1k in series, C2 100 nF from the PK side
+# to GND, both at the board end. A bare wire carried the disturbance of
+# every network attach into the chip. Drawn as one block on the wire; the
+# rows above and below leave no room for a separate capacitor symbol.
+part(MX + MW + 46, g["BOOT"], 84, 16, "R5 1k·C2 100n")
 pin(MX + MW, g["NET"], "NET", "r")
 wire([(MX + MW, g["NET"]), (MX + MW + 16, g["NET"])], COL["CTRL"])
 part(MX + MW + 36, g["NET"], 36, 16, "R4 1k")
@@ -195,14 +202,13 @@ note(MX + 10, g["NET"] - 10, "LED1: 0.8 s blink = searching · 3 s = registered"
 
 # Button and battery divider
 UY = 610
-box(MX, UY, MW, 110, "Button · battery sense", "GPIO interrupt · ADC1 channel 0")
+box(MX, UY, MW, 110, "Button module · battery sense", "3-pin module, own pull-down · ADC1 ch 0")
 sy = UY + 50
-add(f'<text x="{MX+34}" y="{sy+16}" class="t-pin">SW1</text>')
-add(f'<line x1="{MX+10}" y1="{sy}" x2="{MX+30}" y2="{sy}" stroke="var(--fg)" stroke-width="1.5"/>')
-add(f'<line x1="{MX+30}" y1="{sy}" x2="{MX+52}" y2="{sy-10}" stroke="var(--fg)" stroke-width="1.5"/>')
-add(f'<line x1="{MX+54}" y1="{sy}" x2="{MX+74}" y2="{sy}" stroke="var(--fg)" stroke-width="1.5"/>')
-wire([(MX, sy), (MX + 10, sy)], COL["GND"]); to_lrail(MX, sy, "GND")
-wire([(MX + 74, sy), (MX + MW, sy)], COL["CTRL"]); lwire(sy, "GPIO2", COL["CTRL"])
+# A 3-pin button module: SIG idles low through the module's pull-down and
+# a press connects it to VCC (Config::buttonPressedHigh = true).
+pin(MX, sy + 6, "VCC", "l"); to_lrail(MX, sy + 6, "3V3")
+pin(MX, sy + 24, "GND", "l"); to_lrail(MX, sy + 24, "GND")
+pin(MX + MW, sy + 6, "SIG", "r"); lwire(sy + 6, "GPIO2", COL["CTRL"])
 dy_ = UY + 90
 part(MX + 50, dy_, 40, 16, "R1 100k"); part(MX + 130, dy_, 40, 16, "R2 100k")
 wire([(MX, dy_), (MX + 30, dy_)], COL["BATT"]); to_lrail(MX, dy_, "BATT")
@@ -266,7 +272,7 @@ theme = '''  svg { --paper: #ffffff; --bg: #f5f6f8; --fg: #1d2129; --muted: #5d6
 ''' if STANDALONE else ''
 background = f'<rect width="{W}" height="{H}" fill="var(--paper)"/>' if STANDALONE else ''
 
-svg = f'''<svg viewBox="0 0 {W} {H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Wiring diagram: devkit in the centre, modules left and right, power rails down both sides">
+svg = f'''<svg viewBox="0 0 {W} {H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Wiring diagram: ESP32-S3 SuperMini in the centre, modules left and right, power rails down both sides">
 <style>
 {theme}  .t-title {{ font: 600 14px var(--font-display); fill: var(--fg); }}
   .t-sub {{ font: 11px var(--font-body); fill: var(--muted); }}
