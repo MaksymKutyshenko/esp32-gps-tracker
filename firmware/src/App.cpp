@@ -94,7 +94,7 @@ App::App()
       gnss_(gpsUart_),
       gsmUart_(Config::gsmUart, Config::gsmTxPin, Config::gsmRxPin,
                Config::gsmBaudRate, Config::gsmRxBufferBytes),
-      modem_(gsmUart_, Config::gsmPowerKeyPin),
+      modem_(gsmUart_, Config::gsmPowerKeyWired ? Config::gsmPowerKeyPin : GPIO_NUM_NC),
       i2c_(Config::i2cPort, Config::i2cSdaPin, Config::i2cSclPin),
       display_(i2c_),
       sdCard_(Config::sdSpiHost, Config::sdSclkPin, Config::sdMosiPin, Config::sdMisoPin,

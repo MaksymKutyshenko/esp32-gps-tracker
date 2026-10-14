@@ -25,6 +25,8 @@ public:
     static constexpr uint16_t firstLocalHttpStatus = 600;
     static constexpr size_t responseCapacity = 256;
 
+    // powerKeyPin GPIO_NUM_NC: PWRKEY is tied to GND, the modem is always
+    // on, and a restart goes through AT+CFUN=1,1 instead of the key.
     Sim800Modem(UartPort &uart, gpio_num_t powerKeyPin);
 
     void begin();

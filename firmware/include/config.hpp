@@ -107,6 +107,14 @@ namespace Config
     // >= 1 s to toggle the modem's power. The board has no auto power-on
     // circuit, so the firmware pulses this when the modem stays silent.
     constexpr gpio_num_t gsmPowerKeyPin = GPIO_NUM_7;
+    // false: PWRKEY is tied to GND on the modem side, the modem powers up
+    // by itself and stays on, and GPIO7 is left unconnected. Chosen for the
+    // SuperMini build: the GPIO7 wire ran from beside the modem's power
+    // circuit into an ESP32 pad and carried the disturbance of every
+    // network attach into the chip (task-watchdog resets ~17 s after
+    // "Modem answered"; none with PWRKEY on GND, bench 2026-10-14). Without
+    // the key the firmware restarts a wedged modem with AT+CFUN=1,1.
+    constexpr bool gsmPowerKeyWired = false;
     constexpr uart_port_t gsmUart = UART_NUM_2;
 #if defined(BOARD_SUPERMINI)
     // UART0's pins are unused on the SuperMini (console is USB Serial/JTAG).

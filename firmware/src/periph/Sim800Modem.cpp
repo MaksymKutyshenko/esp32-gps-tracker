@@ -29,6 +29,11 @@ Sim800Modem::Sim800Modem(UartPort &uart, gpio_num_t powerKeyPin)
 
 void Sim800Modem::begin()
 {
+    if (powerKeyPin_ == GPIO_NUM_NC)
+    {
+        ESP_LOGI(logTag, "PWRKEY tied to GND: the modem powers itself, no key pulses");
+        return;
+    }
     gpio_config_t config = {};
     config.pin_bit_mask = 1ULL << powerKeyPin_;
     // Open drain: PWRKEY is pulled up inside the modem to its own rail, so
@@ -108,9 +113,17 @@ esp_err_t Sim800Modem::powerOn()
             }
             return err;
         }
-        ESP_LOGW(logTag, "Modem silent at every baud rate, pulsing PWRKEY (%u/%u)", attempt + 1,
-                 Config::gsmPowerOnAttempts);
-        pulsePowerKey();
+        if (powerKeyPin_ == GPIO_NUM_NC)
+        {
+            ESP_LOGW(logTag, "Modem silent at every baud rate, waiting for it to boot (%u/%u)", attempt + 1,
+                     Config::gsmPowerOnAttempts);
+        }
+        else
+        {
+            ESP_LOGW(logTag, "Modem silent at every baud rate, pulsing PWRKEY (%u/%u)", attempt + 1,
+                     Config::gsmPowerOnAttempts);
+            pulsePowerKey();
+        }
         wait(Config::gsmBootWaitMs);
         uart_.discardInput();
     }
@@ -121,6 +134,16 @@ esp_err_t Sim800Modem::powerCycle()
 {
     // AT+CPOWD is the graceful way; if the modem is wedged the key pulse
     // below does it anyway.
+    if (powerKeyPin_ == GPIO_NUM_NC)
+    {
+        // PWRKEY held low would switch a powered-down modem straight back
+        // on anyway; a full-functionality reset is the clean restart.
+        const AtCommand reset = {"AT+CFUN=1,1", "OK", 3000};
+        execute(reset);
+        wait(Config::gsmBootWaitMs);
+        uart_.discardInput();
+        return powerOn();
+    }
     const AtCommand powerDown = {"AT+CPOWD=1", "POWER DOWN", 3000};
     if (execute(powerDown) != ESP_OK)
     {
