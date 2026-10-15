@@ -22,8 +22,8 @@ namespace
     static_assert(Config::gsmBaudRate == 115200, "fixBaud must match Config::gsmBaudRate");
 }
 
-Sim800Modem::Sim800Modem(UartPort &uart, gpio_num_t powerKeyPin)
-    : uart_(uart), powerKeyPin_(powerKeyPin)
+Sim800Modem::Sim800Modem(UartPort &uart, gpio_num_t powerKeyPin, bool keyViaTransistor)
+    : uart_(uart), powerKeyPin_(powerKeyPin), keyPressedLevel_(keyViaTransistor ? 1 : 0)
 {
 }
 
@@ -36,15 +36,18 @@ void Sim800Modem::begin()
     }
     gpio_config_t config = {};
     config.pin_bit_mask = 1ULL << powerKeyPin_;
-    // Open drain: PWRKEY is pulled up inside the modem to its own rail, so
-    // the GPIO only ever pulls it down and never drives 3.3 V into it.
-    config.mode = GPIO_MODE_OUTPUT_OD;
+    // Straight to the line: open drain, because PWRKEY is pulled up inside
+    // the modem to its own rail and the GPIO must never drive 3.3 V into
+    // it. Through the transistor: push-pull into the base resistor.
+    config.mode = keyPressedLevel_ == 1 ? GPIO_MODE_OUTPUT : GPIO_MODE_OUTPUT_OD;
     config.pull_up_en = GPIO_PULLUP_DISABLE;
     config.pull_down_en = GPIO_PULLDOWN_DISABLE;
     config.intr_type = GPIO_INTR_DISABLE;
     ESP_ERROR_CHECK(gpio_config(&config));
-    // Released (high impedance) until a power pulse is needed.
-    ESP_ERROR_CHECK(gpio_set_level(powerKeyPin_, 1));
+    // Released until a power pulse is needed.
+    ESP_ERROR_CHECK(gpio_set_level(powerKeyPin_, keyPressedLevel_ ^ 1));
+    ESP_LOGI(logTag, "PWRKEY on GPIO%d, %s", static_cast<int>(powerKeyPin_),
+             keyPressedLevel_ == 1 ? "through an NPN (high = pressed)" : "open drain (low = pressed)");
 }
 
 void Sim800Modem::wait(uint32_t ms)
@@ -65,9 +68,9 @@ void Sim800Modem::wait(uint32_t ms)
 
 void Sim800Modem::pulsePowerKey()
 {
-    gpio_set_level(powerKeyPin_, 0);
+    gpio_set_level(powerKeyPin_, keyPressedLevel_);
     wait(Config::gsmPowerKeyPulseMs);
-    gpio_set_level(powerKeyPin_, 1);
+    gpio_set_level(powerKeyPin_, keyPressedLevel_ ^ 1);
 }
 
 bool Sim800Modem::probeBaudRates()

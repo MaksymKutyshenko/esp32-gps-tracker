@@ -25,7 +25,7 @@ when a pin changes.
 | MicroSD adapter (6-pin, 4.5–5.5 V) + card | Track log (CSV) and upload backlog while offline | SPI (with DMA) | 5 V on VCC; onboard regulator and level shifter give 3.3 V signals |
 | Battery Shield V8 + 2×18650 HG2 | Power: cells in parallel (≈6000 mAh), 5 V boost output (≈2.2 A continuous, 3 A peak), 3 V/3.3 V 1 A rail, charging at 0.6–0.8 A | — | — |
 | 6.8 kΩ resistor | From BIGGA TX to GND: level divider for the 5 V TX line (see §5) | — | — |
-| R5 1 kΩ + C2 100 nF | RC filter in the PWRKEY wire at the ESP end: R5 in series between GPIO7 and PK, C2 from PK to GND. Passes the key pulse, keeps the attach bursts out of the chip (see §5) | — | — |
+| Q1 2N2222A (NPN) + R5 10 kΩ + R6 100 kΩ | PWRKEY driver at the ESP end: GPIO7 → R5 → base, R6 base to GND, emitter to GND, collector to PK. The modem's line never touches the ESP pin (see §5) | — | — |
 | Button module (3 pins: VCC, GND, SIG) | Page switch, diagnostics, deep-sleep wake. Own pull-down: SIG high when pressed | GPIO | 3.3 V |
 | Red LED + 1 kΩ | On BIGGA NET (NETLIGHT): blink rate shows searching / registered / GPRS without any firmware | — | — |
 | C1: 1000 µF electrolytic (≥ 6.3 V) | Across the BIGGA board's VSS and GND pins, + to VSS: holds the 5 V input through the modem's registration bursts on battery. Without it the ESP32 reset every 30 s (see §5) | — | — |
@@ -93,7 +93,7 @@ and on the DevKitC). Only the GSM UART and the status LED differ.
 | GNSS UART1 RX | GPIO5 | GPIO5 | ← GNSS TX |
 | GNSS UART1 TX | GPIO4 | GPIO4 | → GNSS RX (sends the UBX setup at boot) |
 | BMA400 INT1 | GPIO6 | GPIO6 | Motion interrupt; RTC GPIO for deep-sleep wake (EXT1) |
-| BIGGA BOOT (= PWRKEY) | GPIO7 | GPIO7 | Open-drain, held low ≥ 1 s to toggle the modem's power. **Through an RC filter at the ESP end: 1 kΩ in series, 100 nF to GND.** A bare wire here carried the disturbance of every network attach into the chip and reset it with the task watchdog (bench 2026-10-14). Without the filter, tie PWRKEY to GND instead and set `gsmPowerKeyWired = false`: the modem powers itself and stays on |
+| BIGGA BOOT (= PWRKEY) | GPIO7 | GPIO7 | PWRKEY held low ≥ 1 s toggles the modem's power. **Through an NPN at the ESP end** (Q1 2N2222A, R5 10 kΩ to the base, R6 100 kΩ base to GND, collector to PK): GPIO7 high = pressed (`gsmPowerKeyViaTransistor = true`). A bare wire here carried the disturbance of every network attach into the chip and reset it with the task watchdog (bench 2026-10-14). Alternatives that also work: GPIO7 open-drain through 1 kΩ with 100 nF to GND (`gsmPowerKeyViaTransistor = false`), or PWRKEY tied to GND with the modem always on (`gsmPowerKeyWired = false`) |
 | I2C SDA | GPIO8 | GPIO8 | OLED 0x3C, BMA400 0x14 (0x15 if SDO high), GNSS compass 0x0D (QMC5883L) |
 | I2C SCL | GPIO9 | GPIO9 | 100 kHz on breadboard; modules carry their own pull-ups |
 | SD CS | GPIO10 | GPIO10 | SPI2 through the GPIO matrix (SCK/MOSI swapped from the IOMUX pins for a straight 10-11-12-13 run; fine at 10 MHz) |
@@ -244,10 +244,15 @@ has no spare header pin for it; on the DevKitC wire it to GPIO16 if wanted.
   away: radiated pickup that this module does not survive. The SuperMini
   ignored the radio even with the antenna beside it, but reset the same
   way through the PWRKEY wire, which runs from beside the modem's power
-  circuit straight into an ESP32 pad. **1 kΩ in series and 100 nF to GND
-  at the ESP end of that wire** (R5, C2) stopped it: the 1.2 s key pulse
-  passes (τ = 100 µs), the burst edges and the RF do not. Tying PWRKEY to
-  GND instead (modem always on, `gsmPowerKeyWired = false`) also works.
+  circuit straight into an ESP32 pad. 1 kΩ in series and 100 nF to GND at
+  the ESP end stopped it first (the 1.2 s key pulse passes, τ = 100 µs;
+  the burst edges and the RF do not). The design now uses **an NPN
+  transistor instead** (Q1 2N2222A with R5 10 kΩ and R6 100 kΩ), as
+  SIMCom's hardware guide recommends: GPIO7 only drives the base, the
+  collector pulls PWRKEY down, and nothing from the modem's line reaches
+  the ESP pin, including the modem's ~4 V pull-up. Verified with a fresh
+  attach. Tying PWRKEY to GND (modem always on, `gsmPowerKeyWired =
+  false`) also works.
 - The bench button is a 3-pin module (VCC, GND, SIG) with its own
   pull-down: SIG idles low, a press lifts it to 3.3 V. Wired as a bare
   switch is expected, the line read "pressed" at rest, presses registered

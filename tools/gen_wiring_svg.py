@@ -185,11 +185,12 @@ add(f'<text x="{xc-34}" y="{ry-12}" class="t-part" text-anchor="middle">6.8k</te
 note(MX + 10, g["VCC"] + 32, "R3 6.8k on TX → ~3 V at GPIO44")
 pin(MX + MW, g["RX"], "RX", "r"); lwire(g["RX"], "GPIO43", COL["RX"])
 pin(MX + MW, g["BOOT"], "PK (PWRKEY)", "r"); lwire(g["BOOT"], "GPIO7", COL["CTRL"])
-# RC filter in the PWRKEY wire: R5 1k in series, C2 100 nF from the PK side
-# to GND, both at the board end. A bare wire carried the disturbance of
-# every network attach into the chip. Drawn as one block on the wire; the
-# rows above and below leave no room for a separate capacitor symbol.
-part(MX + MW + 46, g["BOOT"], 84, 16, "R5 1k·C2 100n")
+# PWRKEY through an NPN at the board end: GPIO7 -> R5 10k -> base, R6 100k
+# base to GND, emitter to GND, collector to PK. No wire from the modem
+# reaches the ESP pin; a bare wire there carried the disturbance of every
+# network attach into the chip. Drawn as one block on the wire; the rows
+# above and below leave no room for the transistor symbol.
+part(MX + MW + 46, g["BOOT"], 84, 16, "Q1 NPN·R5·R6")
 pin(MX + MW, g["NET"], "NET", "r")
 wire([(MX + MW, g["NET"]), (MX + MW + 16, g["NET"])], COL["CTRL"])
 part(MX + MW + 36, g["NET"], 36, 16, "R4 1k")

@@ -118,7 +118,7 @@
       <li><strong>Never join the SuperMini's 3V3 pin to the shield's 3V rail.</strong> Both are regulator outputs. The board makes its own 3.3 V from its 5V pin.</li>
       <li><strong>The SuperMini's 5V pin is its USB power line, with no diode.</strong> Feed it from the shield only with the USB cable unplugged. On the bench with the console open, power the board from USB and leave that wire off; keep GND common.</li>
       <li><strong>BIGGA GSM: TX is 5 V logic and the modem draws 2 A bursts.</strong> Put 6.8 kΩ from the board's TX pin to GND before it reaches GPIO44. Put C1, a 1000 µF electrolytic, across VSS and GND right at the board's pins, + to VSS: the board's own 100 + 10 + 1 µF are not enough on battery, and without C1 every registration burst resets the ESP32. Use short 22 AWG or thicker wires for VCC/GND.</li>
-      <li><strong>PWRKEY through an RC filter.</strong> 1 kΩ in series and 100 nF to GND, both at the ESP end of the wire. A bare wire from the modem's PK pin carried the disturbance of every network attach into the chip and reset it with the task watchdog. Without the parts, tie PK to GND instead and set <code>gsmPowerKeyWired = false</code>.</li>
+      <li><strong>PWRKEY through an NPN transistor.</strong> Q1 2N2222A at the ESP end: GPIO7 → 10 kΩ → base, 100 kΩ base to GND, emitter to GND, collector to PK. A bare wire from the modem's PK pin carried the disturbance of every network attach into the chip and reset it with the task watchdog. Find the transistor's pins with the meter's diode test first. Without a transistor: 1 kΩ in series with 100 nF to GND and <code>gsmPowerKeyViaTransistor = false</code>, or PK tied to GND and <code>gsmPowerKeyWired = false</code>.</li>
       <li><strong>One ground.</strong> Every GND goes to the shield's GND. Star it at the shield, not daisy-chained through modules.</li>
       <li><strong>Check 18650 polarity twice</strong> before inserting. A reversed cell burns the shield's protection IC.</li>
       <li><strong>Antennas.</strong> GNSS patch antenna face-up with a sky view; keep the GSM antenna cable away from it.</li>
@@ -345,7 +345,7 @@ flowchart LR
 <circle cx="360" cy="554" r="2.5" fill="var(--fg)"/>
 <polyline points="360,554 460,554 460,360 500,360" fill="none" stroke="#b0733b" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
 <rect x="364.0" y="546.0" width="84" height="16" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
-<text x="406" y="558" class="t-part" text-anchor="middle">R5 1k·C2 100n</text>
+<text x="406" y="558" class="t-part" text-anchor="middle">Q1 NPN·R5·R6</text>
 <line x1="338" y1="580" x2="360" y2="580" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="332" y="584" class="t-pin" text-anchor="end">NET</text>
 <circle cx="360" cy="580" r="2.5" fill="var(--fg)"/>
@@ -525,7 +525,7 @@ flowchart LR
           <tr><td class="esp">GPIO5</td><td class="arrow">←</td><td><span class="net sig">GNSS_TXD</span></td><td>GNSS TX</td></tr>
           <tr><td class="esp">GPIO4</td><td class="arrow">→</td><td><span class="net sig">GNSS_RXD</span></td><td>GNSS RX</td></tr>
           <tr><td class="esp">GPIO6</td><td class="arrow">←</td><td><span class="net sig">ACC_INT1</span></td><td>BMA400 INT1</td></tr>
-          <tr><td class="esp">GPIO7</td><td class="arrow">→</td><td><span class="net sig">GSM_PWRKEY</span></td><td>BIGGA PK (= BOOT, PWRKEY) through R5 1 kΩ, C2 100 nF from PK to GND; open drain</td></tr>
+          <tr><td class="esp">GPIO7</td><td class="arrow">→</td><td><span class="net sig">GSM_PWRKEY</span></td><td>R5 10 kΩ to Q1's base (R6 100 kΩ base to GND); Q1's collector to BIGGA PK. High = key pressed</td></tr>
           <tr><td class="esp">GPIO8</td><td class="arrow">↔</td><td><span class="net sig">SDA</span></td><td>OLED SDA, BMA400 SDA, GNSS compass SDA</td></tr>
           <tr><td class="esp">GPIO9</td><td class="arrow">→</td><td><span class="net sig">SCL</span></td><td>OLED SCL, BMA400 SCL, GNSS compass SCL</td></tr>
           <tr><td class="esp">GPIO10</td><td class="arrow">→</td><td><span class="net sig">SD_CS</span></td><td>MicroSD CS</td></tr>
@@ -612,8 +612,8 @@ flowchart LR
   </div>
 
   <div class="module">
-    <div class="head"><h3>BIGGA GSM (SIM800C) board</h3><span class="ref">J2 · UART2 · C1 1000 µF on VSS · R3 6.8 kΩ on TX · R5/C2 on PK · LED1 + 1 kΩ on NET</span></div>
-    <p class="note">Silkscreen names on the board: <code>NET VSS PK RX TX GND</code> on one edge, <code>SPN SPP MICN MICP RING DTR</code> on the other. <strong>VSS is the 5 V supply input here, not ground</strong>; confirm with the meter that the pin marked GND beeps against the SMA shell and VSS does not. <strong>TX idles at 5 V</strong>: the board's level shifter is referenced to VCC, so a 6.8 kΩ resistor from TX to GND is required before GPIO44 (gives about 3.0 V). RX needs nothing extra. <code>BOOT</code> is the modem's PWRKEY; the board does not start by itself, the firmware holds BOOT low for a second when the modem is silent, through R5 1 kΩ with C2 100 nF to GND at the ESP end. Feed VCC with 5 V only: 9 V damages the ESP through the shifter, 3.3 V is below the regulator's dropout. Nano-SIM, PIN disabled, 2G coverage confirmed, full-size SMA antenna.</p>
+    <div class="head"><h3>BIGGA GSM (SIM800C) board</h3><span class="ref">J2 · UART2 · C1 1000 µF on VSS · R3 6.8 kΩ on TX · Q1 NPN on PK · LED1 + 1 kΩ on NET</span></div>
+    <p class="note">Silkscreen names on the board: <code>NET VSS PK RX TX GND</code> on one edge, <code>SPN SPP MICN MICP RING DTR</code> on the other. <strong>VSS is the 5 V supply input here, not ground</strong>; confirm with the meter that the pin marked GND beeps against the SMA shell and VSS does not. <strong>TX idles at 5 V</strong>: the board's level shifter is referenced to VCC, so a 6.8 kΩ resistor from TX to GND is required before GPIO44 (gives about 3.0 V). RX needs nothing extra. <code>BOOT</code> is the modem's PWRKEY; the board does not start by itself, the firmware holds BOOT low for a second when the modem is silent, through the transistor Q1 at the ESP end. Feed VCC with 5 V only: 9 V damages the ESP through the shifter, 3.3 V is below the regulator's dropout. Nano-SIM, PIN disabled, 2G coverage confirmed, full-size SMA antenna.</p>
     <div class="tbl">
       <table>
         <thead><tr><th>Board pin</th><th></th><th>Net</th><th>Connect to</th></tr></thead>
@@ -621,7 +621,7 @@ flowchart LR
           <tr><td class="pin">GND</td><td class="arrow">—</td><td><span class="net gnd">GND</span></td><td>Shield GND, short thick wire</td></tr>
           <tr><td class="pin">TX</td><td class="arrow">→</td><td><span class="net sig">GSM_TXD</span></td><td class="esp">R3 6.8 kΩ from this pin to GND, then the pin to SuperMini GPIO44</td></tr>
           <tr><td class="pin">RX</td><td class="arrow">←</td><td><span class="net sig">GSM_RXD</span></td><td class="esp">SuperMini GPIO43 directly</td></tr>
-          <tr><td class="pin">PK (= BOOT / PWRKEY)</td><td class="arrow">←</td><td><span class="net sig">GSM_PWRKEY</span></td><td class="esp">R5 1 kΩ to SuperMini GPIO7 (open drain, pulses low to power the modem); C2 100 nF from PK to GND at that end</td></tr>
+          <tr><td class="pin">PK (= BOOT / PWRKEY)</td><td class="arrow">←</td><td><span class="net sig">GSM_PWRKEY</span></td><td class="esp">Q1 collector; Q1 emitter to GND, base through R5 10 kΩ to SuperMini GPIO7, R6 100 kΩ base to GND</td></tr>
           <tr><td class="pin">VSS (= VCC, 5 V in)</td><td class="arrow">←</td><td><span class="net v5">+5V</span></td><td>Shield 5V, short thick wire, and C1 1000 µF electrolytic across VSS and GND right at the board's pins (+ to VSS); the onboard 100+10+1 µF are not enough on battery</td></tr>
           <tr><td class="pin">NET</td><td class="arrow">→</td><td>LED1</td><td>NET → 1 kΩ → red LED anode; LED cathode → GND. Blink: 0.8 s = searching, 3 s = registered, 0.3 s = GPRS data. 2.8 V signal, dim but visible; no GPIO</td></tr>
           <tr><td class="pin">DTR, RING, SPN, SPP, MICN, MICP</td><td class="arrow">—</td><td>n/c</td><td>Leave open</td></tr>
@@ -698,7 +698,7 @@ Wrong baud: 'rej' grows in diag → set gnss 1 / save</span></div></li>
 Tracking page with state, satellites, position</span></div></li>
     <li><input type="checkbox" id="s6"><div><label for="s6">MicroSD: GND, VCC→shield 5V (not 3V), CS→GPIO10, SCK→GPIO11, MOSI→GPIO12, MISO→GPIO13 (a straight run). Card formatted FAT32.</label><span class="expect">I (..) sdcard: Mounted /sdcard: NNNN MiB
 'SD ok' on the screen; TRACKS/YYYYMMDD.CSV appears after the first record</span></div></li>
-    <li><input type="checkbox" id="s7"><div><label for="s7">BIGGA GSM: 6.8 kΩ from TX to GND, LED + 1 kΩ on NET, C1 1000 µF across VSS/GND at the board (+ to VSS), R5 1 kΩ + C2 100 nF on PK at the ESP end, then VCC/GND with short thick wires, TX→GPIO44, RX→GPIO43, PK→R5→GPIO7, VSS→5V (it is the supply, not ground), antenna. Measure TX idle at GPIO44 with the modem on: expect about 3.0 V, not 5 V. NET LED: fast blink while searching, one blink every 3 s once registered. Console: <kbd>set apn &lt;your apn&gt;</kbd>, <kbd>set url ...</kbd>, <kbd>set id ...</kbd>, <kbd>set uplink 1</kbd>, <kbd>save</kbd>.</label><span class="expect">I (..) sim800: Modem silent at every baud rate, pulsing PWRKEY (1/3)   (normal: the board needs the pulse)
+    <li><input type="checkbox" id="s7"><div><label for="s7">BIGGA GSM: 6.8 kΩ from TX to GND, LED + 1 kΩ on NET, C1 1000 µF across VSS/GND at the board (+ to VSS), Q1 with R5 10 kΩ and R6 100 kΩ for PK at the ESP end, then VCC/GND with short thick wires, TX→GPIO44, RX→GPIO43, PK→Q1 collector (base via R5 from GPIO7), VSS→5V (it is the supply, not ground), antenna. Measure TX idle at GPIO44 with the modem on: expect about 3.0 V, not 5 V. NET LED: fast blink while searching, one blink every 3 s once registered. Console: <kbd>set apn &lt;your apn&gt;</kbd>, <kbd>set url ...</kbd>, <kbd>set id ...</kbd>, <kbd>set uplink 1</kbd>, <kbd>save</kbd>.</label><span class="expect">I (..) sim800: Modem silent at every baud rate, pulsing PWRKEY (1/3)   (normal: the board needs the pulse)
 I (..) sim800: Modem answered at 9600 baud   (or 115200)
 I (..) uplink: GPRS up on APN internet
 'sent:' grows on the system page; the point appears in Traccar</span></div></li>

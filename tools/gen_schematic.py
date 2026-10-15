@@ -218,7 +218,7 @@ C12 = lib.use("Connector_Generic", "Conn_01x12")
 R = lib.use("Device", "R")
 LED = lib.use("Device", "LED")
 CPOL = lib.use("Device", "C_Polarized")
-CAP = lib.use("Device", "C")
+QNPN = lib.use("Transistor_BJT", "Q_NPN_EBC")
 C3 = lib.use("Connector_Generic", "Conn_01x03")
 P5V = lib.use("power", "+5V")
 P3V3 = lib.use("power", "+3V3")
@@ -267,14 +267,14 @@ j2.emit()
 connect(j2, "1", "GND")
 connect(j2, "2", "GSM_TXD")       # idles at VCC (5 V) on the board: R3 below divides it
 connect(j2, "3", "GSM_RXD")
-connect(j2, "4", "GSM_PWRKEY")    # "BOOT" on the silkscreen = SIM800C PWRKEY; R5/C2 below
+connect(j2, "4", "GSM_PWRKEY")    # "BOOT" on the silkscreen = SIM800C PWRKEY; Q1 below
 connect(j2, "5", "+5V")
 connect(j2, "6", "GSM_NET")
 finish_unused(j2)                 # DTR, RING, audio
 text("Silkscreen: GND  TX (5 V level!) -> IO44  RX <- IO43  PK = BOOT/PWRKEY  VSS = VCC 5V in  NET\n"
      "6 NET -> R4 1k -> LED1 (NETLIGHT: 0.8 s searching, 3 s registered, 0.3 s GPRS)  7 DTR  8 RING  9-12 audio: unused.\n"
      "TX high side is pulled to VCC through 4.7k on the board: R3 divides it to ~3.0 V for IO44.\n"
-     "PK <- R5 1k <- IO7 (open drain), C2 100n PK to GND, at the ESP end: a bare wire carried every attach burst in.\n"
+     "PK <- Q1 2N2222A collector; IO7 -> R5 10k -> base, R6 100k base to GND: IO7 high = key pressed.\n"
      "VBAT is 3.64 V (MIC29302). C1 1000 uF across VSS/GND right at the board's pins (+ to VSS): the onboard\n"
      "100+10+1 uF are not enough on battery (reset every 30 s during registration without it). Short thick wires.",
      40, 142, 1.27)
@@ -303,16 +303,23 @@ r4.used.add("2")
 led1.used.add("2")
 connect(led1, "1", "", lib, PGND)
 
-# PWRKEY filter, at the ESP end of the wire: R5 in series, C2 to GND on the
-# modem side of R5. Passes the 1.2 s key pulse, stops the attach bursts.
-r5 = Part(lib, R, "R5", "1k", 154, 92, ref_offset=(2, -2), value_offset=(2, 1))
+# PWRKEY through an NPN: IO7 drives only the base (R5), R6 holds the base
+# low while the ESP boots or sleeps, the collector pulls PWRKEY down. No wire
+# from the modem reaches the ESP pin; a bare wire there carried every attach
+# burst into the chip. The drive is inverted: IO7 high = key pressed.
+r5 = Part(lib, R, "R5", "10k", 154, 92, ref_offset=(2, -2), value_offset=(2, 1))
 r5.emit()
 connect(r5, "1", "PWRKEY_GPIO")
-connect(r5, "2", "GSM_PWRKEY")
-c2 = Part(lib, CAP, "C2", "100n", 166, 92, ref_offset=(3, -2), value_offset=(3, 1))
-c2.emit()
-connect(c2, "1", "GSM_PWRKEY")
-connect(c2, "2", "", lib, PGND)
+connect(r5, "2", "PWRKEY_BASE")
+r6 = Part(lib, R, "R6", "100k", 166, 92, ref_offset=(2, -2), value_offset=(2, 1))
+r6.emit()
+connect(r6, "1", "PWRKEY_BASE")
+connect(r6, "2", "", lib, PGND)
+q1 = Part(lib, QNPN, "Q1", "2N2222A", 160, 120, ref_offset=(-10, 4), value_offset=(-10, 7))
+q1.emit()
+connect(q1, "1", "", lib, PGND)      # E
+connect(q1, "2", "PWRKEY_BASE")      # B
+connect(q1, "3", "GSM_PWRKEY")       # C
 
 # --- OLED ------------------------------------------------------------------
 j3 = Part(lib, C4, "J3", "SSD1306 0.96\" OLED I2C 0x3C", 320, 40, ref_offset=(-4, -8), value_offset=(-4, -6))

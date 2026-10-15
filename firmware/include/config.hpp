@@ -103,18 +103,26 @@ namespace Config
     constexpr uint32_t accelStartPulses = 5;
 
     // ---- GSM modem (SIM800C, UART2) -------------------------------------
-    // PWRKEY ("BOOT" on the BIGGA GSM silkscreen): open-drain, held low
-    // >= 1 s to toggle the modem's power. The board has no auto power-on
-    // circuit, so the firmware pulses this when the modem stays silent.
+    // PWRKEY ("BOOT" on the BIGGA GSM silkscreen): held low >= 1 s to
+    // toggle the modem's power. The board has no auto power-on circuit, so
+    // the firmware pulses it when the modem stays silent.
     constexpr gpio_num_t gsmPowerKeyPin = GPIO_NUM_7;
-    // true: GPIO7 drives PWRKEY through an RC filter at the ESP end, 1 kΩ
-    // in series and 100 nF to GND. A bare wire there carried the
-    // disturbance of every network attach into the chip (task-watchdog
-    // resets ~17 s after "Modem answered", bench 2026-10-14); the filter
-    // passes the 1.2 s key pulse and stops the rest. false: PWRKEY tied to
-    // GND on the modem side, the modem powers itself and stays on, GPIO7
-    // unconnected, and a wedged modem is restarted with AT+CFUN=1,1.
+    // true: GPIO7 drives PWRKEY (see gsmPowerKeyViaTransistor). A bare
+    // wire from GPIO7 to the line carried the disturbance of every network
+    // attach into the chip (task-watchdog resets ~17 s after "Modem
+    // answered", bench 2026-10-14). false: PWRKEY tied to GND on the modem
+    // side, the modem powers itself and stays on, GPIO7 unconnected, and a
+    // wedged modem is restarted with AT+CFUN=1,1.
     constexpr bool gsmPowerKeyWired = true;
+    // How GPIO7 reaches PWRKEY when it is wired. true: through an NPN
+    // transistor (2N2222A): GPIO7 -> 10 kΩ -> base, 100 kΩ base to GND,
+    // emitter to GND, collector to PWRKEY. The modem's line then never
+    // touches the ESP32 pin; the drive is inverted (GPIO7 high = key
+    // pressed) and push-pull, idle low. Verified on the bench 2026-10-15:
+    // fresh attach, no resets. false: GPIO7 open-drain to the line through
+    // an RC filter at the ESP end (1 kΩ in series, 100 nF to GND), low =
+    // pressed; that also stopped the resets.
+    constexpr bool gsmPowerKeyViaTransistor = true;
     constexpr uart_port_t gsmUart = UART_NUM_2;
 #if defined(BOARD_SUPERMINI)
     // UART0's pins are unused on the SuperMini (console is USB Serial/JTAG).

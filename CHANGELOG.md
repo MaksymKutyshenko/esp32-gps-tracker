@@ -8,9 +8,10 @@ version in every health report (`fw=`).
 ### Firmware
 - SuperMini is the build board and the default environment; its image
   declares the module's 4 MB of flash.
-- Modem PWRKEY through an RC filter (1 kΩ, 100 nF); `gsmPowerKeyWired`
-  selects the alternative of PWRKEY tied to GND, with an AT reset instead
-  of the key.
+- Modem PWRKEY through an NPN transistor (`gsmPowerKeyViaTransistor`,
+  GPIO7 high = pressed); an RC filter (1 kΩ, 100 nF) with the open-drain
+  drive, or PWRKEY tied to GND with an AT reset instead of the key
+  (`gsmPowerKeyWired = false`), are the alternatives.
 - Button wiring is a setting (`buttonPressedHigh`) for a 3-pin module
   with its own pull-down; the wake lines are checked before each sleep,
   and a button line that reads pressed at rest is not armed.
@@ -23,7 +24,8 @@ version in every health report (`fw=`).
 
 ### Hardware
 - Wiring diagram, KiCad schematic and assembly sheet redrawn for the
-  SuperMini, with R5/C2 on PWRKEY and the 3-pin button module.
+  SuperMini, with the PWRKEY transistor (Q1, R5, R6) and the 3-pin
+  button module.
 
 ## 1.0.0 — 2026-10-13
 

@@ -195,7 +195,7 @@
 <circle cx="360" cy="554" r="2.5" fill="var(--fg)"/>
 <polyline points="360,554 460,554 460,360 500,360" fill="none" stroke="#b0733b" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
 <rect x="364.0" y="546.0" width="84" height="16" fill="var(--paper)" stroke="var(--fg)" stroke-width="1.5"/>
-<text x="406" y="558" class="t-part" text-anchor="middle">R5 1k·C2 100n</text>
+<text x="406" y="558" class="t-part" text-anchor="middle">Q1 NPN·R5·R6</text>
 <line x1="338" y1="580" x2="360" y2="580" stroke="var(--fg)" stroke-width="1.5"/>
 <text x="332" y="584" class="t-pin" text-anchor="end">NET</text>
 <circle cx="360" cy="580" r="2.5" fill="var(--fg)"/>

@@ -27,7 +27,10 @@ public:
 
     // powerKeyPin GPIO_NUM_NC: PWRKEY is tied to GND, the modem is always
     // on, and a restart goes through AT+CFUN=1,1 instead of the key.
-    Sim800Modem(UartPort &uart, gpio_num_t powerKeyPin);
+    // keyViaTransistor: the pin drives an NPN whose collector pulls PWRKEY
+    // down, so a press is the pin high; otherwise the pin pulls the line
+    // down itself (open drain), so a press is the pin low.
+    Sim800Modem(UartPort &uart, gpio_num_t powerKeyPin, bool keyViaTransistor);
 
     void begin();
 
@@ -90,6 +93,7 @@ private:
 
     UartPort &uart_;
     gpio_num_t powerKeyPin_;
+    uint32_t keyPressedLevel_;
     char scratch_[responseCapacity] = {};
     IdleHook idleHook_ = nullptr;
 };

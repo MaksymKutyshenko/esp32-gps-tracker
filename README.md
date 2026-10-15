@@ -270,7 +270,7 @@ http://gps-tracker-mk.fly.dev/?id=<device>&health=1&fw=..&up=..&rst=..&st=..&fix
    without a monitor still shows what preceded a reset and the boot line
    after it (`Boot: reset reason ...`). Every health report carries the
    reset reason (`rst=`), so the server keeps the restart history too.
-5. SIM800C on UART2 and PWRKEY (through 1 kΩ, with 100 nF to GND): `GPRS up on APN ...`, a health report within
+5. SIM800C on UART2 and PWRKEY (through an NPN, Q1): `GPRS up on APN ...`, a health report within
    seconds (the device turns Online on the server), then `sent:` grows on
    the system page once there is a fix. Set `apn`, `url` and `id` first.
 
@@ -338,7 +338,10 @@ line and the web dashboard):
   reset the same way through the PWRKEY wire, which runs from beside the
   modem's power circuit into an ESP32 pad. 1 kΩ in series and 100 nF to
   GND at the ESP end fixed it: a fresh attach, six minutes of uploads
-  and a park / sleep / motion-wake cycle on one shield, no reset.
+  and a park / sleep / motion-wake cycle on one shield, no reset. The
+  final design drives PWRKEY through an NPN transistor instead, so the
+  modem's line no longer touches the ESP pin at all; verified with a
+  fresh attach.
 - Receiver date after a cold start: one fix came with a valid position
   and the date 2087-07-15, which set the clock until the next boot. A
   fix dated outside 2025-2045 is now treated as no fix yet.
