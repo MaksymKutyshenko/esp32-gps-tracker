@@ -197,7 +197,19 @@ namespace Config
     // After a cold boot the network takes a few more seconds to accept the
     // registration; a GPRS attach asked before that is refused.
     constexpr uint32_t gsmRegistrationWaitMs = 20'000;
+    // AT+CGATT=1 sent while the modem is still attaching on its own
+    // answers ERROR, and AT+CGATT? reports 1 a moment later (bench and
+    // field, 2026-10-17). Before the connect is counted as failed, check
+    // for an attach that is already there and retry this many times.
+    constexpr uint8_t gsmAttachRetries = 3;
+    constexpr uint32_t gsmAttachRetryMs = 2000;
     constexpr uint8_t gsmPowerOnAttempts = 3;
+    // After a deep-sleep wake the modem was parked, not switched off
+    // (AT+CFUN=0): keep talking to it at gsmBaudRate this long before
+    // ever pressing PWRKEY, because a press would switch a running modem
+    // off. Field test 2026-10-17: the 6 s probe gave up after every one of
+    // 23 wakes, two presses followed (off, on) and GPRS took 32-84 s.
+    constexpr uint32_t gsmWakeProbeWindowMs = 10'000;
     constexpr uint32_t gsmHttpTimeoutMs = 30'000;
     // Longest report URL: server URL (95) + device id (23) + the health
     // query with its 36 fields, every counter at seven digits (~410; the

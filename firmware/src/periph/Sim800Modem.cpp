@@ -96,25 +96,86 @@ bool Sim800Modem::probeBaudRates()
     return false;
 }
 
+bool Sim800Modem::probeRunningModem(uint32_t windowMs)
+{
+    if (uart_.setBaudRate(Config::gsmBaudRate) != ESP_OK)
+    {
+        return false;
+    }
+    const int64_t startUs = esp_timer_get_time();
+    const int64_t deadlineUs = startUs + static_cast<int64_t>(windowMs) * 1000;
+    bool heardSomething = false;
+    char heard[48] = {};
+    while (esp_timer_get_time() < deadlineUs)
+    {
+        uart_.write("\r");
+        wait(50);
+        if (execute(probe) == ESP_OK)
+        {
+            ESP_LOGI(logTag, "Modem answered at %" PRIu32 " baud after %lld ms, left running before sleep",
+                     Config::gsmBaudRate, static_cast<long long>((esp_timer_get_time() - startUs) / 1000));
+            return true;
+        }
+        if (!heardSomething && scratch_[0] != '\0')
+        {
+            // Printable copy of the first bytes, for the log below.
+            heardSomething = true;
+            size_t n = 0;
+            for (const char *c = scratch_; *c != '\0' && n + 5 < sizeof heard; ++c)
+            {
+                const unsigned char u = static_cast<unsigned char>(*c);
+                if (u >= 0x20 && u < 0x7f)
+                {
+                    heard[n++] = *c;
+                }
+                else
+                {
+                    n += snprintf(heard + n, sizeof heard - n, "\\x%02X", u);
+                }
+            }
+            heard[n] = '\0';
+        }
+    }
+    ESP_LOGW(logTag, "Modem left running did not answer AT in %" PRIu32 " ms; it sent: %s", windowMs,
+             heardSomething ? heard : "nothing");
+    return false;
+}
+
+esp_err_t Sim800Modem::settle()
+{
+    // Pin the rate: from now on the modem and the UART agree regardless
+    // of how the board shipped.
+    esp_err_t err = execute(fixBaud);
+    if (err == ESP_OK)
+    {
+        err = uart_.setBaudRate(Config::gsmBaudRate);
+    }
+    if (err == ESP_OK)
+    {
+        uart_.discardInput();
+        err = execute(echoOff);
+    }
+    return err;
+}
+
 esp_err_t Sim800Modem::powerOn()
 {
+    // After a deep-sleep wake the modem is still on: a PWRKEY press now
+    // would switch it off. Give it a generous window first.
+    if (expectRunning_)
+    {
+        expectRunning_ = false;
+        if (probeRunningModem(Config::gsmWakeProbeWindowMs))
+        {
+            return settle();
+        }
+    }
+
     for (uint8_t attempt = 0; attempt < Config::gsmPowerOnAttempts; ++attempt)
     {
         if (probeBaudRates())
         {
-            // Pin the rate: from now on the modem and the UART agree
-            // regardless of how the board shipped.
-            esp_err_t err = execute(fixBaud);
-            if (err == ESP_OK)
-            {
-                err = uart_.setBaudRate(Config::gsmBaudRate);
-            }
-            if (err == ESP_OK)
-            {
-                uart_.discardInput();
-                err = execute(echoOff);
-            }
-            return err;
+            return settle();
         }
         if (powerKeyPin_ == GPIO_NUM_NC)
         {
@@ -326,7 +387,21 @@ esp_err_t Sim800Modem::openBearer(const char *apn)
     }
 
     const AtCommand attach = {"AT+CGATT=1", "OK", 10'000};
+    const AtCommand attached = {"AT+CGATT?", "+CGATT: 1", 2000};
     err = execute(attach);
+    for (uint8_t retry = 0; err != ESP_OK && retry < Config::gsmAttachRetries; ++retry)
+    {
+        // Refused while an attach of the modem's own is still under way:
+        // wait, see whether it has finished, otherwise ask again.
+        wait(Config::gsmAttachRetryMs);
+        if (execute(attached) == ESP_OK)
+        {
+            ESP_LOGI(logTag, "Attached to GPRS after %u retr%s", retry + 1, retry == 0 ? "y" : "ies");
+            err = ESP_OK;
+            break;
+        }
+        err = execute(attach);
+    }
     if (err != ESP_OK)
     {
         ESP_LOGW(logTag, "'AT+CGATT=1' failed: %s", esp_err_to_name(err));

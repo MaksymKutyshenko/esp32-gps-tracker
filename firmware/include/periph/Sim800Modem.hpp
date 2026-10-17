@@ -45,6 +45,11 @@ public:
     // pinned to Config::gsmBaudRate with AT+IPR and echo is turned off.
     esp_err_t powerOn();
 
+    // Tells the next powerOn() that the modem was left running (parked
+    // with AT+CFUN=0 before a deep sleep): it is probed at the fixed rate
+    // for Config::gsmWakeProbeWindowMs before any PWRKEY press.
+    void expectRunning() { expectRunning_ = true; }
+
     esp_err_t powerCycle();
 
     // Sends the command and collects the response until `expect`, "ERROR"
@@ -90,10 +95,17 @@ private:
     // True when the modem answered "AT" at one of the candidate rates; the
     // UART is left at that rate.
     bool probeBaudRates();
+    // Probes at Config::gsmBaudRate for up to windowMs, each try preceded
+    // by a bare CR that ends any partial line the modem may hold. Logs
+    // what the modem sent if it never says OK.
+    bool probeRunningModem(uint32_t windowMs);
+    // Finishes power-on once the modem answers: pins the rate, echo off.
+    esp_err_t settle();
 
     UartPort &uart_;
     gpio_num_t powerKeyPin_;
     uint32_t keyPressedLevel_;
     char scratch_[responseCapacity] = {};
     IdleHook idleHook_ = nullptr;
+    bool expectRunning_ = false;
 };

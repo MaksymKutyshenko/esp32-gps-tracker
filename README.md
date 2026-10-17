@@ -342,6 +342,19 @@ line and the web dashboard):
   final design drives PWRKEY through an NPN transistor instead, so the
   modem's line no longer touches the ESP pin at all; verified with a
   fresh attach.
+- Field test on the SuperMini, 2026-10-17: a ride through Chernivtsi,
+  2 h 43 min, about 16 km, up to 47 km/h. 23 park / sleep / motion-wake
+  cycles, no unplanned reset. 3 245 records on the card without an
+  error, 378 positions on the server, none lost. 103 931 NMEA sentences,
+  231 rejected on the checksum (0.2 %). 12 satellites in use, median
+  HDOP 0.59; free heap never below 275 kB.
+- After every wake in that ride the modem took two PWRKEY presses and
+  GPRS came back 32-84 s later (median 37 s): the 6 s probe gave up on a
+  modem that had only been parked, and the first press switched it off.
+  After a deep-sleep wake the firmware now probes a running modem for up
+  to 10 s before any press, and an attach refused while the modem is
+  still attaching on its own is retried. On the bench: answer in 2.2 s,
+  no presses, GPRS up 27-28 s after the wake, no failed connect.
 - Receiver date after a cold start: one fix came with a valid position
   and the date 2087-07-15, which set the clock until the next boot. A
   fix dated outside 2025-2045 is now treated as no fix yet.

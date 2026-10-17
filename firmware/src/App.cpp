@@ -141,6 +141,9 @@ void App::begin()
     }
     if (reason == ESP_RST_DEEPSLEEP)
     {
+        // The modem was parked (AT+CFUN=0) before the sleep, not switched
+        // off: it must be talked to, not pressed.
+        modem_.expectRunning();
         const esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
         ESP_LOGI(logTag, "Woke from deep sleep: %s",
                  cause == ESP_SLEEP_WAKEUP_EXT1    ? "motion"

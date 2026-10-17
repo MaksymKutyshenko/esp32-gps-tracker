@@ -19,6 +19,10 @@ version in every health report (`fw=`).
   modem that never attached; a parked tracker sleeps at most 3 min after
   its parked time even with points still queued.
 - A fix dated outside 2025-2045 is treated as no fix yet.
+- After a deep-sleep wake the modem, parked rather than off, is probed
+  for up to 10 s before PWRKEY is pressed; a refused GPRS attach is
+  retried while the modem finishes attaching on its own. Wake to GPRS:
+  27-28 s instead of 32-84 s.
 - Status LED on GPIO48 for the DevKitC.
 - 85 host-side unit tests.
 
